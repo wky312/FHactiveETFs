@@ -3,7 +3,6 @@ import { stockidToYfTicker, getSuffixCountry } from './exchangeMap';
 import { getCountry } from './country';
 
 const API_URL = 'https://www.fhtrust.com.tw/api/assets';
-const FUND_ID = 'ETF24';
 
 function parseNumber(value: unknown): number {
   if (typeof value === 'number') return value;
@@ -22,8 +21,8 @@ function resolveCountry(item: any): string {
   return getCountry(ticker) ?? getSuffixCountry(suffix);
 }
 
-export async function fetchHoldings(date: string): Promise<HoldingsResponse> {
-  const url = `${API_URL}?fundID=${FUND_ID}&qDate=${encodeURIComponent(date)}`;
+export async function fetchHoldings(date: string, fundId = 'ETF24'): Promise<HoldingsResponse> {
+  const url = `${API_URL}?fundID=${fundId}&qDate=${encodeURIComponent(date)}`;
   const res = await fetch(url, {
     next: { revalidate: 3600 },
     headers: { 'User-Agent': 'Mozilla/5.0' },
@@ -45,6 +44,11 @@ export async function fetchHoldings(date: string): Promise<HoldingsResponse> {
     country: resolveCountry(item),
     ftype: String(item.ftype ?? ''),
   }));
+
+  // 00991A 為純台股 ETF，無法辨識 suffix 時一律帶入台灣
+  if (fundId === 'ETF23') {
+    holdings.forEach(h => { if (h.country === 'Unknown' || h.country === '') h.country = '台灣'; });
+  }
 
   return { date: fund.dDate ?? date, holdings };
 }

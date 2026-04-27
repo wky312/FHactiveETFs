@@ -1,19 +1,53 @@
 'use client';
 import { Holding } from '@/lib/types';
-import PlotlyWrapper from './PlotlyWrapper';
 
-const GREY   = '#4D4D4F';
-const GREY_D = '#2D2D2F';
+const TEXT   = '#1C1C1E';
+const SUB    = '#6B6460';
+const BORDER = '#EEE9E4';
+const UP     = '#C00000';
+const DOWN   = '#1A6B45';
+const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
+const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
 const STATUS_ORDER = { new: 0, increased: 1, decreased: 2, unchanged: 3, removed: 4 } as const;
 type Status = keyof typeof STATUS_ORDER;
 
-const STATUS_COLOR: Record<Status, string> = {
-  new:       '#D4EDDA',
-  removed:   '#F8D7DA',
-  increased: '#FFF3CD',
-  decreased: '#CCE5FF',
-  unchanged: '#FFFFFF',
+const ROW_BG: Record<Status, string> = {
+  new:       '#FFF5F5',
+  increased: '#FFFAFA',
+  decreased: '#F5FBF5',
+  removed:   '#EEF8EE',
+  unchanged: '#ffffff',
+};
+
+const BADGE: Record<Status, React.CSSProperties> = {
+  new:       { background: '#FFE8E8', color: UP,   border: '1px solid #FFCDD2' },
+  increased: { background: '#FFF0F0', color: UP,   border: '1px solid #FFE0E0' },
+  decreased: { background: '#E8F5EC', color: DOWN, border: '1px solid #C8E6C9' },
+  removed:   { background: '#D8EEDC', color: DOWN, border: '1px solid #A5D6A7' },
+  unchanged: { background: '#F2F2F2', color: '#999', border: '1px solid #DDD' },
+};
+
+const BADGE_LABEL: Record<Status, string> = {
+  new: '新倉', increased: '加碼', decreased: '減碼', removed: '清倉', unchanged: '—',
+};
+
+function diffColor(n: number | null) {
+  if (n === null || n === 0) return SUB;
+  return n > 0 ? UP : DOWN;
+}
+
+const f   = (n: number | null) => n === null ? '—' : n.toLocaleString('en-US', { maximumFractionDigits: 0 });
+const fd  = (n: number | null) => {
+  if (n === null) return '';
+  const s = Math.abs(n).toLocaleString('en-US', { maximumFractionDigits: 0 });
+  return n > 0 ? `+${s}` : n < 0 ? `−${s}` : '0';
+};
+const fp  = (n: number | null) => n === null ? '—' : `${n.toFixed(3)}%`;
+const fdp = (n: number | null) => {
+  if (n === null) return '';
+  const s = Math.abs(n).toFixed(3);
+  return n > 0 ? `+${s}%` : n < 0 ? `−${s}%` : '0%';
 };
 
 interface Row {
@@ -27,13 +61,12 @@ function buildRows(curr: Holding[], prev: Holding[]): Row[] {
   const cm = new Map(curr.map(h => [h.stockid || h.stockname, h]));
   const pm = new Map(prev.map(h => [h.stockid || h.stockname, h]));
   const keys = new Set([...cm.keys(), ...pm.keys()]);
-
   const rows: Row[] = [];
   for (const key of keys) {
     const c = cm.get(key), p = pm.get(key);
     let status: Status = 'unchanged';
-    if (c && !p)             status = 'new';
-    else if (!c)             status = 'removed';
+    if  (c && !p)                   status = 'new';
+    else if (!c)                    status = 'removed';
     else if (c.qshare > p!.qshare) status = 'increased';
     else if (c.qshare < p!.qshare) status = 'decreased';
     rows.push({
@@ -54,68 +87,122 @@ function buildRows(curr: Holding[], prev: Holding[]): Row[] {
   );
 }
 
-const f  = (n: number | null)                => n === null ? '—' : n.toLocaleString('en-US', { maximumFractionDigits: 0 });
-const fd = (n: number | null)                => n === null ? '' : (n >= 0 ? '+' : '') + n.toLocaleString('en-US', { maximumFractionDigits: 0 });
-const fp = (n: number | null)                => n === null ? '—' : `${n.toFixed(3)}%`;
-const fdp = (n: number | null)               => n === null ? '' : `${n >= 0 ? '+' : ''}${n.toFixed(3)}%`;
+interface Props { baseDate: string; cmpDate: string; baseHoldings: Holding[]; cmpHoldings: Holding[] }
 
-interface Props {
-  baseDate: string; cmpDate: string;
-  baseHoldings: Holding[]; cmpHoldings: Holding[];
-}
+const TH: React.CSSProperties = {
+  padding: '11px 10px', fontWeight: 600, fontSize: '.75rem', letterSpacing: '.4px',
+  background: '#1C1C1E', color: '#fff', whiteSpace: 'nowrap',
+  position: 'sticky', top: 0, zIndex: 1,
+};
 
-const LEGEND = [
-  { color: '#D4EDDA', border: '#C3E6CB', label: '新增持股' },
-  { color: '#F8D7DA', border: '#F5C6CB', label: '移除持股' },
-  { color: '#FFF3CD', border: '#FFE082', label: '持股增加' },
-  { color: '#CCE5FF', border: '#B8DAFF', label: '持股減少' },
-  { color: '#FFFFFF', border: '#CCC',    label: '無變化' },
-];
+const BADGE_STYLE: React.CSSProperties = {
+  display: 'inline-block', padding: '2px 8px', borderRadius: 4,
+  fontSize: '.72rem', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: SANS,
+};
 
 export default function CompareTab({ baseDate, cmpDate, baseHoldings, cmpHoldings }: Props) {
-  const rows   = buildRows(baseHoldings, cmpHoldings);
-  const colors = rows.map(r => STATUS_COLOR[r.status]);
-  const bs     = baseDate.slice(5), cs = cmpDate.slice(5);
+  const rows = buildRows(baseHoldings, cmpHoldings);
+  const bs = baseDate.slice(5), cs = cmpDate.slice(5);
 
-  const traces = [{
-    type: 'table',
-    columnwidth: [80, 175, 105, 118, 118, 85, 80, 80, 88],
-    header: {
-      values: [
-        '<b>代碼</b>', '<b>名稱</b>', '<b>國家</b>',
-        `<b>持股(${baseDate})</b>`, `<b>持股(${cmpDate})</b>`, '<b>持股變化</b>',
-        `<b>佔比%(${bs})</b>`, `<b>佔比%(${cs})</b>`, '<b>佔比變化</b>',
-      ],
-      fill: { color: GREY }, font: { color: 'white', size: 12 },
-      align: 'center', height: 38, line: { color: GREY_D },
-    },
-    cells: {
-      values: [
-        rows.map(r => r.stockid),   rows.map(r => r.stockname), rows.map(r => r.country),
-        rows.map(r => f(r.curr_q)), rows.map(r => f(r.prev_q)), rows.map(r => fd(r.diff_q)),
-        rows.map(r => fp(r.curr_p)), rows.map(r => fp(r.prev_p)), rows.map(r => fdp(r.diff_p)),
-      ],
-      fill: { color: Array(9).fill(colors) },
-      font: { size: 12 },
-      align: ['center', 'left', 'center', 'right', 'right', 'right', 'right', 'right', 'right'],
-      height: 30, line: { color: '#E0E0E0' },
-    },
-  }];
+  const counts = {
+    new:       rows.filter(r => r.status === 'new').length,
+    increased: rows.filter(r => r.status === 'increased').length,
+    decreased: rows.filter(r => r.status === 'decreased').length,
+    removed:   rows.filter(r => r.status === 'removed').length,
+  };
+  const totalChanged = counts.new + counts.increased + counts.decreased + counts.removed;
+
+  const STAT_CARDS = [
+    { label: '新增持倉', value: counts.new,       color: UP   },
+    { label: '加碼',     value: counts.increased,  color: UP   },
+    { label: '減碼',     value: counts.decreased,  color: DOWN },
+    { label: '總變化筆數', value: totalChanged,     color: TEXT },
+  ];
 
   return (
     <>
-      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', fontSize: 12, marginBottom: 12, color: '#555' }}>
-        {LEGEND.map(({ color, border, label }) => (
-          <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
-            <div style={{ width: 13, height: 13, borderRadius: 3, background: color, border: `1px solid ${border}`, flexShrink: 0 }} />
-            {label}
+      {/* Stat cards */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+        border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden',
+        marginBottom: 14, background: '#FAFAF9',
+      }}>
+        {STAT_CARDS.map((c, i) => (
+          <div key={c.label} style={{
+            padding: '14px 18px',
+            borderRight: i < 3 ? `1px solid ${BORDER}` : 'none',
+          }}>
+            <div style={{ fontSize: '.72rem', color: SUB, fontWeight: 500, marginBottom: 5, fontFamily: SANS }}>{c.label}</div>
+            <div style={{ fontSize: '1.8rem', fontWeight: 700, color: c.color, fontFamily: MONO, lineHeight: 1.1 }}>{c.value}</div>
           </div>
         ))}
       </div>
-      <PlotlyWrapper
-        traces={traces}
-        layout={{ margin: { l: 5, r: 5, t: 5, b: 5 }, height: Math.max(420, rows.length * 32 + 65) }}
-      />
+
+      {/* Legend + row count */}
+      <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
+        {(['new', 'increased', 'decreased', 'removed', 'unchanged'] as Status[]).map(s => (
+          <span key={s} style={{ ...BADGE_STYLE, ...BADGE[s] }}>{BADGE_LABEL[s]}</span>
+        ))}
+        <span style={{ marginLeft: 'auto', fontSize: '.8rem', color: SUB }}>顯示 {rows.length}/{rows.length} 筆</span>
+      </div>
+
+      {/* Table */}
+      <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '65vh', borderRadius: 8, border: '1px solid #E8E3DF' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 860 }}>
+          <thead>
+            <tr>
+              <th style={{ ...TH, textAlign: 'center', width: 78 }}>代碼</th>
+              <th style={{ ...TH, textAlign: 'left',   minWidth: 150 }}>名稱</th>
+              <th style={{ ...TH, textAlign: 'center', width: 80 }}>國家</th>
+              <th style={{ ...TH, textAlign: 'right',  width: 110 }}>持股 ({cs})</th>
+              <th style={{ ...TH, textAlign: 'right',  width: 110 }}>持股 ({bs})</th>
+              <th style={{ ...TH, textAlign: 'right',  width: 88 }}>持股變化</th>
+              <th style={{ ...TH, textAlign: 'right',  width: 90 }}>佔比% ({cs})</th>
+              <th style={{ ...TH, textAlign: 'right',  width: 90 }}>佔比% ({bs})</th>
+              <th style={{ ...TH, textAlign: 'right',  width: 88 }}>佔比變化</th>
+              <th style={{ ...TH, textAlign: 'center', width: 68 }}>操作</th>
+            </tr>
+          </thead>
+          <tbody>
+            {rows.map((r, i) => (
+              <tr key={`${r.stockid}-${i}`} style={{ background: ROW_BG[r.status], borderBottom: `1px solid ${BORDER}` }}>
+                <td style={{ padding: '8px 10px', textAlign: 'center', fontFamily: MONO, fontSize: '.78rem', color: SUB }}>
+                  {r.stockid || '—'}
+                </td>
+                <td style={{ padding: '8px 10px', fontSize: '.85rem', color: TEXT, maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                  {r.stockname}
+                </td>
+                <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: '.78rem', color: SUB }}>
+                  {r.country}
+                </td>
+                <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: r.status === 'removed' ? '#BBB' : TEXT }}>
+                  {f(r.prev_q)}
+                </td>
+                <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: r.status === 'new' ? '#BBB' : TEXT }}>
+                  {f(r.curr_q)}
+                </td>
+                <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', fontWeight: 600, color: diffColor(r.diff_q) }}>
+                  {fd(r.diff_q)}
+                </td>
+                <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: r.status === 'removed' ? '#BBB' : TEXT }}>
+                  {fp(r.prev_p)}
+                </td>
+                <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: r.status === 'new' ? '#BBB' : TEXT }}>
+                  {fp(r.curr_p)}
+                </td>
+                <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', fontWeight: 600, color: diffColor(r.diff_p) }}>
+                  {fdp(r.diff_p)}
+                </td>
+                <td style={{ padding: '8px 10px', textAlign: 'center' }}>
+                  <span style={{ ...BADGE_STYLE, ...BADGE[r.status] }}>
+                    {BADGE_LABEL[r.status]}
+                  </span>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
     </>
   );
 }

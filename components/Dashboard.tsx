@@ -1,34 +1,62 @@
 'use client';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef, forwardRef } from 'react';
 import { Holding } from '@/lib/types';
+import { ETF_LIST, EtfConfig, DEFAULT_ETF } from '@/lib/etfList';
 import HoldingsTab from './HoldingsTab';
 import CompareTab from './CompareTab';
 import CountryTab from './CountryTab';
 
+/* ── Design tokens ── */
 const RED    = '#C00000';
-const GREY   = '#4D4D4F';
-const GREY_D = '#2D2D2F';
 const GOLD   = '#B08F6E';
+const BG     = '#F0EDE8';
+const CARD   = '#FFFFFF';
+const HEADER = '#F7F4F0';
+const TEXT   = '#1C1C1E';
+const SUB    = '#6B6460';
+const BORDER = '#E8E3DF';
+const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
+const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
 type Tab = 'holdings' | 'compare' | 'country';
-
 interface LoadedData { date: string; holdings: Holding[] }
 
-function todayStr() { return new Date().toISOString().slice(0, 10); }
-function prevDay()   {
-  const d = new Date(); d.setDate(d.getDate() - 1);
-  return d.toISOString().slice(0, 10);
+function localStr(d: Date): string {
+  const y = d.getFullYear();
+  const m = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${y}-${m}-${day}`;
+}
+function prevTradingDay(from: Date): Date {
+  const d = new Date(from);
+  do { d.setDate(d.getDate() - 1); } while (d.getDay() === 0 || d.getDay() === 6);
+  return d;
+}
+function defaultDate(): string {
+  const now = new Date();
+  const isWeekday = now.getDay() >= 1 && now.getDay() <= 5;
+  if (isWeekday && now.getHours() >= 17) return localStr(now);
+  return localStr(prevTradingDay(now));
+}
+function prevDay(): string {
+  return localStr(prevTradingDay(new Date(defaultDate())));
 }
 function toApiDate(s: string) { return s.replace(/-/g, '/'); }
 
-/* ── Shared sub-components ── */
+/* ── Shared UI ── */
 function DateInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
     <div>
-      <label style={{ display: 'block', fontSize: '.82rem', color: '#777', marginBottom: 5 }}>{label}</label>
+      <label style={{ display: 'block', fontSize: '.78rem', color: SUB, marginBottom: 4, fontWeight: 500 }}>
+        {label}
+      </label>
       <input
         type="date" value={value} onChange={e => onChange(e.target.value)}
-        style={{ padding: '7px 12px', border: '1px solid #CCC', borderRadius: 5, fontSize: '.88rem', color: GREY_D }}
+        style={{
+          padding: '7px 12px', border: `1px solid ${BORDER}`, borderRadius: 6,
+          fontSize: '.87rem', color: TEXT, background: CARD,
+          fontFamily: MONO,
+        }}
       />
     </div>
   );
@@ -39,9 +67,12 @@ function ActionButton({ onClick, loading, label }: { onClick: () => void; loadin
     <button
       onClick={onClick} disabled={loading}
       style={{
-        padding: '8px 22px', background: loading ? '#999' : RED,
-        color: '#fff', border: 'none', borderRadius: 5,
-        cursor: loading ? 'not-allowed' : 'pointer', fontSize: '.9rem', fontWeight: 600,
+        padding: '8px 22px',
+        background: loading ? '#999' : RED,
+        color: '#fff', border: 'none', borderRadius: 6,
+        cursor: loading ? 'not-allowed' : 'pointer',
+        fontSize: '.88rem', fontWeight: 600, letterSpacing: '.3px',
+        fontFamily: SANS,
       }}
     >
       {loading ? '載入中…' : label}
@@ -50,44 +81,64 @@ function ActionButton({ onClick, loading, label }: { onClick: () => void; loadin
 }
 
 function ErrorMsg({ msg }: { msg: string }) {
-  return msg ? <p style={{ color: RED, marginBottom: 12, fontSize: '.9rem' }}>⚠ {msg}</p> : null;
+  return msg
+    ? <p style={{ color: RED, marginBottom: 12, fontSize: '.88rem' }}>⚠ {msg}</p>
+    : null;
 }
 
 function EmptyHint({ text }: { text: string }) {
-  return <p style={{ color: '#999', textAlign: 'center', padding: '40px 0', fontSize: '.9rem' }}>{text}</p>;
+  return <p style={{ color: '#AAA', textAlign: 'center', padding: '40px 0', fontSize: '.9rem' }}>{text}</p>;
 }
 
-function Card({ title, children }: { title: string; children: React.ReactNode }) {
-  return (
-    <div style={{ background: '#fff', borderRadius: 8, padding: '18px 20px', boxShadow: '0 2px 8px rgba(0,0,0,.07)' }}>
-      <div style={{ borderBottom: `2px solid ${RED}`, paddingBottom: 10, marginBottom: 16, fontWeight: 600, color: GREY_D, fontSize: '1rem' }}>
-        {title}
+const Card = forwardRef<HTMLDivElement, { title: string; children: React.ReactNode; onSave?: () => void }>(
+  ({ title, children, onSave }, ref) => (
+    <div ref={ref} style={{ background: CARD, borderRadius: 10, padding: '20px 22px', boxShadow: '0 1px 6px rgba(0,0,0,.07)' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
+        <h2 style={{
+          margin: 0, fontSize: '1rem', fontWeight: 700, color: TEXT,
+          borderLeft: `3px solid ${RED}`, paddingLeft: 12, lineHeight: '1.3',
+        }}>
+          {title}
+        </h2>
+        {onSave && (
+          <button onClick={onSave} style={{
+            padding: '5px 14px', background: CARD, color: SUB,
+            border: `1px solid ${BORDER}`, borderRadius: 6,
+            cursor: 'pointer', fontSize: '.78rem', fontWeight: 500, fontFamily: SANS,
+          }}>
+            存成圖片
+          </button>
+        )}
       </div>
       {children}
     </div>
-  );
-}
+  )
+);
+Card.displayName = 'Card';
 
 /* ── Main Dashboard ── */
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('holdings');
+  const [selectedEtf, setSelectedEtf] = useState<EtfConfig>(DEFAULT_ETF);
 
-  // Tab 1: Holdings & Country (shared data)
-  const [holdDate,    setHoldDate]    = useState(todayStr());
+  const [holdDate,    setHoldDate]    = useState(defaultDate());
   const [holdData,    setHoldData]    = useState<LoadedData | null>(null);
   const [holdLoading, setHoldLoading] = useState(false);
   const [holdError,   setHoldError]   = useState('');
 
-  // Tab 2: Compare
-  const [baseDate,    setBaseDate]    = useState(todayStr());
-  const [cmpDate,     setCmpDate]     = useState(prevDay());
-  const [baseData,    setBaseData]    = useState<LoadedData | null>(null);
-  const [cmpData,     setCmpData]     = useState<LoadedData | null>(null);
-  const [cmpLoading,  setCmpLoading]  = useState(false);
-  const [cmpError,    setCmpError]    = useState('');
+  const [baseDate,   setBaseDate]   = useState(defaultDate());
+  const [cmpDate,    setCmpDate]    = useState(prevDay());
+  const [baseData,   setBaseData]   = useState<LoadedData | null>(null);
+  const [cmpData,    setCmpData]    = useState<LoadedData | null>(null);
+  const [cmpLoading, setCmpLoading] = useState(false);
+  const [cmpError,   setCmpError]   = useState('');
 
-  const fetchData = useCallback(async (dateStr: string): Promise<LoadedData> => {
-    const res  = await fetch(`/api/holdings?date=${encodeURIComponent(toApiDate(dateStr))}`);
+  const holdingsRef = useRef<HTMLDivElement>(null);
+  const compareRef  = useRef<HTMLDivElement>(null);
+  const countryRef  = useRef<HTMLDivElement>(null);
+
+  const fetchData = useCallback(async (dateStr: string, fundId: string): Promise<LoadedData> => {
+    const res  = await fetch(`/api/holdings?date=${encodeURIComponent(toApiDate(dateStr))}&fundId=${encodeURIComponent(fundId)}`);
     const json = await res.json();
     if (!res.ok) throw new Error(json.error ?? '載入失敗');
     return json as LoadedData;
@@ -95,19 +146,42 @@ export default function Dashboard() {
 
   const loadHoldings = useCallback(async () => {
     setHoldLoading(true); setHoldError('');
-    try   { setHoldData(await fetchData(holdDate)); }
+    try   { setHoldData(await fetchData(holdDate, selectedEtf.fundId)); }
     catch (e) { setHoldError(e instanceof Error ? e.message : '載入失敗'); }
     finally   { setHoldLoading(false); }
-  }, [holdDate, fetchData]);
+  }, [holdDate, selectedEtf, fetchData]);
 
   const loadCompare = useCallback(async () => {
     setCmpLoading(true); setCmpError('');
     try {
-      const [b, c] = await Promise.all([fetchData(baseDate), fetchData(cmpDate)]);
+      const [b, c] = await Promise.all([fetchData(baseDate, selectedEtf.fundId), fetchData(cmpDate, selectedEtf.fundId)]);
       setBaseData(b); setCmpData(c);
     } catch (e) { setCmpError(e instanceof Error ? e.message : '載入失敗'); }
     finally     { setCmpLoading(false); }
-  }, [baseDate, cmpDate, fetchData]);
+  }, [baseDate, cmpDate, selectedEtf, fetchData]);
+
+  const handleEtfChange = useCallback((ticker: string) => {
+    const etf = ETF_LIST.find(e => e.ticker === ticker) ?? DEFAULT_ETF;
+    setSelectedEtf(etf);
+    setHoldData(null); setBaseData(null); setCmpData(null);
+    setHoldError(''); setCmpError('');
+  }, []);
+
+  const saveImage = useCallback(async (ref: React.RefObject<HTMLDivElement | null>, filename: string) => {
+    const el = ref.current;
+    if (!el) return;
+    try {
+      await document.fonts.ready;
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
+      const link = document.createElement('a');
+      link.download = filename;
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    } catch (e) { console.error('截圖失敗', e); }
+  }, []);
+
+  const imgName = (label: string) => `${selectedEtf.ticker}_${label}_${holdDate}.png`;
 
   const TABS: { id: Tab; label: string }[] = [
     { id: 'holdings', label: '當天持股清單' },
@@ -116,39 +190,71 @@ export default function Dashboard() {
   ];
 
   return (
-    <div style={{ minHeight: '100vh', background: '#F5F5F5', fontFamily: "'Segoe UI', Arial, sans-serif" }}>
+    <div style={{ minHeight: '100vh', background: BG, fontFamily: SANS }}>
 
-      {/* Header */}
-      <div style={{ background: GREY, borderBottom: `4px solid ${GOLD}`, padding: '18px 28px', color: '#fff' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, letterSpacing: '.5px', margin: 0 }}>
-          00998A &nbsp;復華全球金融股票主動式ETF
-        </h1>
-        <p style={{ fontSize: '.85rem', opacity: .72, marginTop: 5, marginBottom: 0 }}>持股分析報告</p>
-      </div>
+      {/* ── Sticky Header ── */}
+      <header style={{
+        position: 'sticky', top: 0, zIndex: 100,
+        background: HEADER, borderBottom: `3px solid ${RED}`,
+        height: 64,
+        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+        padding: '0 28px',
+      }}>
+        <div>
+          <h1 style={{ margin: 0, fontSize: '1.22rem', fontWeight: 700, letterSpacing: '.3px', color: TEXT, lineHeight: 1.25, fontFamily: SANS }}>
+            <span style={{ color: RED }}>復華</span>主動式ETF 持股資訊
+          </h1>
+          <p style={{ margin: 0, fontSize: '.76rem', color: SUB, marginTop: 2 }}>
+            {selectedEtf.ticker}&nbsp;{selectedEtf.name}
+          </p>
+        </div>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: '.78rem', color: SUB, fontWeight: 500 }}>基金</span>
+          <select
+            value={selectedEtf.ticker}
+            onChange={e => handleEtfChange(e.target.value)}
+            style={{
+              padding: '6px 10px', borderRadius: 6, border: `1px solid ${BORDER}`,
+              background: CARD, color: TEXT, fontSize: '.85rem',
+              cursor: 'pointer', fontFamily: SANS,
+            }}
+          >
+            {ETF_LIST.map(e => (
+              <option key={e.ticker} value={e.ticker}>{e.ticker}</option>
+            ))}
+          </select>
+        </div>
+      </header>
 
-      {/* Tabs */}
-      <div style={{ display: 'flex', background: GREY_D, padding: '0 20px', borderBottom: `2px solid ${RED}` }}>
+      {/* ── Navigation ── */}
+      <nav style={{ background: CARD, borderBottom: `1px solid ${BORDER}`, padding: '0 24px', display: 'flex' }}>
         {TABS.map(t => (
-          <button key={t.id} onClick={() => setActiveTab(t.id)} style={{
-            padding: '12px 26px', border: 'none', background: 'transparent', cursor: 'pointer',
-            color: activeTab === t.id ? '#fff' : 'rgba(255,255,255,.55)',
-            fontWeight: activeTab === t.id ? 600 : 400, fontSize: '.92rem',
-            borderBottom: `3px solid ${activeTab === t.id ? GOLD : 'transparent'}`,
-            marginBottom: -2, transition: 'all .15s',
-          }}>
+          <button
+            key={t.id}
+            onClick={() => setActiveTab(t.id)}
+            style={{
+              padding: '13px 22px', border: 'none', background: 'transparent', cursor: 'pointer',
+              fontSize: '.9rem', fontWeight: activeTab === t.id ? 600 : 400,
+              color: activeTab === t.id ? RED : SUB,
+              borderBottom: `2.5px solid ${activeTab === t.id ? RED : 'transparent'}`,
+              marginBottom: -1, transition: 'all .15s', fontFamily: SANS,
+            }}
+          >
             {t.label}
           </button>
         ))}
-      </div>
+      </nav>
 
-      {/* Content */}
-      <div style={{ padding: 20 }}>
+      {/* ── Content ── */}
+      <main style={{ padding: '20px 24px' }}>
 
-        {/* ① 持股清單 */}
         {activeTab === 'holdings' && (
-          <Card title="持股清單">
-            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 16, flexWrap: 'wrap' }}>
-              <DateInput label="日期" value={holdDate} onChange={setHoldDate} />
+          <Card
+            ref={holdingsRef} title="持股清單"
+            onSave={holdData ? () => saveImage(holdingsRef, imgName('持股清單')) : undefined}
+          >
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 18, flexWrap: 'wrap' }}>
+              <DateInput label="資料日期" value={holdDate} onChange={setHoldDate} />
               <ActionButton onClick={loadHoldings} loading={holdLoading} label="載入" />
             </div>
             <ErrorMsg msg={holdError} />
@@ -159,12 +265,14 @@ export default function Dashboard() {
           </Card>
         )}
 
-        {/* ② 持股比較 */}
         {activeTab === 'compare' && (
-          <Card title="持股比較">
-            <div style={{ display: 'flex', gap: 20, alignItems: 'flex-end', marginBottom: 16, flexWrap: 'wrap' }}>
+          <Card
+            ref={compareRef} title="持股比較"
+            onSave={baseData && cmpData ? () => saveImage(compareRef, imgName('持股比較')) : undefined}
+          >
+            <div style={{ display: 'flex', gap: 20, alignItems: 'flex-end', marginBottom: 18, flexWrap: 'wrap' }}>
               <DateInput label="基準日期" value={baseDate} onChange={setBaseDate} />
-              <DateInput label="比較日期" value={cmpDate}  onChange={setCmpDate}  />
+              <DateInput label="比較日期" value={cmpDate}  onChange={setCmpDate} />
               <ActionButton onClick={loadCompare} loading={cmpLoading} label="載入比較" />
             </div>
             <ErrorMsg msg={cmpError} />
@@ -175,22 +283,25 @@ export default function Dashboard() {
           </Card>
         )}
 
-        {/* ③ 國家配置（共用持股清單的資料） */}
         {activeTab === 'country' && (
-          <Card title="國家 / 資產配置">
+          <Card
+            ref={countryRef} title="國家 / 資產配置"
+            onSave={holdData ? () => saveImage(countryRef, imgName('國家配置')) : undefined}
+          >
             {holdData
               ? <>
-                  <p style={{ fontSize: '.85rem', color: '#777', marginBottom: 16 }}>資料來源：持股清單 {holdData.date}</p>
+                  <p style={{ fontSize: '.82rem', color: SUB, marginBottom: 16, marginTop: 0 }}>資料來源：持股清單 {holdData.date}</p>
                   <CountryTab holdings={holdData.holdings} />
                 </>
               : (
                 <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                  <p style={{ color: '#999', fontSize: '.9rem', marginBottom: 16 }}>
-                    請先在「當天持股清單」頁面載入資料
-                  </p>
+                  <p style={{ color: '#AAA', fontSize: '.9rem', marginBottom: 18 }}>請先在「當天持股清單」頁面載入資料</p>
                   <div style={{ display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'flex-end', flexWrap: 'wrap' }}>
                     <DateInput label="日期" value={holdDate} onChange={setHoldDate} />
-                    <ActionButton onClick={async () => { setActiveTab('holdings'); await loadHoldings(); setActiveTab('country'); }} loading={holdLoading} label="載入" />
+                    <ActionButton
+                      onClick={async () => { setActiveTab('holdings'); await loadHoldings(); setActiveTab('country'); }}
+                      loading={holdLoading} label="載入"
+                    />
                   </div>
                   <ErrorMsg msg={holdError} />
                 </div>
@@ -198,8 +309,7 @@ export default function Dashboard() {
             }
           </Card>
         )}
-
-      </div>
+      </main>
     </div>
   );
 }
