@@ -80,10 +80,21 @@ function ActionButton({ onClick, loading, label }: { onClick: () => void; loadin
   );
 }
 
-function ErrorMsg({ msg }: { msg: string }) {
-  return msg
-    ? <p style={{ color: RED, marginBottom: 12, fontSize: '.88rem' }}>⚠ {msg}</p>
-    : null;
+function ErrorMsg({ msg, onReset }: { msg: string; onReset?: () => void }) {
+  if (!msg) return null;
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 14,
+      background: '#FFF5F5', border: '1px solid #FFCDD2', borderRadius: 6, padding: '10px 14px' }}>
+      <span style={{ color: RED, fontSize: '.88rem', flex: 1 }}>⚠ {msg}</span>
+      {onReset && (
+        <button onClick={onReset} style={{
+          padding: '4px 14px', background: '#fff', border: `1px solid ${BORDER}`,
+          borderRadius: 5, cursor: 'pointer', fontSize: '.8rem', color: SUB,
+          whiteSpace: 'nowrap', fontFamily: SANS,
+        }}>重新選擇日期</button>
+      )}
+    </div>
+  );
 }
 
 function EmptyHint({ text }: { text: string }) {
@@ -106,7 +117,7 @@ const Card = forwardRef<HTMLDivElement, { title: string; children: React.ReactNo
             border: `1px solid ${BORDER}`, borderRadius: 6,
             cursor: 'pointer', fontSize: '.78rem', fontWeight: 500, fontFamily: SANS,
           }}>
-            存成圖片
+            儲存 / 分享
           </button>
         )}
       </div>
@@ -174,9 +185,24 @@ export default function Dashboard() {
       await document.fonts.ready;
       const html2canvas = (await import('html2canvas')).default;
       const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
+      const jpgName = filename.replace(/\.png$/, '.jpg');
+
+      // 優先用 Web Share API（手機可直接分享到 LINE）
+      if (typeof navigator !== 'undefined' && navigator.canShare) {
+        try {
+          const blob = await new Promise<Blob>((res) => canvas.toBlob(b => res(b!), 'image/jpeg', 0.92));
+          const file = new File([blob], jpgName, { type: 'image/jpeg' });
+          if (navigator.canShare({ files: [file] })) {
+            await navigator.share({ title: '復華主動式ETF 持股資訊', files: [file] });
+            return;
+          }
+        } catch { /* 使用者取消或不支援，改下載 */ }
+      }
+
+      // Fallback：下載 JPG
       const link = document.createElement('a');
-      link.download = filename;
-      link.href = canvas.toDataURL('image/png');
+      link.download = jpgName;
+      link.href = canvas.toDataURL('image/jpeg', 0.92);
       link.click();
     } catch (e) { console.error('截圖失敗', e); }
   }, []);
@@ -257,7 +283,7 @@ export default function Dashboard() {
               <DateInput label="資料日期" value={holdDate} onChange={setHoldDate} />
               <ActionButton onClick={loadHoldings} loading={holdLoading} label="載入" />
             </div>
-            <ErrorMsg msg={holdError} />
+            <ErrorMsg msg={holdError} onReset={() => { setHoldError(''); setHoldData(null); }} />
             {holdData
               ? <HoldingsTab holdings={holdData.holdings} date={holdData.date} />
               : !holdLoading && <EmptyHint text="請選擇日期並點擊「載入」" />
@@ -275,7 +301,7 @@ export default function Dashboard() {
               <DateInput label="比較日期" value={cmpDate}  onChange={setCmpDate} />
               <ActionButton onClick={loadCompare} loading={cmpLoading} label="載入比較" />
             </div>
-            <ErrorMsg msg={cmpError} />
+            <ErrorMsg msg={cmpError} onReset={() => { setCmpError(''); setBaseData(null); setCmpData(null); }} />
             {baseData && cmpData
               ? <CompareTab baseDate={baseData.date} cmpDate={cmpData.date} baseHoldings={baseData.holdings} cmpHoldings={cmpData.holdings} />
               : !cmpLoading && <EmptyHint text="請選擇兩個日期並點擊「載入比較」" />
@@ -303,7 +329,7 @@ export default function Dashboard() {
                       loading={holdLoading} label="載入"
                     />
                   </div>
-                  <ErrorMsg msg={holdError} />
+                  <ErrorMsg msg={holdError} onReset={() => { setHoldError(''); setHoldData(null); }} />
                 </div>
               )
             }

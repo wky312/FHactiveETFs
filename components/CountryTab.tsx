@@ -77,7 +77,7 @@ export default function CountryTab({ holdings }: { holdings: Holding[] }) {
     type: 'pie', hole: 0.52,
     labels: donutLabels, values: donutValues,
     marker: { colors: donutColors, line: { color: '#fff', width: 2 } },
-    textinfo: 'percent',
+    texttemplate: '%{value:.2f}%',
     textfont: { family: "'IBM Plex Mono', monospace", size: 11 },
     hovertemplate: '<b>%{label}</b><br>%{value:.3f}%<extra></extra>',
     sort: false,
