@@ -1,0 +1,219 @@
+'use client';
+import { useState, useMemo } from 'react';
+import * as XLSX from 'xlsx';
+import { StockPerformance } from '@/lib/yahooFinance';
+
+const RED    = '#C00000';
+const GREEN  = '#1a7f37';
+const TEXT   = '#1C1C1E';
+const SUB    = '#6B6460';
+const BORDER = '#EEE9E4';
+const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
+const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
+
+type SortKey = 'prate' | 'today' | 'd3' | 'd5' | 'm1' | 'm3' | 'ytd';
+
+const PERF_COLS: { key: SortKey; label: string }[] = [
+  { key: 'today', label: '今日' },
+  { key: 'd3',    label: '近3日' },
+  { key: 'd5',    label: '近5日' },
+  { key: 'm1',    label: '近一月' },
+  { key: 'm3',    label: '近三月' },
+  { key: 'ytd',   label: 'YTD' },
+];
+
+// 台股慣例：漲=紅，跌=綠
+function perfColor(v: number | null): string {
+  if (v === null) return SUB;
+  if (v >= 3)  return '#b91c1c';
+  if (v >= 1)  return '#dc2626';
+  if (v <= -3) return '#1a7f37';
+  if (v <= -1) return '#2da44e';
+  return TEXT;
+}
+
+function perfBg(v: number | null): string {
+  if (v === null) return 'transparent';
+  if (v >= 3)  return '#fee2e2';
+  if (v >= 1)  return '#fef2f2';
+  if (v <= -3) return '#dcfce7';
+  if (v <= -1) return '#f0fdf4';
+  return 'transparent';
+}
+
+function fmtPct(v: number | null): string {
+  if (v === null) return '—';
+  return `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`;
+}
+
+function fmtNum(v: number | null, decimals = 2): string | number {
+  return v === null ? '' : parseFloat(v.toFixed(decimals));
+}
+
+const TH: React.CSSProperties = {
+  padding: '10px 12px', fontWeight: 600, fontSize: '.75rem', letterSpacing: '.4px',
+  background: '#1C1C1E', color: '#fff', whiteSpace: 'nowrap',
+  position: 'sticky', top: 0, zIndex: 1, cursor: 'pointer', userSelect: 'none',
+};
+
+function exportExcel(results: StockPerformance[], date: string, ticker: string) {
+  const headers = ['代碼', '名稱', '佔比%', '現價', '今日%', '近3日%', '近5日%', '近一月%', '近三月%', 'YTD%'];
+  const rows = results.map(r => [
+    r.stockid,
+    r.stockname,
+    fmtNum(r.prate, 3),
+    r.currentPrice ?? '',
+    fmtNum(r.today),
+    fmtNum(r.d3),
+    fmtNum(r.d5),
+    fmtNum(r.m1),
+    fmtNum(r.m3),
+    fmtNum(r.ytd),
+  ]);
+
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+
+  // Column widths
+  ws['!cols'] = [
+    { wch: 8 }, { wch: 16 }, { wch: 8 }, { wch: 8 },
+    { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 10 }, { wch: 10 }, { wch: 8 },
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '股價表現');
+  XLSX.writeFile(wb, `${ticker}_股價表現_${date}.xlsx`);
+}
+
+export default function PerformanceTab({
+  results, date, etfTicker,
+}: {
+  results: StockPerformance[];
+  date: string;
+  etfTicker: string;
+}) {
+  const [sortKey, setSortKey] = useState<SortKey>('today');
+  const [sortAsc, setSortAsc] = useState(false);
+
+  const sorted = useMemo(() => {
+    return [...results].sort((a, b) => {
+      const av = a[sortKey] ?? -Infinity;
+      const bv = b[sortKey] ?? -Infinity;
+      return sortAsc ? av - bv : bv - av;
+    });
+  }, [results, sortKey, sortAsc]);
+
+  const toggleSort = (key: SortKey) => {
+    if (key === sortKey) setSortAsc(p => !p);
+    else { setSortKey(key); setSortAsc(false); }
+  };
+
+  const withToday   = results.filter(r => r.today !== null);
+  const upCount     = withToday.filter(r => (r.today ?? 0) > 0).length;
+  const downCount   = withToday.filter(r => (r.today ?? 0) < 0).length;
+  const weightedRet = withToday.reduce((s, r) => s + r.prate * (r.today ?? 0) / 100, 0);
+
+  return (
+    <>
+      <div style={{ display: 'flex', gap: 16, marginBottom: 12, fontSize: '.82rem', color: SUB, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+          <span>持股日期：<strong style={{ color: TEXT, fontFamily: MONO }}>{date}</strong></span>
+          <span style={{ color: BORDER }}>|</span>
+          <span>股價來源：Yahoo Finance（延遲）</span>
+        </div>
+        <button
+          onClick={() => exportExcel(sorted, date, etfTicker)}
+          style={{
+            padding: '6px 16px', background: '#fff', border: `1px solid ${BORDER}`,
+            borderRadius: 6, cursor: 'pointer', fontSize: '.8rem', color: SUB,
+            fontFamily: SANS, fontWeight: 500, display: 'flex', alignItems: 'center', gap: 6,
+          }}
+        >
+          ↓ 匯出 Excel
+        </button>
+      </div>
+
+      {/* Summary bar */}
+      <div style={{
+        display: 'grid', gridTemplateColumns: 'repeat(4,1fr)',
+        border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden',
+        marginBottom: 16, background: '#FAFAF9',
+      }}>
+        {[
+          { label: '今日上漲',  value: `${upCount} 檔`,   color: RED   },
+          { label: '今日下跌',  value: `${downCount} 檔`, color: GREEN },
+          { label: '平盤/未知', value: `${results.length - upCount - downCount} 檔`, color: SUB },
+          {
+            label: '加權今日報酬',
+            value: withToday.length ? `${weightedRet >= 0 ? '+' : ''}${weightedRet.toFixed(3)}%` : '—',
+            color: weightedRet > 0 ? RED : weightedRet < 0 ? GREEN : TEXT,
+          },
+        ].map((c, i, arr) => (
+          <div key={c.label} style={{
+            padding: '14px 16px',
+            borderRight: i < arr.length - 1 ? `1px solid ${BORDER}` : 'none',
+          }}>
+            <div style={{ fontSize: '.72rem', color: SUB, fontWeight: 500, marginBottom: 4, fontFamily: SANS }}>{c.label}</div>
+            <div style={{ fontSize: '1.45rem', fontWeight: 700, color: c.color, fontFamily: MONO, lineHeight: 1.1 }}>{c.value}</div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '65vh', borderRadius: 8, border: `1px solid ${BORDER}` }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 780 }}>
+          <thead>
+            <tr>
+              <th style={{ ...TH, textAlign: 'center', width: 76 }}>代碼</th>
+              <th style={{ ...TH, textAlign: 'left' }}>名稱</th>
+              <th
+                style={{ ...TH, textAlign: 'right', background: sortKey === 'prate' ? '#333' : '#1C1C1E' }}
+                onClick={() => toggleSort('prate')}
+              >
+                佔比{sortKey === 'prate' ? (sortAsc ? ' ↑' : ' ↓') : ''}
+              </th>
+              <th style={{ ...TH, textAlign: 'right', width: 70 }}>現價</th>
+              {PERF_COLS.map(c => (
+                <th
+                  key={c.key}
+                  style={{ ...TH, textAlign: 'right', background: sortKey === c.key ? '#333' : '#1C1C1E' }}
+                  onClick={() => toggleSort(c.key)}
+                >
+                  {c.label}{sortKey === c.key ? (sortAsc ? ' ↑' : ' ↓') : ''}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {sorted.map((r, i) => (
+              <tr key={`${r.stockid}-${i}`} style={{
+                background: i % 2 === 0 ? '#fff' : '#FAFAF9',
+                borderBottom: `1px solid ${BORDER}`,
+              }}>
+                <td style={{ padding: '8px 12px', textAlign: 'center', fontSize: '.8rem', fontFamily: MONO, color: SUB }}>{r.stockid || '—'}</td>
+                <td style={{ padding: '8px 12px', fontSize: '.86rem', color: TEXT, maxWidth: 180, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.stockname}</td>
+                <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', color: TEXT, fontWeight: 500 }}>{r.prate.toFixed(3)}%</td>
+                <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: SUB }}>
+                  {r.currentPrice !== null ? r.currentPrice.toFixed(2) : '—'}
+                </td>
+                {PERF_COLS.map(c => {
+                  const v = r[c.key];
+                  return (
+                    <td
+                      key={c.key}
+                      style={{
+                        padding: '8px 12px', textAlign: 'right',
+                        fontFamily: MONO, fontSize: '.82rem', fontWeight: 600,
+                        color: perfColor(v), background: perfBg(v),
+                      }}
+                    >
+                      {fmtPct(v)}
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+    </>
+  );
+}

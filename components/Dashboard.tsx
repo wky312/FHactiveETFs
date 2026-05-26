@@ -1,10 +1,12 @@
 'use client';
 import { useState, useCallback, useRef, forwardRef } from 'react';
 import { Holding } from '@/lib/types';
+import { StockPerformance } from '@/lib/yahooFinance';
 import { ETF_LIST, EtfConfig, DEFAULT_ETF } from '@/lib/etfList';
 import HoldingsTab from './HoldingsTab';
 import CompareTab from './CompareTab';
 import CountryTab from './CountryTab';
+import PerformanceTab from './PerformanceTab';
 
 /* ── Design tokens ── */
 const RED    = '#C00000';
@@ -18,8 +20,9 @@ const BORDER = '#E8E3DF';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-type Tab = 'holdings' | 'compare' | 'country';
+type Tab = 'holdings' | 'compare' | 'country' | 'performance';
 interface LoadedData { date: string; holdings: Holding[] }
+interface PerfData { date: string; results: StockPerformance[] }
 
 function localStr(d: Date): string {
   const y = d.getFullYear();
@@ -144,9 +147,15 @@ export default function Dashboard() {
   const [cmpLoading, setCmpLoading] = useState(false);
   const [cmpError,   setCmpError]   = useState('');
 
-  const holdingsRef = useRef<HTMLDivElement>(null);
-  const compareRef  = useRef<HTMLDivElement>(null);
-  const countryRef  = useRef<HTMLDivElement>(null);
+  const [perfDate,    setPerfDate]    = useState(defaultDate());
+  const [perfData,    setPerfData]    = useState<PerfData | null>(null);
+  const [perfLoading, setPerfLoading] = useState(false);
+  const [perfError,   setPerfError]   = useState('');
+
+  const holdingsRef   = useRef<HTMLDivElement>(null);
+  const compareRef    = useRef<HTMLDivElement>(null);
+  const countryRef    = useRef<HTMLDivElement>(null);
+  const performanceRef = useRef<HTMLDivElement>(null);
 
   const fetchData = useCallback(async (dateStr: string, fundId: string): Promise<LoadedData> => {
     const res  = await fetch(`/api/holdings?date=${encodeURIComponent(toApiDate(dateStr))}&fundId=${encodeURIComponent(fundId)}`);
@@ -171,11 +180,22 @@ export default function Dashboard() {
     finally     { setCmpLoading(false); }
   }, [baseDate, cmpDate, selectedEtf, fetchData]);
 
+  const loadPerformance = useCallback(async () => {
+    setPerfLoading(true); setPerfError('');
+    try {
+      const res  = await fetch(`/api/performance?date=${encodeURIComponent(toApiDate(perfDate))}&fundId=${encodeURIComponent(selectedEtf.fundId)}`);
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? '載入失敗');
+      setPerfData(json as PerfData);
+    } catch (e) { setPerfError(e instanceof Error ? e.message : '載入失敗'); }
+    finally     { setPerfLoading(false); }
+  }, [perfDate, selectedEtf]);
+
   const handleEtfChange = useCallback((ticker: string) => {
     const etf = ETF_LIST.find(e => e.ticker === ticker) ?? DEFAULT_ETF;
     setSelectedEtf(etf);
-    setHoldData(null); setBaseData(null); setCmpData(null);
-    setHoldError(''); setCmpError('');
+    setHoldData(null); setBaseData(null); setCmpData(null); setPerfData(null);
+    setHoldError(''); setCmpError(''); setPerfError('');
   }, []);
 
   const saveImage = useCallback(async (ref: React.RefObject<HTMLDivElement | null>, filename: string) => {
@@ -210,9 +230,10 @@ export default function Dashboard() {
   const imgName = (label: string) => `${selectedEtf.ticker}_${label}_${holdDate}.png`;
 
   const TABS: { id: Tab; label: string }[] = [
-    { id: 'holdings', label: '當天持股清單' },
-    { id: 'compare',  label: '持股比較' },
-    { id: 'country',  label: '國家配置' },
+    { id: 'holdings',    label: '當天持股清單' },
+    { id: 'compare',     label: '持股比較' },
+    { id: 'country',     label: '國家配置' },
+    { id: 'performance', label: '股價表現' },
   ];
 
   return (
@@ -332,6 +353,28 @@ export default function Dashboard() {
                   <ErrorMsg msg={holdError} onReset={() => { setHoldError(''); setHoldData(null); }} />
                 </div>
               )
+            }
+          </Card>
+        )}
+
+        {activeTab === 'performance' && (
+          <Card
+            ref={performanceRef} title="持股股價表現"
+            onSave={perfData ? () => saveImage(performanceRef, `${selectedEtf.ticker}_股價表現_${perfDate}.png`) : undefined}
+          >
+            <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 18, flexWrap: 'wrap' }}>
+              <DateInput label="持股日期" value={perfDate} onChange={setPerfDate} />
+              <ActionButton onClick={loadPerformance} loading={perfLoading} label="載入" />
+              {perfLoading && (
+                <span style={{ fontSize: '.8rem', color: SUB, alignSelf: 'center' }}>
+                  查詢 Yahoo Finance 中，約需 15–30 秒…
+                </span>
+              )}
+            </div>
+            <ErrorMsg msg={perfError} onReset={() => { setPerfError(''); setPerfData(null); }} />
+            {perfData
+              ? <PerformanceTab results={perfData.results} date={perfData.date} etfTicker={selectedEtf.ticker} />
+              : !perfLoading && <EmptyHint text="請選擇日期並點擊「載入」" />
             }
           </Card>
         )}
