@@ -278,7 +278,7 @@ export default function Dashboard() {
       </header>
 
       {/* ── Navigation ── */}
-      <nav style={{ background: CARD, borderBottom: `1px solid ${BORDER}`, padding: '0 24px', display: 'flex' }}>
+      <nav style={{ background: CARD, borderBottom: `1px solid ${BORDER}`, padding: '0 24px', display: 'flex', overflowX: 'auto' }}>
         {TABS.map(t => (
           <button
             key={t.id}
@@ -289,6 +289,7 @@ export default function Dashboard() {
               color: activeTab === t.id ? RED : SUB,
               borderBottom: `2.5px solid ${activeTab === t.id ? RED : 'transparent'}`,
               marginBottom: -1, transition: 'all .15s', fontFamily: SANS,
+              flexShrink: 0, whiteSpace: 'nowrap',
             }}
           >
             {t.label}
@@ -369,6 +370,18 @@ export default function Dashboard() {
             <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 18, flexWrap: 'wrap' }}>
               <DateInput label="持股日期" value={perfDate} onChange={setPerfDate} />
               <ActionButton onClick={loadPerformance} loading={perfLoading} label="載入" />
+              {perfData && !perfLoading && (
+                <button
+                  onClick={loadPerformance}
+                  style={{
+                    padding: '8px 18px', background: '#fff', color: RED,
+                    border: `1.5px solid ${RED}`, borderRadius: 6,
+                    cursor: 'pointer', fontSize: '.88rem', fontWeight: 600, fontFamily: SANS,
+                  }}
+                >
+                  更新現價
+                </button>
+              )}
               {perfLoading && (
                 <span style={{ fontSize: '.8rem', color: SUB, alignSelf: 'center' }}>
                   查詢 Yahoo Finance 中，約需 15–30 秒…
