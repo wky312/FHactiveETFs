@@ -8,6 +8,7 @@ import CompareTab from './CompareTab';
 import CountryTab from './CountryTab';
 import PerformanceTab from './PerformanceTab';
 import Prediction0050Tab from './Prediction0050Tab';
+import ScaleTab from './ScaleTab';
 
 /* ── Design tokens ── */
 const RED    = '#C00000';
@@ -21,7 +22,7 @@ const BORDER = '#E8E3DF';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-type Tab = 'holdings' | 'compare' | 'country' | 'performance' | 'pred0050';
+type Tab = 'holdings' | 'compare' | 'country' | 'performance' | 'pred0050' | 'scale';
 interface LoadedData { date: string; holdings: Holding[] }
 interface PerfData { date: string; results: StockPerformance[] }
 
@@ -236,6 +237,7 @@ export default function Dashboard() {
     { id: 'country',     label: '國家配置' },
     { id: 'performance', label: '股價表現' },
     { id: 'pred0050',    label: '0050 季調預測' },
+    { id: 'scale',       label: '規模變化' },
   ];
 
   return (
@@ -384,6 +386,12 @@ export default function Dashboard() {
         {activeTab === 'pred0050' && (
           <Card title="0050 季調預測">
             <Prediction0050Tab />
+          </Card>
+        )}
+
+        {activeTab === 'scale' && (
+          <Card title="規模變化">
+            <ScaleTab key={selectedEtf.fundId} fundId={selectedEtf.fundId} />
           </Card>
         )}
       </main>

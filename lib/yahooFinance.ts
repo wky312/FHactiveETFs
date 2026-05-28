@@ -37,6 +37,25 @@ interface FetchResult {
   regularMarketPrice: number | null;
 }
 
+interface QuoteResult {
+  price: number | null;
+  prevClose: number | null;
+}
+
+async function tryQuote(ticker: string): Promise<QuoteResult | null> {
+  try {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const q: any = await yf.quote(ticker, {}, { validateResult: false });
+    if (!q?.regularMarketPrice) return null;
+    return {
+      price: q.regularMarketPrice,
+      prevClose: q.regularMarketPreviousClose ?? null,
+    };
+  } catch {
+    return null;
+  }
+}
+
 async function tryFetch(ticker: string, from: Date, today: Date): Promise<FetchResult | null> {
   try {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -73,12 +92,20 @@ export async function fetchStockPerformance(
     const today = new Date();
     const from  = new Date(today.getFullYear() - 1, 0, 1);
 
-    let data = await tryFetch(yfTicker, from, today);
+    // Fetch quote and chart in parallel; quote is more reliable for today's price
+    let [quote, data] = await Promise.all([
+      tryQuote(yfTicker),
+      tryFetch(yfTicker, from, today),
+    ]);
     let usedTicker = yfTicker;
 
     if (!data && fallbackTicker) {
-      data = await tryFetch(fallbackTicker, from, today);
-      if (data) usedTicker = fallbackTicker;
+      const [fbQuote, fbData] = await Promise.all([
+        !quote ? tryQuote(fallbackTicker) : Promise.resolve(null),
+        tryFetch(fallbackTicker, from, today),
+      ]);
+      if (fbData) { data = fbData; usedTicker = fallbackTicker; }
+      if (!quote && fbQuote) quote = fbQuote;
     }
 
     if (!data) throw new Error('no data');
@@ -91,20 +118,16 @@ export async function fetchStockPerformance(
     const m3Target  = new Date(today); m3Target.setMonth(m3Target.getMonth() - 3);
     const ytdTarget = new Date(today.getFullYear() - 1, 11, 31);
 
-    // Determine whether today's session is already in the chart data
-    // (close != null rows only, sorted newest-first)
     const todayDn = dn(new Date());
     const marketClosedToday = sorted.length > 0 && dn(sorted[0].date) === todayDn;
 
-    // today%: current price vs previous trading day's close (unadjusted)
-    // If market closed today → sorted[0]=today close, sorted[1]=prev close
-    // If market still open  → sorted[0]=prev close (today filtered), regularMarketPrice=intraday
-    //
-    // regularMarketPrice can be null when Yahoo Finance restricts the response (e.g. on Vercel).
-    // Fall back to today's chart close when available so currentPrice and today% still show.
-    const curPrice  = data.regularMarketPrice
+    // Priority: yf.quote() → chart regularMarketPrice → today's chart close
+    const curPrice  = quote?.price
+      ?? data.regularMarketPrice
       ?? (marketClosedToday ? sorted[0]?.close ?? null : null);
-    const prevClose = marketClosedToday ? sorted[1]?.close : sorted[0]?.close;
+    // Priority: yf.quote() prevClose → chart prev close row
+    const prevClose = quote?.prevClose
+      ?? (marketClosedToday ? sorted[1]?.close : sorted[0]?.close);
 
     return {
       stockid,
