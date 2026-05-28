@@ -215,7 +215,7 @@ export default function Prediction0050Tab() {
 
           {/* Two-column predictions */}
           <div style={{ display: 'flex', gap: 20, marginBottom: 24, flexWrap: 'wrap' }}>
-            <StockTable title="預測納入" rows={data.additions} alternates={data.addAlternates} accentColor={RED}   altLabel="備選（市值排名前50，非成分股）" />
+            <StockTable title="預測納入" rows={data.additions} alternates={data.addAlternates} accentColor={RED}   altLabel="備選（前50名非成分股優先，不足再取51–60名）" />
             <StockTable title="預測剔除" rows={data.deletions} alternates={data.delAlternates} accentColor={GREEN} altLabel="邊緣成分股（目前排名 48–50）" />
           </div>
 

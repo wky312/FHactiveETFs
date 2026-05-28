@@ -34,10 +34,11 @@ export function buildPrediction(
   // Additions: top 50 by market cap but not yet in 0050
   const addCandidates = rankedAll.filter(s => s.rank <= 50 && !s.inFund);
   const additions     = addCandidates.slice(0, 5);
-  // Alternates: rank 51–60, not in fund; cap total additions+alternates at 8
-  const addAlternates = rankedAll
-    .filter(s => s.rank > 50 && s.rank <= 60 && !s.inFund)
-    .slice(0, 8 - additions.length);
+  // Alternates: remaining top-50 non-members first (higher priority), then rank 51–60
+  const addAlternates = [
+    ...addCandidates.slice(5),
+    ...rankedAll.filter(s => s.rank > 50 && s.rank <= 60 && !s.inFund),
+  ].slice(0, 8 - additions.length);
 
   // Deletions: currently in 0050 but ranked below 50
   // Sort worst-ranked first (most likely to be cut)
