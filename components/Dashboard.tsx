@@ -7,6 +7,7 @@ import HoldingsTab from './HoldingsTab';
 import CompareTab from './CompareTab';
 import CountryTab from './CountryTab';
 import PerformanceTab from './PerformanceTab';
+import Prediction0050Tab from './Prediction0050Tab';
 
 /* ── Design tokens ── */
 const RED    = '#C00000';
@@ -20,7 +21,7 @@ const BORDER = '#E8E3DF';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-type Tab = 'holdings' | 'compare' | 'country' | 'performance';
+type Tab = 'holdings' | 'compare' | 'country' | 'performance' | 'pred0050';
 interface LoadedData { date: string; holdings: Holding[] }
 interface PerfData { date: string; results: StockPerformance[] }
 
@@ -234,6 +235,7 @@ export default function Dashboard() {
     { id: 'compare',     label: '持股比較' },
     { id: 'country',     label: '國家配置' },
     { id: 'performance', label: '股價表現' },
+    { id: 'pred0050',    label: '0050 季調預測' },
   ];
 
   return (
@@ -376,6 +378,12 @@ export default function Dashboard() {
               ? <PerformanceTab results={perfData.results} date={perfData.date} etfTicker={selectedEtf.ticker} />
               : !perfLoading && <EmptyHint text="請選擇日期並點擊「載入」" />
             }
+          </Card>
+        )}
+
+        {activeTab === 'pred0050' && (
+          <Card title="0050 季調預測">
+            <Prediction0050Tab />
           </Card>
         )}
       </main>

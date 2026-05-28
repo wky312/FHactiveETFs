@@ -99,7 +99,11 @@ export async function fetchStockPerformance(
     // today%: current price vs previous trading day's close (unadjusted)
     // If market closed today → sorted[0]=today close, sorted[1]=prev close
     // If market still open  → sorted[0]=prev close (today filtered), regularMarketPrice=intraday
-    const curPrice  = data.regularMarketPrice;
+    //
+    // regularMarketPrice can be null when Yahoo Finance restricts the response (e.g. on Vercel).
+    // Fall back to today's chart close when available so currentPrice and today% still show.
+    const curPrice  = data.regularMarketPrice
+      ?? (marketClosedToday ? sorted[0]?.close ?? null : null);
     const prevClose = marketClosedToday ? sorted[1]?.close : sorted[0]?.close;
 
     return {
