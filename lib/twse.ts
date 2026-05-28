@@ -1,6 +1,11 @@
 import { UNIVERSE_TICKERS, UNIVERSE_NAMES } from './twseUniverse';
 import { Stock } from './tw0050';
 
+// eslint-disable-next-line @typescript-eslint/no-require-imports
+const YahooFinance = require('yahoo-finance2').default;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const yf: any = new YahooFinance({ suppressNotices: ['ripHistorical', 'yahooSurvey'] });
+
 const YUANTA_URL =
   'https://etfapi.yuantaetfs.com/ectranslation/api/bridge' +
   '?APIType=ETFAPI&CompanyName=YUANTAFUNDS' +
@@ -104,6 +109,43 @@ async function fetchTWSEPrices(): Promise<Record<string, number>> {
   }
 }
 
+// Fallback when TWSE APIs are geo-blocked: use Yahoo Finance quote for each universe stock.
+// yf.quote() returns marketCap in TWD for .TW tickers.
+async function fetchStocksViaYahoo(
+  universe: UniverseEntry[],
+  nameMap: Record<string, string>,
+): Promise<Stock[]> {
+  const BATCH = 8;
+  const stocks: Stock[] = [];
+
+  for (let i = 0; i < universe.length; i += BATCH) {
+    const batch = universe.slice(i, i + BATCH);
+    const results = await Promise.all(
+      batch.map(async entry => {
+        try {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          const q: any = await yf.quote(`${entry.code}.TW`, {}, { validateResult: false });
+          if (!q?.regularMarketPrice || !q?.marketCap) return null;
+          return {
+            ticker: `${entry.code}.TW`,
+            stockid: entry.code,
+            name: nameMap[entry.code] ?? entry.name,
+            marketCap: Math.round(q.marketCap / 1e8), // TWD → 億
+            price: q.regularMarketPrice as number,
+          };
+        } catch {
+          return null;
+        }
+      }),
+    );
+    for (const s of results) {
+      if (s && s.marketCap > 0) stocks.push(s);
+    }
+  }
+
+  return stocks;
+}
+
 export async function fetch0050Data(): Promise<{ members: string[]; stocks: Stock[] }> {
   // Fetch 0050 members, TWSE universe (with shares), and prices in parallel
   const [{ members, nameMap }, universe, priceMap] = await Promise.all([
@@ -124,7 +166,6 @@ export async function fetch0050Data(): Promise<{ members: string[]; stocks: Stoc
   for (const entry of allEntries) {
     const price = priceMap[entry.code] ?? null;
     if (price === null) continue;
-    // Market cap (億 TWD) = closing price × shares outstanding ÷ 1e8
     const marketCap = entry.shares > 0 ? Math.round(price * entry.shares / 1e8) : 0;
     if (marketCap <= 0) continue;
     stocks.push({
@@ -134,6 +175,13 @@ export async function fetch0050Data(): Promise<{ members: string[]; stocks: Stoc
       marketCap,
       price,
     });
+  }
+
+  // If TWSE returned fewer than 30 stocks it was likely geo-blocked.
+  // Fall back to Yahoo Finance which works from any region.
+  if (stocks.length < 30) {
+    const yfStocks = await fetchStocksViaYahoo(universe, nameMap);
+    return { members, stocks: yfStocks };
   }
 
   return { members, stocks };
