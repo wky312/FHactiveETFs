@@ -9,6 +9,15 @@ const DOWN   = '#1A6B45';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
+// 異動金額（萬元，含正負號，不帶「萬」字）
+const famt = (n: number | null) => {
+  if (n === null) return '—';
+  const wan = n / 10000;
+  if (Math.abs(wan) < 0.05) return '0';
+  const s = Math.abs(wan).toLocaleString('en-US', { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+  return wan > 0 ? `+${s}` : `−${s}`;
+};
+
 const STATUS_ORDER = { new: 0, increased: 1, decreased: 2, unchanged: 3, removed: 4 } as const;
 type Status = keyof typeof STATUS_ORDER;
 
@@ -54,6 +63,7 @@ interface Row {
   stockid: string; stockname: string; country: string;
   curr_q: number | null; prev_q: number | null; diff_q: number | null;
   curr_p: number | null; prev_p: number | null; diff_p: number | null;
+  diff_amount: number | null;
   status: Status;
 }
 
@@ -69,6 +79,15 @@ function buildRows(curr: Holding[], prev: Holding[]): Row[] {
     else if (!c)                    status = 'removed';
     else if (c.qshare > p!.qshare) status = 'increased';
     else if (c.qshare < p!.qshare) status = 'decreased';
+
+    // 異動金額：最新收盤價 × 持股變化（以股計算）
+    const cPrice = c && c.qshare > 0 ? c.mvalue / c.qshare : null;
+    const pPrice = p && p.qshare > 0 ? p.mvalue / p.qshare : null;
+    let diff_amount: number | null = null;
+    if (c && p && cPrice !== null)       diff_amount = cPrice * (c.qshare - p.qshare);
+    else if (c && cPrice !== null)       diff_amount = c.mvalue;
+    else if (p && pPrice !== null)       diff_amount = -p.mvalue;
+
     rows.push({
       stockid:   (c ?? p)!.stockid,
       stockname: (c ?? p)!.stockname,
@@ -79,6 +98,7 @@ function buildRows(curr: Holding[], prev: Holding[]): Row[] {
       curr_p: c?.prate_addaccint  ?? null,
       prev_p: p?.prate_addaccint  ?? null,
       diff_p: c && p ? c.prate_addaccint - p.prate_addaccint : null,
+      diff_amount,
       status,
     });
   }
@@ -148,7 +168,7 @@ export default function CompareTab({ baseDate, cmpDate, baseHoldings, cmpHolding
 
       {/* Table */}
       <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '65vh', borderRadius: 8, border: '1px solid #E8E3DF' }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 860 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 980 }}>
           <thead>
             <tr>
               <th style={{ ...TH, textAlign: 'center', width: 78 }}>代碼</th>
@@ -157,6 +177,7 @@ export default function CompareTab({ baseDate, cmpDate, baseHoldings, cmpHolding
               <th style={{ ...TH, textAlign: 'right',  width: 110 }}>持股 ({cs})</th>
               <th style={{ ...TH, textAlign: 'right',  width: 110 }}>持股 ({bs})</th>
               <th style={{ ...TH, textAlign: 'right',  width: 88 }}>持股變化</th>
+              <th style={{ ...TH, textAlign: 'right',  width: 105 }}>異動金額(萬)</th>
               <th style={{ ...TH, textAlign: 'right',  width: 90 }}>佔比% ({cs})</th>
               <th style={{ ...TH, textAlign: 'right',  width: 90 }}>佔比% ({bs})</th>
               <th style={{ ...TH, textAlign: 'right',  width: 88 }}>佔比變化</th>
@@ -183,6 +204,9 @@ export default function CompareTab({ baseDate, cmpDate, baseHoldings, cmpHolding
                 </td>
                 <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', fontWeight: 600, color: diffColor(r.diff_q) }}>
                   {fd(r.diff_q)}
+                </td>
+                <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', fontWeight: 600, color: diffColor(r.diff_amount) }}>
+                  {famt(r.diff_amount)}
                 </td>
                 <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: r.status === 'removed' ? '#BBB' : TEXT }}>
                   {fp(r.prev_p)}

@@ -5,6 +5,7 @@ import { StockPerformance } from '@/lib/yahooFinance';
 import { ETF_LIST, EtfConfig, DEFAULT_ETF } from '@/lib/etfList';
 import HoldingsTab from './HoldingsTab';
 import CompareTab from './CompareTab';
+import DailySummaryTab from './DailySummaryTab';
 import CountryTab from './CountryTab';
 import PerformanceTab from './PerformanceTab';
 import Prediction0050Tab from './Prediction0050Tab';
@@ -22,7 +23,7 @@ const BORDER = '#E8E3DF';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-type Tab = 'holdings' | 'compare' | 'country' | 'performance' | 'pred0050' | 'scale';
+type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'pred0050' | 'scale';
 interface LoadedData { date: string; holdings: Holding[] }
 interface PerfData { date: string; results: StockPerformance[] }
 
@@ -134,7 +135,7 @@ Card.displayName = 'Card';
 
 /* ── Main Dashboard ── */
 export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState<Tab>('holdings');
+  const [activeTab, setActiveTab] = useState<Tab>('summary');
   const [selectedEtf, setSelectedEtf] = useState<EtfConfig>(DEFAULT_ETF);
 
   const [holdDate,    setHoldDate]    = useState(defaultDate());
@@ -155,6 +156,7 @@ export default function Dashboard() {
   const [perfError,   setPerfError]   = useState('');
 
   const holdingsRef   = useRef<HTMLDivElement>(null);
+  const summaryRef    = useRef<HTMLDivElement>(null);
   const compareRef    = useRef<HTMLDivElement>(null);
   const countryRef    = useRef<HTMLDivElement>(null);
   const performanceRef = useRef<HTMLDivElement>(null);
@@ -185,7 +187,7 @@ export default function Dashboard() {
   const loadPerformance = useCallback(async () => {
     setPerfLoading(true); setPerfError('');
     try {
-      const res  = await fetch(`/api/performance?date=${encodeURIComponent(toApiDate(perfDate))}&fundId=${encodeURIComponent(selectedEtf.fundId)}`);
+      const res  = await fetch(`/api/performance?date=${encodeURIComponent(toApiDate(perfDate))}&fundId=${encodeURIComponent(selectedEtf.fundId)}`, { cache: 'no-store' });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? '載入失敗');
       setPerfData(json as PerfData);
@@ -232,6 +234,7 @@ export default function Dashboard() {
   const imgName = (label: string) => `${selectedEtf.ticker}_${label}_${holdDate}.png`;
 
   const TABS: { id: Tab; label: string }[] = [
+    { id: 'summary',     label: '當日摘要' },
     { id: 'holdings',    label: '當天持股清單' },
     { id: 'compare',     label: '持股比較' },
     { id: 'country',     label: '國家配置' },
@@ -331,6 +334,31 @@ export default function Dashboard() {
             {baseData && cmpData
               ? <CompareTab baseDate={baseData.date} cmpDate={cmpData.date} baseHoldings={baseData.holdings} cmpHoldings={cmpData.holdings} />
               : !cmpLoading && <EmptyHint text="請選擇兩個日期並點擊「載入比較」" />
+            }
+          </Card>
+        )}
+
+        {activeTab === 'summary' && (
+          <Card ref={summaryRef} title="當日摘要" onSave={baseData && cmpData ? () => saveImage(summaryRef, imgName('當日摘要')) : undefined}>
+            {baseData && cmpData
+              ? <DailySummaryTab
+                  baseDate={baseData.date}
+                  cmpDate={cmpData.date}
+                  baseHoldings={baseData.holdings}
+                  cmpHoldings={cmpData.holdings}
+                  fundId={selectedEtf.fundId}
+                />
+              : (
+                <div style={{ textAlign: 'center', padding: '40px 0' }}>
+                  <p style={{ color: '#AAA', fontSize: '.9rem', marginBottom: 18 }}>請先在「持股比較」頁面選擇日期並載入資料</p>
+                  <div style={{ display: 'flex', gap: 20, justifyContent: 'center', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                    <DateInput label="基準日期" value={baseDate} onChange={setBaseDate} />
+                    <DateInput label="比較日期" value={cmpDate}  onChange={setCmpDate} />
+                    <ActionButton onClick={loadCompare} loading={cmpLoading} label="載入比較" />
+                  </div>
+                  <ErrorMsg msg={cmpError} onReset={() => { setCmpError(''); setBaseData(null); setCmpData(null); }} />
+                </div>
+              )
             }
           </Card>
         )}
