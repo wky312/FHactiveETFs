@@ -17,8 +17,7 @@ FHTRUST_ASSETS = 'https://www.fhtrust.com.tw/api/assets'
 FHTRUST_PCF    = 'https://www.fhtrust.com.tw/api/ETFPcf'
 
 ETFS = [
-    {'ticker': '00991A', 'name': '復華主動式ETF',             'fundId': 'ETF23'},
-    {'ticker': '00998A', 'name': '復華全球金融股票主動式ETF', 'fundId': 'ETF24'},
+    {'ticker': '00991A', 'name': '復華主動式ETF', 'fundId': 'ETF23'},
 ]
 
 PUSHOVER_TOKEN = os.environ.get('PUSHOVER_TOKEN', '')
