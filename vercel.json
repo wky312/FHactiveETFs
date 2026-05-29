@@ -1,3 +1,4 @@
 {
-  "regions": ["hnd1"]
+  "regions": ["hnd1"],
+  "alias": ["fhactiveetf.vercel.app"]
 }
