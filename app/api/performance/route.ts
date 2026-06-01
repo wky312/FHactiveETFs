@@ -47,7 +47,7 @@ export async function GET(request: NextRequest) {
 
     return NextResponse.json(
       { date: holdDate, results },
-      { headers: { 'Cache-Control': 's-maxage=1800, stale-while-revalidate=3600' } }
+      { headers: { 'Cache-Control': 'no-store' } }
     );
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
