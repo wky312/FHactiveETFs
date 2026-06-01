@@ -40,8 +40,7 @@ function prevTradingDay(from: Date): Date {
 }
 function defaultDate(): string {
   const now = new Date();
-  const isWeekday = now.getDay() >= 1 && now.getDay() <= 5;
-  if (isWeekday && now.getHours() >= 17) return localStr(now);
+  if (now.getDay() >= 1 && now.getDay() <= 5) return localStr(now);
   return localStr(prevTradingDay(now));
 }
 function prevDay(): string {
