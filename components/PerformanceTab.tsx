@@ -112,13 +112,32 @@ export default function PerformanceTab({
   const downCount   = withToday.filter(r => (r.today ?? 0) < 0).length;
   const weightedRet = withToday.reduce((s, r) => s + r.prate * (r.today ?? 0) / 100, 0);
 
+  // Detect stale price: regularMarketTime is not today (TST)
+  const priceAsOfStr = (() => {
+    const sample = results.find(r => r.priceAsOf);
+    if (!sample?.priceAsOf) return null;
+    const d = new Date(sample.priceAsOf);
+    // Convert to TST (UTC+8)
+    const tst = new Date(d.getTime() + 8 * 3600 * 1000);
+    return `${tst.getUTCFullYear()}/${String(tst.getUTCMonth()+1).padStart(2,'0')}/${String(tst.getUTCDate()).padStart(2,'0')} ${String(tst.getUTCHours()).padStart(2,'0')}:${String(tst.getUTCMinutes()).padStart(2,'0')} TST`;
+  })();
+
+  const nowTst = new Date(Date.now() + 8 * 3600 * 1000);
+  const isMarketHours = nowTst.getUTCDay() >= 1 && nowTst.getUTCDay() <= 5
+    && nowTst.getUTCHours() >= 1 && (nowTst.getUTCHours() < 5 || (nowTst.getUTCHours() === 5 && nowTst.getUTCMinutes() < 30));
+
   return (
     <>
+      {isMarketHours && (
+        <div style={{ marginBottom: 12, padding: '8px 14px', background: '#FFF9EC', border: '1px solid #F5D06A', borderRadius: 6, fontSize: '.82rem', color: '#92620A' }}>
+          ⚠ 台股盤中（09:00–13:30）：Yahoo Finance 不提供即時報價，現價顯示為<strong>前一交易日收盤價</strong>，13:30 收盤後約 1–2 小時更新為今日收盤價。
+        </div>
+      )}
       <div style={{ display: 'flex', gap: 16, marginBottom: 12, fontSize: '.82rem', color: SUB, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
           <span>持股日期：<strong style={{ color: TEXT, fontFamily: MONO }}>{date}</strong></span>
           <span style={{ color: BORDER }}>|</span>
-          <span>股價來源：Yahoo Finance（延遲）</span>
+          <span>股價來源：Yahoo Finance{priceAsOfStr ? `（報價截至 ${priceAsOfStr}）` : '（延遲）'}</span>
         </div>
         <button
           onClick={() => exportExcel(sorted, date, etfTicker)}

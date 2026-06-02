@@ -9,6 +9,7 @@ export interface StockPerformance {
   prate: number;
   ticker: string;
   currentPrice: number | null;
+  priceAsOf: string | null;   // regularMarketTime ISO string
   today: number | null;
   d3: number | null;
   d5: number | null;
@@ -40,6 +41,7 @@ interface FetchResult {
 interface QuoteResult {
   price: number | null;
   prevClose: number | null;
+  priceAsOf: string | null;  // regularMarketTime ISO string
 }
 
 async function tryQuote(ticker: string): Promise<QuoteResult | null> {
@@ -48,8 +50,9 @@ async function tryQuote(ticker: string): Promise<QuoteResult | null> {
     const q: any = await yf.quote(ticker, {}, { validateResult: false });
     if (!q?.regularMarketPrice) return null;
     return {
-      price: q.regularMarketPrice,
-      prevClose: q.regularMarketPreviousClose ?? null,
+      price:      q.regularMarketPrice,
+      prevClose:  q.regularMarketPreviousClose ?? null,
+      priceAsOf:  q.regularMarketTime ? new Date(q.regularMarketTime).toISOString() : null,
     };
   } catch {
     return null;
@@ -138,6 +141,7 @@ export async function fetchStockPerformance(
       prate,
       ticker: usedTicker,
       currentPrice: curPrice,
+      priceAsOf: quote?.priceAsOf ?? null,
       today: pct(curPrice ?? undefined, prevClose ?? undefined),
       d3:    pct(adj(sorted[0]), adj(sorted[3])),
       d5:    pct(adj(sorted[0]), adj(sorted[5])),
@@ -148,7 +152,8 @@ export async function fetchStockPerformance(
   } catch {
     return {
       stockid, stockname, prate, ticker: yfTicker,
-      currentPrice: null, today: null, d3: null, d5: null, m1: null, m3: null, ytd: null,
+      currentPrice: null, priceAsOf: null,
+      today: null, d3: null, d5: null, m1: null, m3: null, ytd: null,
     };
   }
 }
