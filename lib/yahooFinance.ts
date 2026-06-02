@@ -58,10 +58,13 @@ async function tryQuote(ticker: string): Promise<QuoteResult | null> {
 
 async function tryFetch(ticker: string, from: Date, today: Date): Promise<FetchResult | null> {
   try {
+    // period2 is exclusive in Yahoo Finance API, so add 1 day to include today's bar
+    const period2 = new Date(today);
+    period2.setDate(period2.getDate() + 1);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result: any = await yf.chart(
       ticker,
-      { period1: from, period2: today, interval: '1d' },
+      { period1: from, period2, interval: '1d' },
       { validateResult: false }
     );
     const rawQuotes = result?.quotes ?? result;
