@@ -2,6 +2,7 @@
 import { useState, useCallback } from 'react';
 import { ScaleDay } from '@/lib/fhtrustScale';
 import { EzmoneyDay } from '@/lib/ezmoneyScale';
+import { CapitalDay } from '@/lib/capitalScale';
 
 const RED    = '#C00000';
 const GREEN  = '#1A6B45';
@@ -11,16 +12,23 @@ const BORDER = '#EEE9E4';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-// Configured ETFs: 復華 via fhtrust, 統一 via ezmoney
+// Configured ETFs
 const FHTRUST_ETFS = [
-  { ticker: '00991A', name: '復華',   fundId: 'ETF23' },
+  { ticker: '00991A', name: '復華',    fundId: 'ETF23' },
 ];
 const EZMONEY_ETFS = [
-  { ticker: '00981A', name: '統一',   fundCode: '49YTW' },
+  { ticker: '00981A', name: '統一981', fundCode: '49YTW' },
   { ticker: '00403A', name: '統一403', fundCode: '63YTW' },
-  // 群益 ETFs to be added: 00982A, 00992A
 ];
-const ALL_TICKERS = [...FHTRUST_ETFS.map(e => e.ticker), ...EZMONEY_ETFS.map(e => e.ticker)];
+const CAPITAL_ETFS = [
+  { ticker: '00982A', name: '群益982', fundId: '399' },
+  { ticker: '00992A', name: '群益992', fundId: '500' },
+];
+const ALL_TICKERS = [
+  ...FHTRUST_ETFS.map(e => e.ticker),
+  ...EZMONEY_ETFS.map(e => e.ticker),
+  ...CAPITAL_ETFS.map(e => e.ticker),
+];
 
 const TH: React.CSSProperties = {
   padding: '9px 12px', fontWeight: 600, fontSize: '.75rem',
@@ -61,21 +69,31 @@ interface DayRow {
 function mergeDays(
   fhData: Map<string, ScaleDay[]>,
   ezData: Map<string, EzmoneyDay[]>,
+  capData: Map<string, CapitalDay[]>,
 ): DayRow[] {
   const dateSet = new Set<string>();
-  fhData.forEach(days => days.forEach(d => dateSet.add(d.date)));
-  ezData.forEach(days => days.forEach(d => dateSet.add(d.date)));
+  fhData.forEach(days  => days.forEach(d => dateSet.add(d.date)));
+  ezData.forEach(days  => days.forEach(d => dateSet.add(d.date)));
+  capData.forEach(days => days.forEach(d => dateSet.add(d.date)));
 
   const rows: DayRow[] = [];
   for (const date of Array.from(dateSet).sort()) {
     const data: DayRow['data'] = {};
+    // fhtrust uses YYYY/MM/DD; normalize to unified key for lookup
     for (const { ticker, fundId } of FHTRUST_ETFS) {
       const days = fhData.get(fundId) ?? [];
-      const d = days.find(x => x.date === date);
+      const d = days.find(x => x.date === date || x.date.replace(/\//g, '-') === date);
       data[ticker] = d ? { netSub: d.netSub, aum: d.aum } : null;
     }
+    // ezmoney uses YYYY/MM/DD
     for (const { ticker, fundCode } of EZMONEY_ETFS) {
       const days = ezData.get(fundCode) ?? [];
+      const d = days.find(x => x.date.replace(/\//g, '-') === date);
+      data[ticker] = d ? { netSub: d.netSub, aum: d.aum } : null;
+    }
+    // capital uses YYYY-MM-DD
+    for (const { ticker, fundId } of CAPITAL_ETFS) {
+      const days = capData.get(fundId) ?? [];
       const d = days.find(x => x.date === date);
       data[ticker] = d ? { netSub: d.netSub, aum: d.aum } : null;
     }
@@ -104,22 +122,30 @@ export default function PeerRedemptionTab() {
     try {
       const sd = toApi(startDate);
       const ed = toApi(endDate);
+      // Capital uses YYYY-MM-DD
+      const sdDash = startDate;
+      const edDash = endDate;
 
-      // Fetch 復華 from etf-scale
-      const fhMap = new Map<string, ScaleDay[]>();
-      await Promise.all(FHTRUST_ETFS.map(async ({ fundId }) => {
-        const r = await fetch(`/api/etf-scale?startDate=${encodeURIComponent(sd)}&endDate=${encodeURIComponent(ed)}&fundId=${encodeURIComponent(fundId)}`);
-        if (r.ok) fhMap.set(fundId, await r.json());
-      }));
+      // Fetch all sources in parallel
+      const [fhMap, ezMap, capMap] = await Promise.all([
+        // 復華 (fhtrust)
+        Promise.all(FHTRUST_ETFS.map(async ({ fundId }) => {
+          const r = await fetch(`/api/etf-scale?startDate=${encodeURIComponent(sd)}&endDate=${encodeURIComponent(ed)}&fundId=${encodeURIComponent(fundId)}`);
+          return { fundId, data: r.ok ? (await r.json() as ScaleDay[]) : [] };
+        })).then(arr => new Map(arr.map(({ fundId, data }) => [fundId, data]))),
+        // 統一 (ezmoney)
+        Promise.all(EZMONEY_ETFS.map(async ({ fundCode }) => {
+          const r = await fetch(`/api/ezmoney-scale?fundCode=${encodeURIComponent(fundCode)}&startDate=${encodeURIComponent(sd)}&endDate=${encodeURIComponent(ed)}`);
+          return { fundCode, data: r.ok ? (await r.json() as EzmoneyDay[]) : [] };
+        })).then(arr => new Map(arr.map(({ fundCode, data }) => [fundCode, data]))),
+        // 群益 (capital)
+        Promise.all(CAPITAL_ETFS.map(async ({ fundId }) => {
+          const r = await fetch(`/api/capital-scale?fundId=${encodeURIComponent(fundId)}&startDate=${encodeURIComponent(sdDash)}&endDate=${encodeURIComponent(edDash)}`);
+          return { fundId, data: r.ok ? (await r.json() as CapitalDay[]) : [] };
+        })).then(arr => new Map(arr.map(({ fundId, data }) => [fundId, data]))),
+      ]);
 
-      // Fetch 統一 from ezmoney-scale
-      const ezMap = new Map<string, EzmoneyDay[]>();
-      await Promise.all(EZMONEY_ETFS.map(async ({ fundCode }) => {
-        const r = await fetch(`/api/ezmoney-scale?fundCode=${encodeURIComponent(fundCode)}&startDate=${encodeURIComponent(sd)}&endDate=${encodeURIComponent(ed)}`);
-        if (r.ok) ezMap.set(fundCode, await r.json());
-      }));
-
-      setRows(mergeDays(fhMap, ezMap));
+      setRows(mergeDays(fhMap, ezMap, capMap));
     } catch (e) {
       setError(e instanceof Error ? e.message : '載入失敗');
     } finally {
@@ -154,7 +180,7 @@ export default function PeerRedemptionTab() {
           style={{ padding: '8px 22px', background: loading ? '#999' : RED, color: '#fff', border: 'none', borderRadius: 6, cursor: loading ? 'not-allowed' : 'pointer', fontSize: '.88rem', fontWeight: 600 }}>
           {loading ? '載入中…' : '載入'}
         </button>
-        {loading && <span style={{ fontSize: '.8rem', color: SUB, alignSelf: 'center' }}>查詢中，統一需逐日請求約需 10–20 秒…</span>}
+        {loading && <span style={{ fontSize: '.8rem', color: SUB, alignSelf: 'center' }}>查詢中，統一逐日請求約需 10–20 秒…</span>}
       </div>
 
       {/* Quick range */}
