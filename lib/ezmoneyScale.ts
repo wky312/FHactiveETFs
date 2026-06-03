@@ -1,4 +1,5 @@
 import https from 'https';
+import http from 'http';
 
 export interface EzmoneyDay {
   date: string;   // YYYY/MM/DD (Gregorian)
@@ -37,7 +38,7 @@ function weekdaysBetween(start: string, end: string): string[] {
   return result;
 }
 
-function extractCookies(headers: https.IncomingMessage['headers']): string[] {
+function extractCookies(headers: http.IncomingMessage['headers']): string[] {
   const sc = headers['set-cookie'];
   if (!sc) return [];
   return Array.isArray(sc) ? sc : [sc];
