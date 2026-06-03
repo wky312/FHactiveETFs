@@ -66,40 +66,36 @@ interface DayRow {
   data: Record<string, { netSub: number; aum: number } | null>;
 }
 
+const norm = (d: string) => d.replace(/\//g, '-'); // → YYYY-MM-DD
+
 function mergeDays(
   fhData: Map<string, ScaleDay[]>,
   ezData: Map<string, EzmoneyDay[]>,
   capData: Map<string, CapitalDay[]>,
 ): DayRow[] {
   const dateSet = new Set<string>();
-  fhData.forEach(days  => days.forEach(d => dateSet.add(d.date)));
-  ezData.forEach(days  => days.forEach(d => dateSet.add(d.date)));
-  capData.forEach(days => days.forEach(d => dateSet.add(d.date)));
+  fhData.forEach(days  => days.forEach(d => dateSet.add(norm(d.date))));
+  ezData.forEach(days  => days.forEach(d => dateSet.add(norm(d.date))));
+  capData.forEach(days => days.forEach(d => dateSet.add(norm(d.date))));
 
   const rows: DayRow[] = [];
   for (const date of Array.from(dateSet).sort()) {
     const data: DayRow['data'] = {};
-    // fhtrust uses YYYY/MM/DD; normalize to unified key for lookup
     for (const { ticker, fundId } of FHTRUST_ETFS) {
-      const days = fhData.get(fundId) ?? [];
-      const d = days.find(x => x.date === date || x.date.replace(/\//g, '-') === date);
+      const d = (fhData.get(fundId) ?? []).find(x => norm(x.date) === date);
       data[ticker] = d ? { netSub: d.netSub, aum: d.aum } : null;
     }
-    // ezmoney uses YYYY/MM/DD
     for (const { ticker, fundCode } of EZMONEY_ETFS) {
-      const days = ezData.get(fundCode) ?? [];
-      const d = days.find(x => x.date.replace(/\//g, '-') === date);
+      const d = (ezData.get(fundCode) ?? []).find(x => norm(x.date) === date);
       data[ticker] = d ? { netSub: d.netSub, aum: d.aum } : null;
     }
-    // capital uses YYYY-MM-DD
     for (const { ticker, fundId } of CAPITAL_ETFS) {
-      const days = capData.get(fundId) ?? [];
-      const d = days.find(x => x.date === date);
+      const d = (capData.get(fundId) ?? []).find(x => norm(x.date) === date);
       data[ticker] = d ? { netSub: d.netSub, aum: d.aum } : null;
     }
     rows.push({ date, data });
   }
-  return rows.reverse(); // newest first
+  return rows.reverse();
 }
 
 export default function PeerRedemptionTab() {
