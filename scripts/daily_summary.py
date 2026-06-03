@@ -17,7 +17,7 @@ FHTRUST_ASSETS = 'https://www.fhtrust.com.tw/api/assets'
 FHTRUST_PCF    = 'https://www.fhtrust.com.tw/api/ETFPcf'
 
 ETFS = [
-    {'ticker': '00991A', 'name': '復華主動式ETF', 'fundId': 'ETF23'},
+    {'ticker': '00991A', 'name': '復華主動式ETF', 'fundId': 'ETF23', 'yfTicker': '00991A.TW'},
 ]
 
 PUSHOVER_TOKEN = os.environ.get('PUSHOVER_TOKEN', '')
@@ -83,6 +83,22 @@ def fetch_pcf(target: date, fund_id: str):
         except:
             continue
     return None
+
+
+def fetch_etf_price(yf_ticker: str) -> dict | None:
+    """Fetch ETF market price and previous close from Yahoo Finance."""
+    try:
+        import yfinance as yf
+        ticker = yf.Ticker(yf_ticker)
+        fi = ticker.fast_info
+        price      = fi.last_price
+        prev_close = fi.previous_close
+        if not price:
+            return None
+        return {'price': price, 'prev_close': prev_close}
+    except Exception as e:
+        print(f'  yfinance {yf_ticker}: {e}')
+        return None
 
 
 # ── Peer ETF data fetchers ────────────────────────────────────────────────────
@@ -375,49 +391,65 @@ SC = {
 }
 
 
-def build_html(etf, base_data, cmp_data, curr_pcf, prev_pcf, rows):
+def build_html(etf, base_data, cmp_data, curr_pcf, prev_pcf, rows, etf_price=None):
     bs = str(base_data['date'])[5:]
     cs = str(cmp_data['date'])[5:]
 
     counts = {s: sum(1 for r in rows if r['status'] == s) for s in SC}
     total  = sum(counts.values())
 
-    # Scale card values
-    aum_val  = f"{curr_pcf['aum']:.2f} 億"  if curr_pcf else '—'
-    nav_val  = f"{curr_pcf['pnav']:.4f}"    if curr_pcf else '—'
+    # Scale / price card values
+    aum_val = f"{curr_pcf['aum']:.2f} 億" if curr_pcf else '—'
     if curr_pcf and prev_pcf:
-        da = curr_pcf['aum']  - prev_pcf['aum']
-        dn = curr_pcf['pnav'] - prev_pcf['pnav']
-        aum_diff = fd(da, 2) + ' 億'
-        nav_diff = (f'+{abs(dn):.4f}' if dn > 0 else f'−{abs(dn):.4f}' if dn < 0 else '0')
+        da = curr_pcf['aum'] - prev_pcf['aum']
+        aum_diff  = fd(da, 2) + ' 億'
         aum_color = diff_color(da)
-        nav_color = diff_color(dn)
     else:
-        aum_diff = nav_diff = '—'
-        aum_color = nav_color = '#6B6460'
+        aum_diff = '—'; aum_color = '#6B6460'
+
+    # ETF market price (replaces pnav)
+    if etf_price and etf_price.get('price'):
+        ep = etf_price['price']
+        ec = etf_price.get('prev_close')
+        price_val = f"{ep:.2f}"
+        if ec:
+            dp = ep - ec
+            pct = dp / ec * 100
+            sign = '+' if dp > 0 else '−' if dp < 0 else ''
+            price_diff = f"{sign}{abs(dp):.2f}"
+            price_diff_sub = f"({sign}{abs(pct):.2f}%)"
+            price_diff_color = diff_color(dp)
+        else:
+            price_diff = '—'; price_diff_sub = ''; price_diff_color = '#6B6460'
+        price_color = '#1C1C1E'
+    else:
+        price_val = '—'; price_diff = '—'; price_diff_sub = ''
+        price_color = price_diff_color = '#6B6460'
 
     def card4(items):
         cells = ''
-        for i, (label, val, color) in enumerate(items):
+        for i, (label, val, color, sub) in enumerate(items):
             br = 'border-right:1px solid #EEE9E4;' if i < 3 else ''
+            sub_html = f'<div style="font-size:13px;font-weight:600;color:{color};font-family:monospace;margin-top:2px;">{sub}</div>' if sub else ''
             cells += f'''<div style="padding:12px 16px;{br}">
               <div style="font-size:11px;color:#6B6460;font-weight:500;margin-bottom:4px;">{label}</div>
               <div style="font-size:20px;font-weight:700;color:{color};font-family:monospace;line-height:1.1;">{val}</div>
+              {sub_html}
             </div>'''
         return f'<div style="display:grid;grid-template-columns:repeat(4,1fr);border:1px solid #EEE9E4;border-radius:8px;overflow:hidden;margin-bottom:12px;background:#FAFAF9;">{cells}</div>'
 
     scale_cards = card4([
-        (f'基金規模 ({bs})',     aum_val,  '#1C1C1E'),
-        (f'規模變化 (vs {cs})', aum_diff, aum_color),
-        (f'單位淨值 ({bs})',     nav_val,  '#1C1C1E'),
-        (f'淨值變化 (vs {cs})', nav_diff, nav_color),
+        (f'基金規模 ({bs})',       aum_val,    '#1C1C1E',         ''),
+        (f'規模變化 (vs {cs})',    aum_diff,   aum_color,         ''),
+        (f'ETF 股價 ({bs})',       price_val,  price_color,       ''),
+        ('股價變化',               price_diff, price_diff_color,  price_diff_sub),
     ])
 
     stat_cards = card4([
-        ('新增持倉', counts['new'],       '#C00000'),
-        ('加碼',     counts['increased'], '#C00000'),
-        ('減碼',     counts['decreased'], '#1A6B45'),
-        ('總變化筆數', total,             '#1C1C1E'),
+        ('新增持倉', counts['new'],       '#C00000', ''),
+        ('加碼',     counts['increased'], '#C00000', ''),
+        ('減碼',     counts['decreased'], '#1A6B45', ''),
+        ('清倉',     counts['removed'],   '#1A6B45', ''),
     ])
 
     if rows:
@@ -523,11 +555,12 @@ async def process_etf(etf: dict, today: date):
 
     print(f'  base={base_date}  cmp={cmp_date}')
 
-    curr_pcf = fetch_pcf(base_date, fid)
-    prev_pcf = fetch_pcf(cmp_date,  fid)
+    curr_pcf  = fetch_pcf(base_date, fid)
+    prev_pcf  = fetch_pcf(cmp_date,  fid)
+    etf_price = fetch_etf_price(etf.get('yfTicker', ''))
 
     rows = build_diff_rows(base_data['holdings'], cmp_data['holdings'])
-    html = build_html(etf, base_data, cmp_data, curr_pcf, prev_pcf, rows)
+    html = build_html(etf, base_data, cmp_data, curr_pcf, prev_pcf, rows, etf_price)
 
     img = await screenshot_html(html)
 
