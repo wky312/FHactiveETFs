@@ -128,40 +128,62 @@ def _roc_date(d: date) -> str:
     return f'{d.year - 1911}/{d.month:02d}/{d.day:02d}'
 
 
-def fetch_ezmoney_day(fund_code: str, transaction_date: date) -> dict | None:
-    """Return {'netSub': float, 'aum': float} for given transaction date, or None."""
+def _parse_tran_date(raw) -> str | None:
+    """Parse ezmoney TranDate from ISO string or .NET /Date(ms)/ format → YYYY-MM-DD."""
+    if not raw:
+        return None
+    s = str(raw)
+    # ISO format: "2026-06-01T00:00:00"
+    if 'T' in s:
+        return s[:10]
+    # .NET ticks: "/Date(1780243200000)/"
+    import re
+    m = re.search(r'Date\((\d+)\)', s)
+    if m:
+        ms = int(m.group(1))
+        # Add 8 hours to convert UTC to Taiwan time before extracting date
+        from datetime import timezone, timezone as tz
+        dt = datetime.fromtimestamp((ms + 8 * 3600 * 1000) / 1000, tz=timezone.utc)
+        return dt.strftime('%Y-%m-%d')
+    return None
+
+
+def fetch_ezmoney_day(fund_code: str, transaction_date: date,
+                      session: requests.Session | None = None) -> dict | None:
+    """Return {'netSub': float, 'aum': float} for given transaction date, or None.
+    Tries announcement offsets +1..+4 days to handle weekends and holidays."""
     try:
-        s = _get_ezmoney_session(fund_code)
-        # Announcement date = transaction date + 1 day (ezmoney uses calendar +1)
-        announce = transaction_date + timedelta(days=1)
-        payload = {'fundCode': fund_code, 'date': _roc_date(announce), 'specificDate': True}
-        r = s.post(
-            f'https://{EZMONEY_HOST}/ETF/Transaction/GetPCF',
-            json=payload,
-            headers={'X-Requested-With': 'XMLHttpRequest',
-                     'Referer': f'https://{EZMONEY_HOST}/ETF/Transaction/PCF?fundCode={fund_code}'},
-            timeout=20,
-        )
-        if r.status_code != 200 or 'application/json' not in r.headers.get('content-type', ''):
-            return None
-        pcf = r.json().get('pcf', [])
-        if not pcf:
-            return None
-        # Verify transaction date matches
-        tran_raw = pcf[0].get('TranDate', '')
-        if isinstance(tran_raw, str) and 'T' in tran_raw:
-            tran_date = tran_raw[:10]
-        else:
-            return None
-        if tran_date != str(transaction_date):
-            return None
-        get = lambda code: next((parse_num(p['Amount']) for p in pcf if p.get('PCFCode','').upper() == code), 0)
-        diff_unit = get('DIFF_UNIT')
-        p_unit    = get('P_UNIT')
-        nav       = get('NAV')
-        if p_unit == 0:
-            return None
-        return {'netSub': (diff_unit * p_unit) / 1e8, 'aum': nav / 1e8}
+        s = session or _get_ezmoney_session(fund_code)
+        target_str = str(transaction_date)  # YYYY-MM-DD
+        for offset in range(1, 5):
+            announce = transaction_date + timedelta(days=offset)
+            payload = {'fundCode': fund_code, 'date': _roc_date(announce), 'specificDate': True}
+            try:
+                r = s.post(
+                    f'https://{EZMONEY_HOST}/ETF/Transaction/GetPCF',
+                    json=payload,
+                    headers={'X-Requested-With': 'XMLHttpRequest',
+                             'Referer': f'https://{EZMONEY_HOST}/ETF/Transaction/PCF?fundCode={fund_code}'},
+                    timeout=25,
+                )
+            except Exception:
+                continue
+            if r.status_code != 200 or 'application/json' not in r.headers.get('content-type', ''):
+                continue
+            pcf = r.json().get('pcf', [])
+            if not pcf:
+                continue
+            tran_date = _parse_tran_date(pcf[0].get('TranDate'))
+            if not tran_date or tran_date != target_str:
+                continue
+            get = lambda code: next((parse_num(p['Amount']) for p in pcf if p.get('PCFCode','').upper() == code), 0)
+            diff_unit = get('DIFF_UNIT')
+            p_unit    = get('P_UNIT')
+            nav       = get('NAV')
+            if p_unit == 0:
+                continue
+            return {'netSub': (diff_unit * p_unit) / 1e8, 'aum': nav / 1e8}
+        return None
     except Exception as e:
         print(f'  ezmoney {fund_code} {transaction_date}: {e}')
         return None
@@ -216,11 +238,20 @@ def fetch_fhtrust_peer_day(fund_id: str, transaction_date: date) -> dict | None:
 
 def fetch_all_peer_data(transaction_date: date) -> list:
     """Fetch net subscription data for all peer ETFs on the given date."""
+    # Build shared ezmoney session once for all ezmoney ETFs
+    ezmoney_etfs = [e for e in PEER_ETFS if e['source'] == 'ezmoney']
+    ezmoney_session = None
+    if ezmoney_etfs:
+        try:
+            ezmoney_session = _get_ezmoney_session(ezmoney_etfs[0]['key'])
+        except Exception as e:
+            print(f'  ezmoney session error: {e}')
+
     results = []
     for etf in PEER_ETFS:
         data = None
         if etf['source'] == 'ezmoney':
-            data = fetch_ezmoney_day(etf['key'], transaction_date)
+            data = fetch_ezmoney_day(etf['key'], transaction_date, session=ezmoney_session)
         elif etf['source'] == 'capital':
             data = fetch_capital_day(etf['key'], transaction_date)
         elif etf['source'] == 'fhtrust':
