@@ -346,6 +346,7 @@ export default function Dashboard() {
                   baseHoldings={baseData.holdings}
                   cmpHoldings={cmpData.holdings}
                   fundId={selectedEtf.fundId}
+                  yfTicker={selectedEtf.yfTicker}
                 />
               : (
                 <div style={{ textAlign: 'center', padding: '40px 0' }}>

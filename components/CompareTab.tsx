@@ -74,27 +74,28 @@ function buildRows(curr: Holding[], prev: Holding[]): Row[] {
   const rows: Row[] = [];
   for (const key of keys) {
     const c = cm.get(key), p = pm.get(key);
+    const cq = c?.qshare ?? 0;
+    const pq = p?.qshare ?? 0;
     let status: Status = 'unchanged';
-    if  (c && !p)                   status = 'new';
-    else if (!c)                    status = 'removed';
-    else if (c.qshare > p!.qshare) status = 'increased';
-    else if (c.qshare < p!.qshare) status = 'decreased';
+    if      (!c || cq === 0)   status = 'removed';
+    else if (!p || pq === 0)   status = 'new';
+    else if (cq > pq)          status = 'increased';
+    else if (cq < pq)          status = 'decreased';
 
-    // 異動金額：最新收盤價 × 持股變化（以股計算）
-    const cPrice = c && c.qshare > 0 ? c.mvalue / c.qshare : null;
-    const pPrice = p && p.qshare > 0 ? p.mvalue / p.qshare : null;
+    const cPrice = c && cq > 0 ? c.mvalue / cq : null;
+    const pPrice = p && pq > 0 ? p.mvalue / pq : null;
     let diff_amount: number | null = null;
-    if (c && p && cPrice !== null)       diff_amount = cPrice * (c.qshare - p.qshare);
-    else if (c && cPrice !== null)       diff_amount = c.mvalue;
-    else if (p && pPrice !== null)       diff_amount = -p.mvalue;
+    if (c && cq > 0 && p && pq > 0 && cPrice !== null) diff_amount = cPrice * (cq - pq);
+    else if (c && cq > 0 && cPrice !== null)            diff_amount = c.mvalue;
+    else if (p && pq > 0 && pPrice !== null)            diff_amount = -p.mvalue;
 
     rows.push({
       stockid:   (c ?? p)!.stockid,
       stockname: (c ?? p)!.stockname,
       country:   (c ?? p)!.country,
-      curr_q: c?.qshare           ?? null,
-      prev_q: p?.qshare           ?? null,
-      diff_q: c && p ? c.qshare - p.qshare : null,
+      curr_q: cq > 0 ? cq : null,
+      prev_q: pq > 0 ? pq : null,
+      diff_q: cq > 0 && pq > 0 ? cq - pq : null,
       curr_p: c?.prate_addaccint  ?? null,
       prev_p: p?.prate_addaccint  ?? null,
       diff_p: c && p ? c.prate_addaccint - p.prate_addaccint : null,
