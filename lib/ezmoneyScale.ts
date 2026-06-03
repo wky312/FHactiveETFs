@@ -107,12 +107,29 @@ async function getSessionCookies(fundCode: string): Promise<string> {
   return cookies;
 }
 
+// Parse TranDate from ASP.NET JSON date string or ISO string → "YYYY/MM/DD" (Taiwan, UTC+8)
+function parseTranDate(raw: unknown): string | null {
+  if (!raw) return null;
+  const s = String(raw);
+  // ISO format: "2026-06-01T00:00:00"
+  const iso = s.match(/^(\d{4})-(\d{2})-(\d{2})/);
+  if (iso) return `${iso[1]}/${iso[2]}/${iso[3]}`;
+  // .NET ticks: "/Date(1780243200000)/"
+  const ticks = s.match(/Date\((\d+)\)/);
+  if (ticks) {
+    const ms = parseInt(ticks[1]);
+    const d  = new Date(ms + 8 * 3600 * 1000); // shift to Taiwan time
+    return `${d.getUTCFullYear()}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${String(d.getUTCDate()).padStart(2,'0')}`;
+  }
+  return null;
+}
+
 async function fetchOneDay(
-  fundCode: string, gregorianDate: string, cookies: string
+  fundCode: string, announceDate: string, cookies: string
 ): Promise<EzmoneyDay | null> {
   try {
     const payload = Buffer.from(
-      JSON.stringify({ fundCode, date: toRoc(gregorianDate), specificDate: true }),
+      JSON.stringify({ fundCode, date: toRoc(announceDate), specificDate: true }),
       'utf8'
     );
     const raw = await httpsPost(
@@ -127,6 +144,9 @@ async function fetchOneDay(
     const pcf: any[] = json?.pcf ?? [];
     if (!pcf.length) return null;
 
+    // Use TranDate from first entry as the actual transaction date label
+    const tranDate = parseTranDate(pcf[0]?.TranDate) ?? announceDate;
+
     const get = (code: string) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const row = pcf.find((p: any) => p.PCFCode?.toUpperCase() === code.toUpperCase());
@@ -140,7 +160,7 @@ async function fetchOneDay(
     if (pUnit === 0) return null;
 
     return {
-      date:   gregorianDate,
+      date:   tranDate,          // ← actual transaction date (T), not announcement date (T+1)
       netSub: (diffUnit * pUnit) / 1e8,
       aum:    nav / 1e8,
       pUnit,
@@ -152,21 +172,34 @@ async function fetchOneDay(
 
 export async function fetchEzmoneyRange(
   fundCode: string,
-  startDate: string,
+  startDate: string,  // YYYY/MM/DD — transaction date range
   endDate: string,
 ): Promise<EzmoneyDay[]> {
-  const dates = weekdaysBetween(startDate, endDate);
-  if (!dates.length) return [];
+  // Query announcement dates: startDate+1 to endDate+4
+  // (PCF is announced T+1; extend by a few days for weekends/holidays)
+  const announceStart = addDays(startDate, 1);
+  const announceEnd   = addDays(endDate, 4);
+  const announceDates = weekdaysBetween(announceStart, announceEnd);
+  if (!announceDates.length) return [];
 
   const cookies = await getSessionCookies(fundCode);
 
   const BATCH = 5;
   const all: EzmoneyDay[] = [];
-  for (let i = 0; i < dates.length; i += BATCH) {
-    const batch = dates.slice(i, i + BATCH);
+  for (let i = 0; i < announceDates.length; i += BATCH) {
+    const batch = announceDates.slice(i, i + BATCH);
     const results = await Promise.all(batch.map(d => fetchOneDay(fundCode, d, cookies)));
     for (const r of results) if (r) all.push(r);
   }
 
-  return all.sort((a, b) => a.date.localeCompare(b.date));
+  // Filter to transaction dates within [startDate, endDate], deduplicate
+  const seen = new Set<string>();
+  return all
+    .filter(r => {
+      if (r.date < startDate || r.date > endDate) return false;
+      if (seen.has(r.date)) return false;
+      seen.add(r.date);
+      return true;
+    })
+    .sort((a, b) => a.date.localeCompare(b.date));
 }
