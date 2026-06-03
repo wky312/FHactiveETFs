@@ -24,7 +24,14 @@ function parseNum(v: unknown): number {
 function addCalendarDays(dateStr: string, n: number): string {
   const d = new Date(dateStr);
   d.setDate(d.getDate() + n);
-  return d.toISOString().split('T')[0]; // YYYY-MM-DD
+  return d.toISOString().split('T')[0];
+}
+
+// Next business day after dateStr (skips weekends; holidays handled by API returning null)
+function nextBusinessDay(dateStr: string): string {
+  const d = new Date(dateStr);
+  do { d.setDate(d.getDate() + 1); } while (d.getDay() === 0 || d.getDay() === 6);
+  return d.toISOString().split('T')[0];
 }
 
 function weekdaysBetween(start: string, end: string): string[] {
@@ -103,8 +110,8 @@ async function fetchOneDay(
   fundId: string, transactionDate: string, cookies: string
 ): Promise<CapitalDay | null> {
   try {
-    // Announcement date = transaction date + 1 calendar day
-    const announceDate = addCalendarDays(transactionDate, 1);
+    // Announcement date = next business day after transaction date
+    const announceDate = nextBusinessDay(transactionDate);
     const payload = Buffer.from(
       JSON.stringify({ fundId, date: announceDate }),
       'utf8'
