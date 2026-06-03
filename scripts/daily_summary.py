@@ -85,6 +85,202 @@ def fetch_pcf(target: date, fund_id: str):
     return None
 
 
+# ── Peer ETF data fetchers ────────────────────────────────────────────────────
+
+PEER_ETFS = [
+    {'ticker': '00991A', 'name': '復華991', 'source': 'fhtrust',  'key': 'ETF23'},
+    {'ticker': '00981A', 'name': '統一981', 'source': 'ezmoney',  'key': '49YTW'},
+    {'ticker': '00403A', 'name': '統一403', 'source': 'ezmoney',  'key': '63YTW'},
+    {'ticker': '00982A', 'name': '群益982', 'source': 'capital',  'key': '399'},
+    {'ticker': '00992A', 'name': '群益992', 'source': 'capital',  'key': '500'},
+]
+
+EZMONEY_HOST = 'www.ezmoney.com.tw'
+CAPITAL_HOST = 'www.capitalfund.com.tw'
+
+
+def _get_ezmoney_session(fund_code: str) -> requests.Session:
+    s = requests.Session()
+    s.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+    s.get(f'https://{EZMONEY_HOST}/', timeout=15)
+    s.get(f'https://{EZMONEY_HOST}/ETF/Transaction/PCF?fundCode={fund_code}', timeout=15)
+    return s
+
+
+def _roc_date(d: date) -> str:
+    """Convert Gregorian date to ROC format YYY/MM/DD."""
+    return f'{d.year - 1911}/{d.month:02d}/{d.day:02d}'
+
+
+def fetch_ezmoney_day(fund_code: str, transaction_date: date) -> dict | None:
+    """Return {'netSub': float, 'aum': float} for given transaction date, or None."""
+    try:
+        s = _get_ezmoney_session(fund_code)
+        # Announcement date = transaction date + 1 day (ezmoney uses calendar +1)
+        announce = transaction_date + timedelta(days=1)
+        payload = {'fundCode': fund_code, 'date': _roc_date(announce), 'specificDate': True}
+        r = s.post(
+            f'https://{EZMONEY_HOST}/ETF/Transaction/GetPCF',
+            json=payload,
+            headers={'X-Requested-With': 'XMLHttpRequest',
+                     'Referer': f'https://{EZMONEY_HOST}/ETF/Transaction/PCF?fundCode={fund_code}'},
+            timeout=20,
+        )
+        if r.status_code != 200 or 'application/json' not in r.headers.get('content-type', ''):
+            return None
+        pcf = r.json().get('pcf', [])
+        if not pcf:
+            return None
+        # Verify transaction date matches
+        tran_raw = pcf[0].get('TranDate', '')
+        if isinstance(tran_raw, str) and 'T' in tran_raw:
+            tran_date = tran_raw[:10]
+        else:
+            return None
+        if tran_date != str(transaction_date):
+            return None
+        get = lambda code: next((parse_num(p['Amount']) for p in pcf if p.get('PCFCode','').upper() == code), 0)
+        diff_unit = get('DIFF_UNIT')
+        p_unit    = get('P_UNIT')
+        nav       = get('NAV')
+        if p_unit == 0:
+            return None
+        return {'netSub': (diff_unit * p_unit) / 1e8, 'aum': nav / 1e8}
+    except Exception as e:
+        print(f'  ezmoney {fund_code} {transaction_date}: {e}')
+        return None
+
+
+def _next_biz_day(d: date) -> date:
+    nd = d + timedelta(days=1)
+    while nd.weekday() >= 5:
+        nd += timedelta(days=1)
+    return nd
+
+
+def fetch_capital_day(fund_id: str, transaction_date: date) -> dict | None:
+    """Return {'netSub': float, 'aum': float} for given transaction date, or None."""
+    try:
+        s = requests.Session()
+        s.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+        s.get(f'https://{CAPITAL_HOST}/', timeout=15)
+        announce = _next_biz_day(transaction_date)
+        payload = {'fundId': fund_id, 'date': str(announce)}
+        r = s.post(
+            f'https://{CAPITAL_HOST}/CFWeb/api/etf/buyback',
+            json=payload,
+            headers={'Referer': f'https://{CAPITAL_HOST}/etf/transaction/buyback'},
+            timeout=20,
+        )
+        if r.status_code != 200:
+            return None
+        pcf = r.json().get('data', {}).get('pcf', {})
+        if not pcf or pcf.get('date2') != str(transaction_date):
+            return None
+        dis_unit = parse_num(pcf.get('disUnit', 0))
+        p_unit   = parse_num(pcf.get('pUnit', 0))
+        nav      = parse_num(pcf.get('nav', 0))
+        if p_unit == 0:
+            return None
+        return {'netSub': (dis_unit * p_unit) / 1e8, 'aum': nav / 1e8}
+    except Exception as e:
+        print(f'  capital {fund_id} {transaction_date}: {e}')
+        return None
+
+
+def fetch_fhtrust_peer_day(fund_id: str, transaction_date: date) -> dict | None:
+    """Fetch net subscription for fhtrust ETF from PCF data."""
+    result = fetch_pcf(transaction_date, fund_id)
+    if not result:
+        return None
+    # aum from PCF; netSub from ScaleDay pattern: need actBuyVal × qDiff
+    # For peer table we only use aum here; netSub from etf-scale logic not repeated
+    return {'aum': result['aum'], 'netSub': None}  # netSub requires scale API separately
+
+
+def fetch_all_peer_data(transaction_date: date) -> list:
+    """Fetch net subscription data for all peer ETFs on the given date."""
+    results = []
+    for etf in PEER_ETFS:
+        data = None
+        if etf['source'] == 'ezmoney':
+            data = fetch_ezmoney_day(etf['key'], transaction_date)
+        elif etf['source'] == 'capital':
+            data = fetch_capital_day(etf['key'], transaction_date)
+        elif etf['source'] == 'fhtrust':
+            # For fhtrust, netSub comes from PCF DIFF_UNIT calculation
+            # Use fhtrust PCF API (same as etf-scale)
+            target_str = date_to_api(transaction_date)
+            for offset in range(5):
+                pcf_date = date_to_api(transaction_date + timedelta(days=offset))
+                try:
+                    url = f'{FHTRUST_PCF}?fundID={etf["key"]}&pcfDate={requests.utils.quote(pcf_date)}'
+                    r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=20)
+                    d = r.json()
+                    d = (d.get('result') or [None])[0] if d.get('result') else d
+                    if not d or str(d.get('actBuyValDate', '')) != target_str:
+                        continue
+                    act_buy_val = parse_num(d.get('actBuyVal', 0))
+                    q_diff      = parse_num(d.get('qDiff', 0))
+                    nav         = parse_num(d.get('nav', 0))
+                    data = {
+                        'netSub': act_buy_val * q_diff / 500000 / 1e8,
+                        'aum':    nav / 1e8,
+                    }
+                    break
+                except:
+                    continue
+        results.append({**etf, 'data': data})
+    return results
+
+
+def build_peer_html(peer_results: list, transaction_date: date) -> str:
+    rows_html = ''
+    for etf in peer_results:
+        d = etf['data']
+        if d and d['netSub'] is not None:
+            ns = d['netSub']
+            color = '#C00000' if ns > 0 else '#1A6B45' if ns < 0 else '#6B6460'
+            sign  = '+' if ns > 0 else ''
+            ns_str = f'{sign}{ns:.2f}'
+            aum_str = f'{d["aum"]:.2f} 億' if d.get('aum') else '—'
+        else:
+            ns_str = '—'
+            color  = '#BBBBBB'
+            aum_str = '—'
+        rows_html += f'''
+        <tr style="border-bottom:1px solid #EEE9E4;">
+          <td style="padding:8px 14px;font-size:13px;color:#1C1C1E;font-weight:600;">{etf["ticker"]}</td>
+          <td style="padding:8px 14px;font-size:12px;color:#6B6460;">{etf["name"]}</td>
+          <td style="padding:8px 14px;text-align:right;font-family:monospace;font-size:13px;font-weight:700;color:{color};">{ns_str}</td>
+          <td style="padding:8px 14px;text-align:right;font-family:monospace;font-size:12px;color:#6B6460;">{aum_str}</td>
+        </tr>'''
+
+    return f'''<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>*{{margin:0;padding:0;box-sizing:border-box;}}body{{font-family:"Noto Sans TC","Segoe UI",Arial,sans-serif;background:#fff;padding:20px;width:520px;}}</style>
+</head><body>
+  <div style="border-left:4px solid #C00000;padding-left:12px;margin-bottom:16px;">
+    <div style="font-size:17px;font-weight:700;color:#1C1C1E;">同業申贖觀測</div>
+    <div style="font-size:12px;color:#6B6460;margin-top:3px;">{transaction_date}　單位：億元</div>
+  </div>
+  <table style="width:100%;border-collapse:collapse;border:1px solid #E8E3DF;border-radius:8px;overflow:hidden;">
+    <thead>
+      <tr style="background:#1C1C1E;">
+        <th style="padding:9px 14px;color:#fff;font-size:11px;text-align:left;">代碼</th>
+        <th style="padding:9px 14px;color:#fff;font-size:11px;text-align:left;">名稱</th>
+        <th style="padding:9px 14px;color:#fff;font-size:11px;text-align:right;">淨申贖(億)</th>
+        <th style="padding:9px 14px;color:#fff;font-size:11px;text-align:right;">規模</th>
+      </tr>
+    </thead>
+    <tbody>{rows_html}</tbody>
+  </table>
+  <div style="margin-top:10px;font-size:11px;color:#6B6460;text-align:right;">
+    正值=淨申購（紅）　負值=淨贖回（綠）　生成時間：{datetime.now(TZ).strftime('%Y/%m/%d %H:%M')} TST
+  </div>
+</body></html>'''
+
+
 def find_trading_day_with_data(start: date, fund_id: str, max_lookback: int = 10):
     """Walk back from `start` (skipping weekends) until holdings data is found."""
     d = start
@@ -345,6 +541,28 @@ async def process_etf(etf: dict, today: date):
     )
 
 
+async def process_peer_redemption(today: date):
+    """Fetch peer redemption data and send Pushover notification."""
+    print('\n[同業申贖觀測]')
+    # Find the latest trading day with data (same as ETF processing)
+    base_date, _ = find_trading_day_with_data(today, 'ETF23')
+    if not base_date:
+        print('  No base date found, skipping.')
+        return
+    print(f'  date={base_date}')
+    peer_results = fetch_all_peer_data(base_date)
+    html = build_peer_html(peer_results, base_date)
+    img  = await screenshot_html(html)
+    send_pushover(
+        title       = f'同業申贖觀測 {base_date}',
+        message     = '淨申贖：' + '　'.join(
+            f'{e["ticker"]} {e["data"]["netSub"]:+.2f}億' if e['data'] and e['data']['netSub'] is not None else f'{e["ticker"]} —'
+            for e in peer_results
+        ),
+        image_bytes = img,
+    )
+
+
 async def main():
     if not PUSHOVER_TOKEN or not PUSHOVER_USER:
         sys.exit('ERROR: PUSHOVER_TOKEN and PUSHOVER_USER must be set.')
@@ -358,6 +576,12 @@ async def main():
         except Exception as e:
             print(f'  ERROR: {e}')
             import traceback; traceback.print_exc()
+
+    try:
+        await process_peer_redemption(today)
+    except Exception as e:
+        print(f'  Peer redemption ERROR: {e}')
+        import traceback; traceback.print_exc()
 
 
 if __name__ == '__main__':

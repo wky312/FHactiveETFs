@@ -1,5 +1,5 @@
 'use client';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { ScaleDay } from '@/lib/fhtrustScale';
 import { EzmoneyDay } from '@/lib/ezmoneyScale';
 import { CapitalDay } from '@/lib/capitalScale';
@@ -108,6 +108,30 @@ export default function PeerRedemptionTab() {
   const [loading,   setLoading]   = useState(false);
   const [error,     setError]     = useState('');
   const [rows,      setRows]      = useState<DayRow[] | null>(null);
+  const subsRef = useRef<HTMLDivElement>(null);
+  const aumRef  = useRef<HTMLDivElement>(null);
+
+  const saveImage = useCallback(async (ref: React.RefObject<HTMLDivElement | null>, filename: string) => {
+    const el = ref.current;
+    if (!el) return;
+    try {
+      await document.fonts.ready;
+      const html2canvas = (await import('html2canvas')).default;
+      const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
+      const jpgName = filename.replace(/\.png$/, '.jpg');
+      if (typeof navigator !== 'undefined' && navigator.canShare) {
+        try {
+          const blob = await new Promise<Blob>(res => canvas.toBlob(b => res(b!), 'image/jpeg', 0.92));
+          const file = new File([blob], jpgName, { type: 'image/jpeg' });
+          if (navigator.canShare({ files: [file] })) { await navigator.share({ title: '同業申贖觀測', files: [file] }); return; }
+        } catch {}
+      }
+      const link = document.createElement('a');
+      link.download = jpgName;
+      link.href = canvas.toDataURL('image/jpeg', 0.92);
+      link.click();
+    } catch {}
+  }, []);
 
   const toApi = (s: string) => s.replace(/-/g, '/');
 
@@ -205,12 +229,16 @@ export default function PeerRedemptionTab() {
 
       {rows && rows.length > 0 && (
         <>
-          <div style={{ fontSize: '.78rem', color: SUB, marginBottom: 8 }}>
-            單位：億元　正值 = 淨申購（紅）　負值 = 淨贖回（綠）
-          </div>
-
           {/* 申贖金額表 */}
-          <div style={{ overflowX: 'auto', borderRadius: 8, border: `1px solid ${BORDER}`, marginBottom: 20 }}>
+          <div ref={subsRef} style={{ background: '#fff', marginBottom: 20 }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <span style={{ fontSize: '.78rem', color: SUB }}>單位：億元　正值 = 淨申購（紅）　負值 = 淨贖回（綠）</span>
+            <button onClick={() => saveImage(subsRef, `同業淨申贖_${endDate}.png`)}
+              style={{ padding: '4px 12px', background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 6, cursor: 'pointer', fontSize: '.78rem', color: SUB }}>
+              儲存 / 分享
+            </button>
+          </div>
+          <div style={{ overflowX: 'auto', borderRadius: 8, border: `1px solid ${BORDER}` }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
               <thead>
                 <tr>
@@ -237,9 +265,17 @@ export default function PeerRedemptionTab() {
               </tbody>
             </table>
           </div>
+          </div>
 
           {/* 基金規模表 */}
-          <div style={{ fontSize: '.78rem', color: SUB, marginBottom: 8 }}>基金規模</div>
+          <div ref={aumRef} style={{ background: '#fff' }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
+            <span style={{ fontSize: '.78rem', color: SUB }}>基金規模</span>
+            <button onClick={() => saveImage(aumRef, `同業基金規模_${endDate}.png`)}
+              style={{ padding: '4px 12px', background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 6, cursor: 'pointer', fontSize: '.78rem', color: SUB }}>
+              儲存 / 分享
+            </button>
+          </div>
           <div style={{ overflowX: 'auto', borderRadius: 8, border: `1px solid ${BORDER}` }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
               <thead>
@@ -266,6 +302,7 @@ export default function PeerRedemptionTab() {
                 ))}
               </tbody>
             </table>
+          </div>
           </div>
         </>
       )}
