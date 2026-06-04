@@ -172,7 +172,7 @@ export default function PeerPerformanceTab() {
             <thead>
               <tr>
                 <th onClick={() => toggleSort('ticker')}   style={{ ...TH, textAlign: 'left',  width: 72  }}>{thLabel('ticker',  '代號')}</th>
-                <th onClick={() => toggleSort('name')}     style={{ ...TH, textAlign: 'left',  minWidth: 120 }}>{thLabel('name', '名稱')}</th>
+                <th onClick={() => toggleSort('name')}     style={{ ...TH, textAlign: 'left',  minWidth: 100, width: 100 }}>{thLabel('name', '名稱')}</th>
                 <th onClick={() => toggleSort('price')}    style={{ ...TH, textAlign: 'right', width: 70  }}>{thLabel('price',  '收盤價')}</th>
                 {PERF_COLS.map(c => (
                   <th key={c.key} onClick={() => toggleSort(c.key)}
@@ -186,7 +186,7 @@ export default function PeerPerformanceTab() {
               {sorted.map((r, i) => (
                 <tr key={r.ticker} style={{ background: i % 2 === 0 ? '#fff' : '#FAFAF9', borderBottom: `1px solid ${BORDER}` }}>
                   <td style={{ padding: '8px 10px', fontFamily: MONO, fontSize: '.8rem', color: SUB, fontWeight: 600 }}>{r.ticker}</td>
-                  <td style={{ padding: '8px 10px', fontSize: '.83rem', color: TEXT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 160 }}>{r.name}</td>
+                  <td style={{ padding: '8px 10px', fontSize: '.83rem', color: TEXT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 100 }}>{r.name}</td>
                   <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', color: TEXT }}>{fmtPrice(r.price)}</td>
                   {PERF_COLS.map(c => {
                     const v = r[c.key] as number | null;
