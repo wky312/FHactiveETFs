@@ -1,4 +1,4 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const YahooFinance = require('yahoo-finance2').default;
@@ -7,72 +7,118 @@ const yf: any = new YahooFinance({ suppressNotices: ['ripHistorical', 'yahooSurv
 
 export const dynamic = 'force-dynamic';
 
-// 同業績效觀測標的（顯示名稱、Yahoo Finance ticker）
-export const PEER_PERF_LIST = [
-  { ticker: '00981A', yfTicker: '00981A.TW', name: '統一台灣科技百強' },
-  { ticker: '00982A', yfTicker: '00982A.TW', name: '群益台灣精選強棒' },
-  { ticker: '00984A', yfTicker: '00984A.TW', name: '安聯台灣智慧' },
-  { ticker: '00985A', yfTicker: '00985A.TW', name: '野村台灣價值' },
-  { ticker: '00987A', yfTicker: '00987A.TW', name: '台新台灣精選' },
-  { ticker: '00991A', yfTicker: '00991A.TW', name: '復華主動式ETF' },
-  { ticker: '00992A', yfTicker: '00992A.TW', name: '群益科技創新' },
-  { ticker: '00993A', yfTicker: '00993A.TW', name: '安聯台灣多利' },
-  { ticker: '00994A', yfTicker: '00994A.TW', name: '第一金主動式' },
-  { ticker: '00995A', yfTicker: '00995A.TW', name: '中信台灣科技' },
-  { ticker: '00400A', yfTicker: '00400A.TW', name: '國泰台灣高息' },
-  { ticker: '00401A', yfTicker: '00401A.TW', name: '摩根台灣主動' },
-  { ticker: '00403A', yfTicker: '00403A.TW', name: '統一均衡成長' },
-  { ticker: '0050',   yfTicker: '0050.TW',   name: '元大台灣50' },
-];
-
-export interface PeerPerfResult {
+export interface PeerItem {
   ticker: string;
   yfTicker: string;
   name: string;
+}
+
+// ── 群組定義 ──────────────────────────────────────────────────────────────────
+
+export const PEER_GROUPS: Record<string, { label: string; items: PeerItem[] }> = {
+  active: {
+    label: '台股主動式ETF',
+    items: [
+      { ticker: '00981A', yfTicker: '00981A.TW', name: '統一台灣科技百強' },
+      { ticker: '00982A', yfTicker: '00982A.TW', name: '群益台灣精選強棒' },
+      { ticker: '00984A', yfTicker: '00984A.TW', name: '安聯台灣智慧' },
+      { ticker: '00985A', yfTicker: '00985A.TW', name: '野村台灣價值' },
+      { ticker: '00987A', yfTicker: '00987A.TW', name: '台新台灣精選' },
+      { ticker: '00991A', yfTicker: '00991A.TW', name: '復華主動式ETF' },
+      { ticker: '00992A', yfTicker: '00992A.TW', name: '群益科技創新' },
+      { ticker: '00993A', yfTicker: '00993A.TW', name: '安聯台灣多利' },
+      { ticker: '00994A', yfTicker: '00994A.TW', name: '第一金主動式' },
+      { ticker: '00995A', yfTicker: '00995A.TW', name: '中信台灣科技' },
+      { ticker: '00996A', yfTicker: '00996A.TW', name: '兆豐台灣主動' },
+      { ticker: '00400A', yfTicker: '00400A.TW', name: '國泰台灣高息' },
+      { ticker: '00401A', yfTicker: '00401A.TW', name: '摩根台灣主動' },
+      { ticker: '00403A', yfTicker: '00403A.TW', name: '統一均衡成長' },
+      { ticker: '0050',   yfTicker: '0050.TW',   name: '元大台灣50' },
+      { ticker: '^TWII',  yfTicker: '^TWII',     name: '台灣加權指數' },
+      { ticker: '^TWOII', yfTicker: '^TWOII',    name: '台灣OTC指數' },
+    ],
+  },
+  tw50: {
+    label: '台股50',
+    items: [
+      { ticker: '00935',  yfTicker: '00935.TW',  name: '野村臺灣新科技50' },
+      { ticker: '006201', yfTicker: '006201.TW', name: '元大富櫃50' },
+      { ticker: '00991A', yfTicker: '00991A.TW', name: '復華主動式ETF' },
+      { ticker: '009802', yfTicker: '009802.TW', name: '富邦台灣50+' },
+      { ticker: '009803', yfTicker: '009803.TW', name: '玉山台灣50' },
+      { ticker: '00923',  yfTicker: '00923.TW',  name: '群益台灣精選30' },
+      { ticker: '009804', yfTicker: '009804.TW', name: '聯邦台灣50' },
+      { ticker: '00985A', yfTicker: '00985A.TW', name: '野村台灣價值' },
+      { ticker: '00952',  yfTicker: '00952.TW',  name: '凱基台灣50' },
+      { ticker: '00922',  yfTicker: '00922.TW',  name: '國泰台灣智能' },
+      { ticker: '0050',   yfTicker: '0050.TW',   name: '元大台灣50' },
+      { ticker: '009809', yfTicker: '009809.TW', name: '富邦台灣中小50' },
+      { ticker: '006208', yfTicker: '006208.TW', name: '富邦台灣50' },
+      { ticker: '009808', yfTicker: '009808.TW', name: '華南台灣50' },
+      { ticker: '00912',  yfTicker: '00912.TW',  name: '中信台灣優先50' },
+      { ticker: '009816', yfTicker: '009816.TW', name: '凱基台灣新科技50' },
+      { ticker: '00403A', yfTicker: '00403A.TW', name: '統一均衡成長' },
+      { ticker: '^TWII',  yfTicker: '^TWII',     name: '台灣加權指數' },
+      { ticker: '^TWOII', yfTicker: '^TWOII',    name: '台灣OTC指數' },
+    ],
+  },
+};
+
+// ── Types & helpers ───────────────────────────────────────────────────────────
+
+export interface PeerPerfResult extends PeerItem {
   price: number | null;
-  pct1d:  number | null; // 當日
-  pctWTD: number | null; // 週初至今
-  pctMTD: number | null; // 月初至今
-  pctYTD: number | null; // 年初至今
-  pct5d:  number | null; // 近5日
-  pct1m:  number | null; // 近1月
-  pct3m:  number | null; // 近3月
-  pct6m:  number | null; // 近6月
-  pct1y:  number | null; // 近一年
+  pct1d:  number | null;
+  pctWTD: number | null;
+  pctMTD: number | null;
+  pctYTD: number | null;
+  pct5d:  number | null;
+  pct1m:  number | null;
+  pct3m:  number | null;
+  pct6m:  number | null;
+  pct1y:  number | null;
   updatedAt: string | null;
 }
 
 interface DayRow { date: Date; adjClose: number }
 
 function pct(curr: number | null | undefined, base: number | null | undefined): number | null {
-  if (!curr || !base) return null;
+  if (curr == null || base == null || base === 0) return null;
   return (curr - base) / base * 100;
 }
 
-// Find latest row with date strictly before cutoff
-function findBefore(rows: DayRow[], cutoff: Date): number | null {
+function findOnOrBefore(rows: DayRow[], cutoff: Date): number | null {
   const t = cutoff.getTime();
   for (let i = rows.length - 1; i >= 0; i--) {
-    if (rows[i].date.getTime() < t) return rows[i].adjClose;
+    if (rows[i].date.getTime() <= t) return rows[i].adjClose;
   }
   return null;
 }
 
-function daysAgo(n: number): Date {
-  const d = new Date(); d.setDate(d.getDate() - n); d.setHours(23, 59, 59, 999); return d;
-}
 function prevWeekEnd(): Date {
-  // Last Sunday midnight = end of previous week
-  const d = new Date(); d.setDate(d.getDate() - d.getDay()); d.setHours(23, 59, 59, 999); return d;
+  const d = new Date();
+  const day = d.getDay(); // 0=Sun
+  d.setDate(d.getDate() - (day === 0 ? 7 : day));
+  d.setHours(23, 59, 59, 999);
+  return d;
 }
 function prevMonthEnd(): Date {
-  const d = new Date(); return new Date(d.getFullYear(), d.getMonth(), 0, 23, 59, 59, 999);
+  const d = new Date();
+  return new Date(d.getFullYear(), d.getMonth(), 0, 23, 59, 59, 999);
 }
 function prevYearEnd(): Date {
   return new Date(new Date().getFullYear() - 1, 11, 31, 23, 59, 59, 999);
 }
+function exactMonthsAgo(n: number): Date {
+  const d = new Date();
+  d.setMonth(d.getMonth() - n);
+  d.setHours(23, 59, 59, 999);
+  return d;
+}
 
-async function fetchOne(item: typeof PEER_PERF_LIST[0]): Promise<PeerPerfResult> {
+// ── Fetch one ticker ──────────────────────────────────────────────────────────
+
+async function fetchOne(item: PeerItem): Promise<PeerPerfResult> {
   const base: PeerPerfResult = {
     ...item, price: null,
     pct1d: null, pctWTD: null, pctMTD: null, pctYTD: null,
@@ -80,8 +126,8 @@ async function fetchOne(item: typeof PEER_PERF_LIST[0]): Promise<PeerPerfResult>
     updatedAt: null,
   };
   try {
-    const today = new Date();
-    const from  = new Date(today.getFullYear() - 1, today.getMonth() - 2, today.getDate());
+    const today   = new Date();
+    const from    = new Date(today.getFullYear() - 1, today.getMonth() - 2, today.getDate());
     const period2 = new Date(today); period2.setDate(period2.getDate() + 1);
 
     const [quote, chart] = await Promise.all([
@@ -93,16 +139,15 @@ async function fetchOne(item: typeof PEER_PERF_LIST[0]): Promise<PeerPerfResult>
     const rawQuotes: any[] = chart?.quotes ?? [];
     const rows: DayRow[] = rawQuotes
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .filter((q: any) => (q.adjClose ?? q.adjclose) != null)
+      .filter((q: any) => (q.adjClose ?? q.adjclose ?? q.close) != null)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .map((q: any) => ({ date: new Date(q.date), adjClose: q.adjClose ?? q.adjclose }))
+      .map((q: any) => ({ date: new Date(q.date), adjClose: q.adjClose ?? q.adjclose ?? q.close }))
       .sort((a, b) => a.date.getTime() - b.date.getTime());
 
     if (!rows.length) return base;
 
     const cur = rows[rows.length - 1].adjClose;
 
-    // 當日: prefer Yahoo's regularMarketChangePercent (includes live price)
     const pct1d = quote?.regularMarketChangePercent != null
       ? quote.regularMarketChangePercent
       : pct(cur, rows.length >= 2 ? rows[rows.length - 2].adjClose : null);
@@ -111,14 +156,14 @@ async function fetchOne(item: typeof PEER_PERF_LIST[0]): Promise<PeerPerfResult>
       ...item,
       price:   quote?.regularMarketPrice ?? cur,
       pct1d,
-      pctWTD:  pct(cur, findBefore(rows, prevWeekEnd())),
-      pctMTD:  pct(cur, findBefore(rows, prevMonthEnd())),
-      pctYTD:  pct(cur, findBefore(rows, prevYearEnd())),
-      pct5d:   rows.length >= 6  ? pct(cur, rows[rows.length - 6].adjClose)  : null,
-      pct1m:   pct(cur, findBefore(rows, daysAgo(30))),
-      pct3m:   pct(cur, findBefore(rows, daysAgo(91))),
-      pct6m:   pct(cur, findBefore(rows, daysAgo(182))),
-      pct1y:   pct(cur, findBefore(rows, daysAgo(365))),
+      pctWTD:  pct(cur, findOnOrBefore(rows, prevWeekEnd())),
+      pctMTD:  pct(cur, findOnOrBefore(rows, prevMonthEnd())),
+      pctYTD:  pct(cur, findOnOrBefore(rows, prevYearEnd())),
+      pct5d:   rows.length >= 6 ? pct(cur, rows[rows.length - 6].adjClose) : null,
+      pct1m:   pct(cur, findOnOrBefore(rows, exactMonthsAgo(1))),
+      pct3m:   pct(cur, findOnOrBefore(rows, exactMonthsAgo(3))),
+      pct6m:   pct(cur, findOnOrBefore(rows, exactMonthsAgo(6))),
+      pct1y:   pct(cur, findOnOrBefore(rows, exactMonthsAgo(12))),
       updatedAt: quote?.regularMarketTime
         ? new Date(quote.regularMarketTime).toISOString()
         : null,
@@ -128,11 +173,16 @@ async function fetchOne(item: typeof PEER_PERF_LIST[0]): Promise<PeerPerfResult>
   }
 }
 
-export async function GET() {
+// ── Route handler ─────────────────────────────────────────────────────────────
+
+export async function GET(request: NextRequest) {
+  const groupId = request.nextUrl.searchParams.get('group') ?? 'active';
+  const group   = PEER_GROUPS[groupId] ?? PEER_GROUPS['active'];
+
   const BATCH = 4;
   const results: PeerPerfResult[] = [];
-  for (let i = 0; i < PEER_PERF_LIST.length; i += BATCH) {
-    const batch = await Promise.all(PEER_PERF_LIST.slice(i, i + BATCH).map(fetchOne));
+  for (let i = 0; i < group.items.length; i += BATCH) {
+    const batch = await Promise.all(group.items.slice(i, i + BATCH).map(fetchOne));
     results.push(...batch);
   }
   return NextResponse.json(results, { headers: { 'Cache-Control': 'no-store' } });

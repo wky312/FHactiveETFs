@@ -2,6 +2,11 @@
 import { useState, useMemo } from 'react';
 import type { PeerPerfResult } from '@/app/api/peer-performance/route';
 
+const GROUPS = [
+  { id: 'active', label: '台股主動式ETF' },
+  { id: 'tw50',   label: '台股50' },
+];
+
 const TEXT   = '#1C1C1E';
 const SUB    = '#6B6460';
 const BORDER = '#EEE9E4';
@@ -56,6 +61,7 @@ function fmtPrice(v: number | null): string {
 }
 
 export default function PeerPerformanceTab() {
+  const [group,   setGroup]   = useState('active');
   const [data,    setData]    = useState<PeerPerfResult[] | null>(null);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
@@ -63,10 +69,18 @@ export default function PeerPerformanceTab() {
   const [sortKey, setSortKey] = useState<SortKey>('pct1d');
   const [sortAsc, setSortAsc] = useState(false);
 
-  const load = async () => {
+  const switchGroup = (id: string) => {
+    setGroup(id);
+    setData(null);
+    setError('');
+    setAsOf('');
+    setSortKey('pct1d');
+  };
+
+  const load = async (grp = group) => {
     setLoading(true); setError(''); setData(null);
     try {
-      const r = await fetch('/api/peer-performance');
+      const r = await fetch(`/api/peer-performance?group=${grp}`);
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const json: PeerPerfResult[] = await r.json();
       setData(json);
@@ -114,9 +128,26 @@ export default function PeerPerformanceTab() {
 
   return (
     <div style={{ fontFamily: SANS, color: TEXT }}>
+      {/* Group tabs */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 14 }}>
+        {GROUPS.map(g => (
+          <button key={g.id} onClick={() => switchGroup(g.id)}
+            style={{
+              padding: '6px 18px', borderRadius: 20,
+              border: `1.5px solid ${group === g.id ? RED : BORDER}`,
+              background: group === g.id ? RED : '#fff',
+              color: group === g.id ? '#fff' : SUB,
+              cursor: 'pointer', fontSize: '.85rem', fontWeight: group === g.id ? 600 : 400,
+              fontFamily: SANS,
+            }}>
+            {g.label}
+          </button>
+        ))}
+      </div>
+
       {/* Controls */}
       <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
-        <button onClick={load} disabled={loading}
+        <button onClick={() => load(group)} disabled={loading}
           style={{ padding: '8px 22px', background: loading ? '#999' : RED, color: '#fff', border: 'none', borderRadius: 6, cursor: loading ? 'not-allowed' : 'pointer', fontSize: '.88rem', fontWeight: 600 }}>
           {loading ? '載入中…' : data ? '重新整理' : '載入'}
         </button>
