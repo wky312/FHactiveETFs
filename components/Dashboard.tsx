@@ -11,6 +11,7 @@ import PerformanceTab from './PerformanceTab';
 import Prediction0050Tab from './Prediction0050Tab';
 import ScaleTab from './ScaleTab';
 import PeerRedemptionTab from './PeerRedemptionTab';
+import PeerPerformanceTab from './PeerPerformanceTab';
 
 /* ── Design tokens ── */
 const RED    = '#C00000';
@@ -24,7 +25,7 @@ const BORDER = '#E8E3DF';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'pred0050' | 'scale' | 'peer';
+type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'pred0050' | 'scale' | 'peer' | 'peerperf';
 interface LoadedData { date: string; holdings: Holding[] }
 interface PerfData { date: string; results: StockPerformance[] }
 
@@ -242,6 +243,7 @@ export default function Dashboard() {
     { id: 'pred0050',    label: '0050 季調預測' },
     { id: 'scale',       label: '規模變化' },
     { id: 'peer',        label: '同業申贖觀測' },
+    { id: 'peerperf',   label: '同業績效觀測' },
   ];
 
   return (
@@ -441,6 +443,12 @@ export default function Dashboard() {
         {activeTab === 'peer' && (
           <Card title="同業申贖觀測">
             <PeerRedemptionTab />
+          </Card>
+        )}
+
+        {activeTab === 'peerperf' && (
+          <Card title="同業績效觀測">
+            <PeerPerformanceTab />
           </Card>
         )}
       </main>
