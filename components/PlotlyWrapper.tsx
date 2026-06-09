@@ -10,12 +10,13 @@ interface Props {
   traces: any[];
   layout: any;
   style?: React.CSSProperties;
+  id?: string;   // 設在容器 div 上，供 Plotly.downloadImage 等外部存取
   // 若提供：index = trace 序號，值 = 該 trace 所屬 subplot id（如 ['xy','xy2','xy3','xy3']）。
   // 游標 hover 任一子圖時，會同步在所有子圖的相同 X 觸發 hover —— 讓上下子圖同時顯示該日期全部數值。
   hoverSync?: string[];
 }
 
-export default function PlotlyWrapper({ traces, layout, style, hoverSync }: Props) {
+export default function PlotlyWrapper({ traces, layout, style, hoverSync, id }: Props) {
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -59,5 +60,5 @@ export default function PlotlyWrapper({ traces, layout, style, hoverSync }: Prop
     return () => { disposed = true; if (window.Plotly && el) window.Plotly.purge(el); };
   }, [traces, layout, hoverSync]);
 
-  return <div ref={ref} style={{ width: '100%', ...style }} />;
+  return <div ref={ref} id={id} style={{ width: '100%', ...style }} />;
 }

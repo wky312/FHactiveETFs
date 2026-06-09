@@ -1,6 +1,9 @@
 'use client';
 import { useState, useCallback } from 'react';
+import * as XLSX from 'xlsx';
 import PlotlyWrapper from './PlotlyWrapper';
+
+const CHART_ID = 'trajectory-chart';
 
 const RED    = '#C00000';
 const GREEN  = '#16a34a';
@@ -42,6 +45,12 @@ const TH: React.CSSProperties = {
   position: 'sticky', top: 0, zIndex: 1,
 };
 
+const DL_BTN: React.CSSProperties = {
+  padding: '6px 14px', background: '#fff', border: `1px solid ${BORDER}`,
+  borderRadius: 6, cursor: 'pointer', fontSize: '.8rem', color: SUB,
+  fontFamily: SANS, fontWeight: 500, whiteSpace: 'nowrap',
+};
+
 function fmtLots(n: number): string {
   return n.toLocaleString('en-US', { maximumFractionDigits: 1 });
 }
@@ -57,6 +66,40 @@ function fmtDelta(n: number): string {
 }
 function fmtPrice(n: number | null): string {
   return n == null ? '—' : n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+}
+
+function round(n: number | null, d: number): number | string {
+  return n == null ? '' : Number(n.toFixed(d));
+}
+
+// 匯出每日表格成 Excel（比照 PerformanceTab）
+function exportExcel(data: TrajectoryResult, ticker: string) {
+  const headers = ['日期', '持股(張)', '當日增減(張)', '中間價', '預估均價', '市值(NTD)', '佔比%'];
+  const rows = data.series.map(p => [
+    p.date,
+    round(p.lots, 1),
+    Math.abs(p.deltaLots) < 1e-4 ? '' : round(p.deltaLots, 1),
+    round(p.mid, 2),
+    round(p.avgCost, 2),
+    p.mvalue,
+    round(p.prate, 3),
+  ]);
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+  ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 16 }, { wch: 9 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '持股軌跡');
+  XLSX.writeFile(wb, `${ticker}_${data.stockid}_${data.stockname}_持股軌跡.xlsx`);
+}
+
+// 下載上下對照圖為 PNG
+function downloadChart(data: TrajectoryResult, ticker: string) {
+  const gd = document.getElementById(CHART_ID);
+  if (!gd || !window.Plotly) return;
+  const w = Math.max(900, Math.round(gd.getBoundingClientRect().width));
+  window.Plotly.downloadImage(gd, {
+    format: 'png', width: w, height: 560, scale: 2,
+    filename: `${ticker}_${data.stockid}_${data.stockname}_軌跡圖`,
+  });
 }
 
 interface Props {
@@ -200,14 +243,20 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
 
       {data && !data.notHeld && data.latest && (
         <>
-          {/* 標題列 */}
-          <div style={{ display: 'flex', gap: 16, marginBottom: 12, fontSize: '.9rem', color: SUB, alignItems: 'center', flexWrap: 'wrap' }}>
-            <span>
-              <strong style={{ color: TEXT, fontFamily: MONO, fontSize: '1.05rem' }}>{data.stockid}</strong>
-              {' '}<strong style={{ color: TEXT }}>{data.stockname}</strong>
-            </span>
-            <span style={{ color: BORDER }}>|</span>
-            <span>掃描 <strong style={{ color: TEXT }}>{data.scannedDays}</strong> 個交易日</span>
+          {/* 標題列 + 下載按鈕 */}
+          <div style={{ display: 'flex', gap: 16, marginBottom: 12, fontSize: '.9rem', color: SUB, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+            <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
+              <span>
+                <strong style={{ color: TEXT, fontFamily: MONO, fontSize: '1.05rem' }}>{data.stockid}</strong>
+                {' '}<strong style={{ color: TEXT }}>{data.stockname}</strong>
+              </span>
+              <span style={{ color: BORDER }}>|</span>
+              <span>掃描 <strong style={{ color: TEXT }}>{data.scannedDays}</strong> 個交易日</span>
+            </div>
+            <div style={{ display: 'flex', gap: 8 }}>
+              <button onClick={() => downloadChart(data, selectedEtf.ticker)} style={DL_BTN}>↓ 下載圖表 PNG</button>
+              <button onClick={() => exportExcel(data, selectedEtf.ticker)} style={DL_BTN}>↓ 匯出 Excel</button>
+            </div>
           </div>
 
           {/* 統計卡 */}
@@ -235,7 +284,7 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
 
           {/* 圖表：上=張數+佔比，下=股價+均價，共用 X 軸並同步游標（四個數值同時顯示）
               trace 順序：0 張數(xy)、1 佔比(xy2)、2 股價(xy3)、3 均價(xy3） */}
-          <PlotlyWrapper traces={traces} layout={layout} hoverSync={['xy', 'xy2', 'xy3', 'xy3']} style={{ marginBottom: 20 }} />
+          <PlotlyWrapper traces={traces} layout={layout} hoverSync={['xy', 'xy2', 'xy3', 'xy3']} id={CHART_ID} style={{ marginBottom: 20 }} />
 
           {/* 每日表格 */}
           <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '50vh', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
