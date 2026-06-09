@@ -17,6 +17,10 @@ interface TrajectoryPoint {
   mvalue: number;
   prate: number;
   deltaLots: number;
+  mid: number | null;
+  close: number | null;
+  dayBuyCost: number | null;
+  avgCost: number | null;
 }
 interface TrajectoryResult {
   stockid: string;
@@ -28,6 +32,8 @@ interface TrajectoryResult {
   maxLots: number;
   notHeld: boolean;
   scannedDays: number;
+  avgCost: number | null;
+  currentPrice: number | null;
 }
 
 const TH: React.CSSProperties = {
@@ -48,6 +54,9 @@ function fmtDelta(n: number): string {
   if (Math.abs(n) < 0.0001) return '—';
   const sign = n > 0 ? '+' : '';
   return `${sign}${n.toLocaleString('en-US', { maximumFractionDigits: 1 })}`;
+}
+function fmtPrice(n: number | null): string {
+  return n == null ? '—' : n.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 interface Props {
@@ -80,50 +89,60 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
   const dates   = data?.series.map(p => p.date) ?? [];
   const lots    = data?.series.map(p => p.lots) ?? [];
   const prates  = data?.series.map(p => p.prate) ?? [];
+  const closes  = data?.series.map(p => p.close) ?? [];
+  const avgs    = data?.series.map(p => p.avgCost) ?? [];
 
+  // 單一圖、上下兩個子圖共用同一條 X 軸；上=張數+佔比，下=股價+均價
   const traces = [
     {
-      type: 'bar',
-      name: '持股張數',
-      x: dates,
-      y: lots,
-      marker: { color: '#C00000' },
-      yaxis: 'y',
-      hovertemplate: '<b>%{x}</b><br>持股: %{y:,.0f} 張<extra></extra>',
+      type: 'bar', name: '持股張數', x: dates, y: lots,
+      marker: { color: '#C00000' }, yaxis: 'y',
+      hovertemplate: '%{y:,.0f} 張<extra>持股張數</extra>',
     },
     {
-      type: 'scatter',
-      mode: 'lines+markers',
-      name: '佔比 %',
-      x: dates,
-      y: prates,
-      yaxis: 'y2',
-      line: { color: '#1C1C1E', width: 2 },
-      marker: { size: 4, color: '#1C1C1E' },
-      hovertemplate: '<b>%{x}</b><br>佔比: %{y:.3f}%<extra></extra>',
+      type: 'scatter', mode: 'lines', name: '佔比 %', x: dates, y: prates,
+      yaxis: 'y2', line: { color: '#B08F6E', width: 2 },
+      hovertemplate: '%{y:.3f}%<extra>佔比</extra>',
+    },
+    {
+      type: 'scatter', mode: 'lines', name: '股價(收盤)', x: dates, y: closes,
+      yaxis: 'y3', line: { color: '#1C1C1E', width: 2 },
+      hovertemplate: '%{y:.2f} 元<extra>股價(收盤)</extra>',
+    },
+    {
+      type: 'scatter', mode: 'lines', name: '持倉均價', x: dates, y: avgs,
+      yaxis: 'y3', line: { color: '#2563eb', width: 2, dash: 'dot' },
+      hovertemplate: '%{y:.2f} 元<extra>持倉均價</extra>',
     },
   ];
 
+  const axisFont = { family: MONO, size: 10 };
+  const titleFont = { family: SANS, size: 11 };
   const layout = {
     paper_bgcolor: '#fff',
     plot_bgcolor: '#fff',
     margin: { l: 70, r: 70, t: 10, b: 80 },
-    height: 340,
-    legend: { orientation: 'h', x: 0, y: -0.28, font: { family: SANS, size: 11 } },
+    height: 560,
+    hovermode: 'x unified',
+    legend: { orientation: 'h', x: 0, y: -0.14, font: { family: SANS, size: 11 } },
     xaxis: {
-      type: 'category', tickangle: -45,
-      tickfont: { family: MONO, size: 10 },
-      gridcolor: BORDER, automargin: true, nticks: 14,
+      type: 'category', tickangle: -45, tickfont: axisFont,
+      gridcolor: BORDER, automargin: true, nticks: 14, anchor: 'y3',
+      showspikes: true, spikemode: 'across', spikethickness: 1, spikecolor: '#999', spikedash: 'dot', spikesnap: 'cursor',
     },
+    // 上半 (0.56–1.0)：張數 + 佔比
     yaxis: {
-      title: { text: '持股張數', font: { family: SANS, size: 11 } },
-      tickfont: { family: MONO, size: 10 },
-      gridcolor: BORDER, rangemode: 'tozero',
+      domain: [0.56, 1.0], title: { text: '持股張數', font: titleFont },
+      tickfont: axisFont, gridcolor: BORDER, rangemode: 'tozero',
     },
     yaxis2: {
-      title: { text: '佔比 (%)', font: { family: SANS, size: 11 } },
-      tickfont: { family: MONO, size: 10 },
+      title: { text: '佔比 (%)', font: titleFont }, tickfont: axisFont,
       overlaying: 'y', side: 'right', showgrid: false, rangemode: 'tozero',
+    },
+    // 下半 (0–0.44)：股價 + 均價（同一元軸，可直接比較）
+    yaxis3: {
+      domain: [0, 0.44], anchor: 'x', title: { text: '股價 / 均價 (元)', font: titleFont },
+      tickfont: axisFont, gridcolor: BORDER,
     },
     bargap: 0.25,
     hoverlabel: { bgcolor: '#fff', bordercolor: '#D0CBC6', font: { family: SANS, size: 12, color: TEXT }, align: 'left' },
@@ -192,32 +211,42 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
           </div>
 
           {/* 統計卡 */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden', marginBottom: 20, background: '#FAFAF9' }}>
-            {[
-              { label: '首次買入日', value: data.firstHeldDate ?? '—', sub: '精確到交易日', color: RED, mono: true },
+          {(() => {
+            const pl = (data.avgCost && data.currentPrice) ? (data.currentPrice - data.avgCost) / data.avgCost * 100 : null;
+            const cards = [
+              { label: '首次買入日', value: data.firstHeldDate ?? '—', sub: '精確到交易日', color: RED },
               { label: '目前持股',   value: `${fmtLots(data.latest.lots)} 張`, sub: data.latest.date, color: data.latest.lots > 0 ? TEXT : SUB },
+              { label: '預估持倉均價', value: `${fmtPrice(data.avgCost)}`, sub: pl != null ? `現價 ${fmtPrice(data.currentPrice)}　${pl >= 0 ? '+' : ''}${pl.toFixed(1)}%` : '元/股', color: TEXT },
               { label: '目前佔比',   value: `${data.latest.prate.toFixed(3)}%`, sub: '佔基金淨值', color: TEXT },
               { label: '期間最高持股', value: `${fmtLots(data.maxLots)} 張`, sub: '建倉高峰', color: TEXT },
-            ].map((c, i, arr) => (
-              <div key={c.label} style={{ padding: '14px 16px', borderRight: i < arr.length - 1 ? `1px solid ${BORDER}` : 'none' }}>
-                <div style={{ fontSize: '.72rem', color: SUB, fontWeight: 500, marginBottom: 4 }}>{c.label}</div>
-                <div style={{ fontSize: '1.2rem', fontWeight: 700, color: c.color, fontFamily: c.mono ? MONO : MONO, lineHeight: 1.2 }}>{c.value}</div>
-                <div style={{ fontSize: '.72rem', color: SUB, marginTop: 4 }}>{c.sub}</div>
+            ];
+            return (
+              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cards.length},1fr)`, border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden', marginBottom: 20, background: '#FAFAF9' }}>
+                {cards.map((c, i, arr) => (
+                  <div key={c.label} style={{ padding: '14px 16px', borderRight: i < arr.length - 1 ? `1px solid ${BORDER}` : 'none' }}>
+                    <div style={{ fontSize: '.72rem', color: SUB, fontWeight: 500, marginBottom: 4 }}>{c.label}</div>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 700, color: c.color, fontFamily: MONO, lineHeight: 1.2 }}>{c.value}</div>
+                    <div style={{ fontSize: '.72rem', color: c.label === '預估持倉均價' && pl != null ? (pl >= 0 ? RED : GREEN) : SUB, marginTop: 4, fontFamily: MONO }}>{c.sub}</div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            );
+          })()}
 
-          {/* 圖表 */}
-          <PlotlyWrapper traces={traces} layout={layout} style={{ marginBottom: 20 }} />
+          {/* 圖表：上=張數+佔比，下=股價+均價，共用 X 軸並同步游標（四個數值同時顯示）
+              trace 順序：0 張數(xy)、1 佔比(xy2)、2 股價(xy3)、3 均價(xy3） */}
+          <PlotlyWrapper traces={traces} layout={layout} hoverSync={['xy', 'xy2', 'xy3', 'xy3']} style={{ marginBottom: 20 }} />
 
           {/* 每日表格 */}
           <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '50vh', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
-            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
+            <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
               <thead>
                 <tr>
                   <th style={{ ...TH, textAlign: 'left' }}>日期</th>
                   <th style={{ ...TH, textAlign: 'right' }}>持股 (張)</th>
                   <th style={{ ...TH, textAlign: 'right' }}>當日增減 (張)</th>
+                  <th style={{ ...TH, textAlign: 'right' }}>中間價</th>
+                  <th style={{ ...TH, textAlign: 'right' }}>預估均價</th>
                   <th style={{ ...TH, textAlign: 'right' }}>市值 (NTD)</th>
                   <th style={{ ...TH, textAlign: 'right' }}>佔比 %</th>
                 </tr>
@@ -231,6 +260,8 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
                       color: p.deltaLots > 0.0001 ? RED : p.deltaLots < -0.0001 ? GREEN : SUB }}>
                       {fmtDelta(p.deltaLots)}
                     </td>
+                    <td style={{ padding: '7px 14px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: SUB }}>{fmtPrice(p.mid)}</td>
+                    <td style={{ padding: '7px 14px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: TEXT, fontWeight: 500 }}>{fmtPrice(p.avgCost)}</td>
                     <td style={{ padding: '7px 14px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: SUB }}>{fmtMvalue(p.mvalue)}</td>
                     <td style={{ padding: '7px 14px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: TEXT }}>{p.prate.toFixed(3)}%</td>
                   </tr>
@@ -241,7 +272,9 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
 
           <div style={{ marginTop: 12, fontSize: '.72rem', color: SUB, lineHeight: 1.8 }}>
             <b>持股 (張)</b>＝復華公告股數 ÷ 1000　<b>當日增減</b>＝較前一交易日張數變化（紅色加碼、綠色減碼）<br />
-            <b>資料來源：</b>復華投信 ETF 每日持股（即時逐日查詢，僅含有交易資料的日期）
+            <b>中間價</b>＝當日 (最高價＋最低價) ÷ 2（Yahoo Finance）　<b>預估均價</b>＝以加碼日中間價估算的移動平均持倉成本（元/股）<br />
+            <b>說明：</b>均價為<u>推估值</u>——以每日中間價近似實際成交價，且減碼採移動平均成本法（賣出不影響均價）。<br />
+            <b>資料來源：</b>復華投信 ETF 每日持股 ＋ Yahoo Finance 日 K（即時逐日查詢，僅含有交易資料的日期）
           </div>
         </>
       )}

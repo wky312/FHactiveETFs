@@ -87,6 +87,46 @@ async function tryFetch(ticker: string, from: Date, today: Date): Promise<FetchR
   }
 }
 
+export interface DailyBar {
+  date: string;   // 台灣交易日 YYYY/MM/DD
+  high: number;
+  low: number;
+  mid: number;    // (high + low) / 2
+  close: number;
+}
+
+// 以台灣時區（UTC+8）推出該日 K 棒的日期字串
+function twDateKey(d: Date): string {
+  const t = new Date(d.getTime() + 8 * 3600 * 1000);
+  return `${t.getUTCFullYear()}/${String(t.getUTCMonth() + 1).padStart(2, '0')}/${String(t.getUTCDate()).padStart(2, '0')}`;
+}
+
+// 抓某檔股票區間內的每日最高/最低價，回傳依日期排序的 K 棒（含中間價）
+export async function fetchDailyBars(
+  yfTicker: string,
+  from: Date,
+  to: Date,
+  fallbackTicker?: string,
+): Promise<DailyBar[]> {
+  let data = await tryFetch(yfTicker, from, to);
+  if (!data && fallbackTicker) data = await tryFetch(fallbackTicker, from, to);
+  if (!data) return [];
+
+  const bars: DailyBar[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const q of data.quotes as any[]) {
+    const high  = q.high ?? q.close;
+    const low   = q.low ?? q.close;
+    const close = q.close;
+    if (close == null) continue;
+    const h = high ?? close;
+    const l = low ?? close;
+    bars.push({ date: twDateKey(new Date(q.date)), high: h, low: l, mid: (h + l) / 2, close });
+  }
+  bars.sort((a, b) => a.date.localeCompare(b.date));
+  return bars;
+}
+
 export async function fetchStockPerformance(
   stockid: string,
   stockname: string,
