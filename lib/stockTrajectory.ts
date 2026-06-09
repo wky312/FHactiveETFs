@@ -3,6 +3,7 @@ import { Holding } from './types';
 import { UNIVERSE_NAMES } from './twseUniverse';
 import { stockidToYfTicker } from './exchangeMap';
 import { fetchDailyBars } from './yahooFinance';
+import { loadStoredHoldings } from './holdingsStore';
 
 /* 個股持股軌跡：逐交易日抓復華持股，組出某一檔個股在某 ETF 的進出時間序列。
    策略 = 即時查詢（不存檔），重用 lib/fhtrust.ts 的 fetchHoldings（已內建快取）。 */
@@ -105,16 +106,36 @@ export async function fetchTrajectory(rawQuery: string, fundId = 'ETF23'): Promi
   const q = rawQuery.trim();
   const end = todayTW();
 
-  // 1. 找成立日（最早有資料的月份）
-  const start = await detectStartDate(fundId, end);
-
-  // 2. 逐交易日抓持股
-  const dates = weekdaysBetween(start, end);
+  // 1+2. 優先讀每日存檔（git 資料庫）→ 毫秒級；只對「最後存檔日之後」的交易日即時補抓。
+  //      無存檔時退回完整即時掃描（fallback）。
   const dayMap = new Map<string, Holding[]>();
-  for (let i = 0; i < dates.length; i += BATCH) {
-    const batch = dates.slice(i, i + BATCH);
-    const results = await Promise.all(batch.map(d => fetchDay(d, fundId)));
-    for (const r of results) if (r) dayMap.set(r.date, r.holdings);
+  const stored = loadStoredHoldings(fundId);
+
+  const scan = async (from: string, to: string) => {
+    const dates = weekdaysBetween(from, to);
+    for (let i = 0; i < dates.length; i += BATCH) {
+      const batch = dates.slice(i, i + BATCH);
+      const results = await Promise.all(batch.map(d => fetchDay(d, fundId)));
+      for (const r of results) if (r) dayMap.set(r.date, r.holdings);
+    }
+  };
+
+  if (stored) {
+    for (const [date, recs] of Object.entries(stored.days)) {
+      dayMap.set(date, recs.map(r => ({
+        stockid: r.c,
+        stockname: stored.names[r.c] ?? '',
+        qshare: r.q,
+        mvalue: r.m,
+        prate_addaccint: r.p,
+        country: '',
+        ftype: '',
+      })));
+    }
+    const lastStored = Array.from(dayMap.keys()).sort((a, b) => a.localeCompare(b)).pop()!;
+    await scan(addDays(lastStored, 1), end); // gap：存檔後到今天，通常 0–數天
+  } else {
+    await scan(await detectStartDate(fundId, end), end); // fallback：完整即時掃描
   }
   const sortedDates = Array.from(dayMap.keys()).sort((a, b) => a.localeCompare(b));
 
