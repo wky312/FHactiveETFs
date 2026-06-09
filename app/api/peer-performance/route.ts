@@ -33,6 +33,7 @@ export const PEER_GROUPS: Record<string, { label: string; items: PeerItem[] }> =
       { ticker: '00400A', yfTicker: '00400A.TW', name: '主動國泰動能高息' },
       { ticker: '00401A', yfTicker: '00401A.TW', name: '主動摩根台灣鑫收' },
       { ticker: '00403A', yfTicker: '00403A.TW', name: '主動統一升級50' },
+      { ticker: '00405A', yfTicker: '00405A.TW', name: '主動富邦台灣龍耀' },
       { ticker: '0050',   yfTicker: '0050.TW',   name: '元大台灣50' },
       { ticker: '^TWII',  yfTicker: '^TWII',     name: '台灣加權指數' },
       { ticker: '^TWOII', yfTicker: '^TWOII',    name: '台灣OTC指數' },
@@ -78,6 +79,7 @@ export interface PeerPerfResult extends PeerItem {
   pct6m:  number | null;
   pct1y:  number | null;
   updatedAt: string | null;
+  dataDate: string | null;  // YYYY-MM-DD date of the 'cur' price used for all metrics
 }
 
 interface DayRow { date: Date; adjClose: number }
@@ -116,6 +118,39 @@ function exactMonthsAgo(n: number): Date {
   return d;
 }
 
+// ── TWSE listing date lookup ──────────────────────────────────────────────────
+
+const listingDateCache = new Map<string, Date | null>();
+
+async function fetchListingDate(yfTicker: string): Promise<Date | null> {
+  if (yfTicker.startsWith('^')) return null; // indices have no listing date
+  const code = yfTicker.replace('.TW', '');
+  if (listingDateCache.has(code)) return listingDateCache.get(code)!;
+  try {
+    const res = await fetch(`https://isin.twse.com.tw/isin/single_main.jsp?owncode=${code}`, {
+      headers: { 'User-Agent': 'Mozilla/5.0' },
+    });
+    const html = await res.text();
+    const m = html.match(/(\d{4})\/(\d{2})\/(\d{2})/);
+    const date = m ? new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3]))) : null;
+    listingDateCache.set(code, date);
+    return date;
+  } catch {
+    listingDateCache.set(code, null);
+    return null;
+  }
+}
+
+// Taiwan market closes at 13:30 UTC+8 = 05:30 UTC on weekdays
+function taiwanMarketClosed(): boolean {
+  const now = new Date();
+  const tw  = new Date(now.getTime() + 8 * 3600 * 1000);
+  const day = tw.getUTCDay(); // 0=Sun, 6=Sat
+  if (day === 0 || day === 6) return true;
+  const h = tw.getUTCHours(), m = tw.getUTCMinutes();
+  return h > 13 || (h === 13 && m >= 30);
+}
+
 // ── Fetch one ticker ──────────────────────────────────────────────────────────
 
 async function fetchOne(item: PeerItem): Promise<PeerPerfResult> {
@@ -123,28 +158,64 @@ async function fetchOne(item: PeerItem): Promise<PeerPerfResult> {
     ...item, price: null,
     pct1d: null, pctWTD: null, pctMTD: null, pctYTD: null,
     pct5d: null, pct1m: null, pct3m: null, pct6m: null, pct1y: null,
-    updatedAt: null,
+    updatedAt: null, dataDate: null,
   };
   try {
     const today   = new Date();
     const from    = new Date(today.getFullYear() - 1, today.getMonth() - 2, today.getDate());
     const period2 = new Date(today); period2.setDate(period2.getDate() + 1);
 
-    const [quote, chart] = await Promise.all([
+    const [quote, chart, listingDate] = await Promise.all([
       yf.quote(item.yfTicker, {}, { validateResult: false }).catch(() => null),
       yf.chart(item.yfTicker, { period1: from, period2, interval: '1d' }, { validateResult: false }).catch(() => null),
+      fetchListingDate(item.yfTicker),
     ]);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const rawQuotes: any[] = chart?.quotes ?? [];
+    const marketClosed = taiwanMarketClosed();
+    const todayStr = new Date().toISOString().split('T')[0];
+
     const rows: DayRow[] = rawQuotes
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .filter((q: any) => (q.adjClose ?? q.adjclose ?? q.close) != null)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .map((q: any) => ({ date: new Date(q.date), adjClose: q.adjClose ?? q.adjclose ?? q.close }))
+      // Exclude today's intraday data when market hasn't closed yet
+      .filter(r => marketClosed || r.date.toISOString().split('T')[0] < todayStr)
       .sort((a, b) => a.date.getTime() - b.date.getTime());
 
     if (!rows.length) return base;
+
+    // Use TWSE listing date to gate metrics; fall back to first chart row if unavailable
+    const effectiveStart: Date = listingDate ?? rows[0].date;
+
+    // Returns null if the ETF wasn't listed before cutoff; otherwise calculates pct
+    const pctSince = (cutoff: Date): number | null =>
+      effectiveStart > cutoff ? null : pct(cur, findOnOrBefore(rows, cutoff));
+
+    // Append latest completed close when chart data lags:
+    // - Market open today   → use regularMarketPreviousClose (prev session's close)
+    //   with date = last weekday before today
+    // - Market closed today → use regularMarketPrice (today's close) if newer than chart
+    // - quoteTime is a prev day → use regularMarketPrice directly
+    const lastChartDate = rows[rows.length - 1].date;
+    const quoteTime = quote?.regularMarketTime ? new Date(quote.regularMarketTime) : null;
+    const quoteDate = quoteTime ? quoteTime.toISOString().split('T')[0] : null;
+
+    if (quoteDate === todayStr && !marketClosed) {
+      // Intraday: use previous session's close with last-weekday date
+      if (quote?.regularMarketPreviousClose != null) {
+        const prevDay = new Date();
+        do { prevDay.setDate(prevDay.getDate() - 1); } while (prevDay.getDay() === 0 || prevDay.getDay() === 6);
+        if (prevDay.getTime() > lastChartDate.getTime()) {
+          rows.push({ date: prevDay, adjClose: quote.regularMarketPreviousClose });
+        }
+      }
+    } else if (quoteTime && quote?.regularMarketPrice != null && quoteTime.getTime() > lastChartDate.getTime()) {
+      // Post-close today or previous day quote newer than chart
+      rows.push({ date: quoteTime, adjClose: quote.regularMarketPrice });
+    }
 
     const cur = rows[rows.length - 1].adjClose;
 
@@ -156,17 +227,18 @@ async function fetchOne(item: PeerItem): Promise<PeerPerfResult> {
       ...item,
       price:   quote?.regularMarketPrice ?? cur,
       pct1d,
-      pctWTD:  pct(cur, findOnOrBefore(rows, prevWeekEnd())),
-      pctMTD:  pct(cur, findOnOrBefore(rows, prevMonthEnd())),
-      pctYTD:  pct(cur, findOnOrBefore(rows, prevYearEnd())),
+      pctWTD:  pctSince(prevWeekEnd()),
+      pctMTD:  pctSince(prevMonthEnd()),
+      pctYTD:  pctSince(prevYearEnd()),
       pct5d:   rows.length >= 6 ? pct(cur, rows[rows.length - 6].adjClose) : null,
-      pct1m:   pct(cur, findOnOrBefore(rows, exactMonthsAgo(1))),
-      pct3m:   pct(cur, findOnOrBefore(rows, exactMonthsAgo(3))),
-      pct6m:   pct(cur, findOnOrBefore(rows, exactMonthsAgo(6))),
-      pct1y:   pct(cur, findOnOrBefore(rows, exactMonthsAgo(12))),
+      pct1m:   pctSince(exactMonthsAgo(1)),
+      pct3m:   pctSince(exactMonthsAgo(3)),
+      pct6m:   pctSince(exactMonthsAgo(6)),
+      pct1y:   pctSince(exactMonthsAgo(12)),
       updatedAt: quote?.regularMarketTime
         ? new Date(quote.regularMarketTime).toISOString()
         : null,
+      dataDate: rows[rows.length - 1].date.toISOString().split('T')[0],
     };
   } catch {
     return base;

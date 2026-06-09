@@ -66,6 +66,7 @@ export default function PeerPerformanceTab() {
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
   const [asOf,    setAsOf]    = useState('');
+  const [dataDate, setDataDate] = useState('');
   const [sortKey, setSortKey] = useState<SortKey>('pct1d');
   const [sortAsc, setSortAsc] = useState(false);
 
@@ -74,6 +75,7 @@ export default function PeerPerformanceTab() {
     setData(null);
     setError('');
     setAsOf('');
+    setDataDate('');
     setSortKey('pct1d');
   };
 
@@ -88,6 +90,11 @@ export default function PeerPerformanceTab() {
       if (ts) {
         const d = new Date(new Date(ts).getTime() + 8 * 3600 * 1000);
         setAsOf(`${d.getUTCFullYear()}/${String(d.getUTCMonth()+1).padStart(2,'0')}/${String(d.getUTCDate()).padStart(2,'0')} ${String(d.getUTCHours()).padStart(2,'0')}:${String(d.getUTCMinutes()).padStart(2,'0')}`);
+      }
+      const dd = json.find(x => x.dataDate)?.dataDate;
+      if (dd) {
+        const [y, m, d] = dd.split('-');
+        setDataDate(`${y}/${m}/${d}`);
       }
     } catch (e) {
       setError(e instanceof Error ? e.message : '載入失敗');
@@ -153,6 +160,7 @@ export default function PeerPerformanceTab() {
         </button>
         {loading && <span style={{ fontSize: '.82rem', color: SUB }}>查詢 Yahoo Finance 中，約需 20–40 秒…</span>}
         {asOf && !loading && <span style={{ fontSize: '.78rem', color: SUB }}>報價截至 {asOf} TST</span>}
+        {dataDate && !loading && <span style={{ fontSize: '.78rem', color: SUB }}>區間績效計算至 {dataDate}</span>}
         <span style={{ marginLeft: 'auto', fontSize: '.75rem', color: SUB }}>績效已還原權息　點擊欄位標題排序</span>
       </div>
 

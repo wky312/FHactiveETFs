@@ -42,8 +42,13 @@ function prevTradingDay(from: Date): Date {
 }
 function defaultDate(): string {
   const now = new Date();
-  if (now.getDay() >= 1 && now.getDay() <= 5) return localStr(now);
-  return localStr(prevTradingDay(now));
+  // Taiwan time = UTC+8
+  const twHour = new Date(now.getTime() + 8 * 3600 * 1000).getUTCHours();
+  // Before 17:00 Taiwan time, holdings data hasn't updated yet → use previous trading day
+  const base = twHour < 17 ? prevTradingDay(now) : now;
+  const day = base.getDay();
+  if (day === 0 || day === 6) return localStr(prevTradingDay(base));
+  return localStr(base);
 }
 function prevDay(): string {
   return localStr(prevTradingDay(new Date(defaultDate())));
