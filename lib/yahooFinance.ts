@@ -16,6 +16,7 @@ export interface StockPerformance {
   m1: number | null;
   m3: number | null;
   ytd: number | null;
+  pctCustom: number | null;
 }
 
 function dn(d: Date): number {
@@ -132,11 +133,16 @@ export async function fetchStockPerformance(
   stockname: string,
   prate: number,
   yfTicker: string,
-  fallbackTicker?: string
+  fallbackTicker?: string,
+  customStart?: Date,
+  customEnd?: Date,
 ): Promise<StockPerformance> {
   try {
-    const today = new Date();
-    const from  = new Date(today.getFullYear() - 1, 0, 1);
+    const today   = new Date();
+    const baseFrom = new Date(today.getFullYear() - 1, 0, 1);
+    const from    = customStart && customStart < baseFrom
+      ? new Date(customStart.getTime() - 7 * 86400 * 1000)
+      : baseFrom;
 
     // Fetch quote and chart in parallel; quote is more reliable for today's price
     let [quote, data] = await Promise.all([
@@ -175,6 +181,16 @@ export async function fetchStockPerformance(
     const prevClose = quote?.prevClose
       ?? (marketClosedToday ? sorted[1]?.close : sorted[0]?.close);
 
+    let pctCustom: number | null = null;
+    if (customStart && customEnd) {
+      const startDn = dn(customStart);
+      const endDn   = dn(customEnd);
+      // sorted is descending; find last row <= target date
+      const startRow = sorted.find((d: any) => dn(d.date) <= startDn);
+      const endRow   = sorted.find((d: any) => dn(d.date) <= endDn);
+      pctCustom = pct(adj(endRow), adj(startRow));
+    }
+
     return {
       stockid,
       stockname,
@@ -188,12 +204,14 @@ export async function fetchStockPerformance(
       m1:    pct(adj(sorted[0]), adj(sorted.find((d: any) => dn(d.date) <= dn(m1Target)))),
       m3:    pct(adj(sorted[0]), adj(sorted.find((d: any) => dn(d.date) <= dn(m3Target)))),
       ytd:   pct(adj(sorted[0]), adj(sorted.find((d: any) => dn(d.date) <= dn(ytdTarget)))),
+      pctCustom,
     };
   } catch {
     return {
       stockid, stockname, prate, ticker: yfTicker,
       currentPrice: null, priceAsOf: null,
       today: null, d3: null, d5: null, m1: null, m3: null, ytd: null,
+      pctCustom: null,
     };
   }
 }

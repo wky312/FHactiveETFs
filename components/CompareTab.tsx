@@ -1,4 +1,6 @@
 'use client';
+import { useState, useMemo } from 'react';
+import * as XLSX from 'xlsx';
 import { Holding } from '@/lib/types';
 
 const TEXT   = '#1C1C1E';
@@ -9,7 +11,6 @@ const DOWN   = '#1A6B45';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-// 異動金額（萬元，含正負號，不帶「萬」字）
 const famt = (n: number | null) => {
   if (n === null) return '—';
   const wan = n / 10000;
@@ -58,6 +59,8 @@ const fdp = (n: number | null) => {
   const s = Math.abs(n).toFixed(3);
   return n > 0 ? `+${s}%` : n < 0 ? `−${s}%` : '0%';
 };
+
+type SortKey = 'stockid' | 'stockname' | 'country' | 'prev_q' | 'curr_q' | 'diff_q' | 'diff_amount' | 'prev_p' | 'curr_p' | 'diff_p';
 
 interface Row {
   stockid: string; stockname: string; country: string;
@@ -108,12 +111,38 @@ function buildRows(curr: Holding[], prev: Holding[]): Row[] {
   );
 }
 
-interface Props { baseDate: string; cmpDate: string; baseHoldings: Holding[]; cmpHoldings: Holding[] }
+function exportExcel(rows: Row[], baseDate: string, cmpDate: string, ticker: string, bs: string, cs: string) {
+  const headers = ['代碼', '名稱', '國家', `持股(${cs})`, `持股(${bs})`, '持股變化', '異動金額(萬)', `佔比%(${cs})`, `佔比%(${bs})`, '佔比變化', '操作'];
+  const data = rows.map(r => [
+    r.stockid,
+    r.stockname,
+    r.country,
+    r.prev_q ?? '',
+    r.curr_q ?? '',
+    r.diff_q !== null ? r.diff_q : '',
+    r.diff_amount !== null ? parseFloat((r.diff_amount / 10000).toFixed(1)) : '',
+    r.prev_p !== null ? parseFloat(r.prev_p.toFixed(3)) : '',
+    r.curr_p !== null ? parseFloat(r.curr_p.toFixed(3)) : '',
+    r.diff_p !== null ? parseFloat(r.diff_p.toFixed(3)) : '',
+    BADGE_LABEL[r.status],
+  ]);
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+  ws['!cols'] = [
+    { wch: 10 }, { wch: 20 }, { wch: 8 }, { wch: 12 }, { wch: 12 },
+    { wch: 10 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 8 },
+  ];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '持股比較');
+  XLSX.writeFile(wb, `${ticker}_持股比較_${baseDate}vs${cmpDate}.xlsx`);
+}
+
+interface Props { baseDate: string; cmpDate: string; baseHoldings: Holding[]; cmpHoldings: Holding[]; etfTicker: string }
 
 const TH: React.CSSProperties = {
   padding: '11px 10px', fontWeight: 600, fontSize: '.75rem', letterSpacing: '.4px',
   background: '#1C1C1E', color: '#fff', whiteSpace: 'nowrap',
   position: 'sticky', top: 0, zIndex: 1,
+  cursor: 'pointer', userSelect: 'none',
 };
 
 const BADGE_STYLE: React.CSSProperties = {
@@ -121,15 +150,40 @@ const BADGE_STYLE: React.CSSProperties = {
   fontSize: '.72rem', fontWeight: 600, whiteSpace: 'nowrap', fontFamily: SANS,
 };
 
-export default function CompareTab({ baseDate, cmpDate, baseHoldings, cmpHoldings }: Props) {
-  const rows = buildRows(baseHoldings, cmpHoldings);
+export default function CompareTab({ baseDate, cmpDate, baseHoldings, cmpHoldings, etfTicker }: Props) {
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);
+  const [sortAsc, setSortAsc] = useState(false);
+
+  const baseRows = buildRows(baseHoldings, cmpHoldings);
   const bs = baseDate.slice(5), cs = cmpDate.slice(5);
 
+  const rows = useMemo(() => {
+    if (!sortKey) return baseRows;
+    return [...baseRows].sort((a, b) => {
+      const av = a[sortKey];
+      const bv = b[sortKey];
+      if (av === null && bv === null) return 0;
+      if (av === null) return sortAsc ? -1 : 1;
+      if (bv === null) return sortAsc ? 1 : -1;
+      if (typeof av === 'string' && typeof bv === 'string')
+        return sortAsc ? av.localeCompare(bv) : bv.localeCompare(av);
+      return sortAsc ? (av as number) - (bv as number) : (bv as number) - (av as number);
+    });
+  }, [baseRows, sortKey, sortAsc]);
+
+  const toggleSort = (key: SortKey) => {
+    if (key === sortKey) setSortAsc(p => !p);
+    else { setSortKey(key); setSortAsc(false); }
+  };
+
+  const thLabel = (key: SortKey, label: string) =>
+    sortKey === key ? `${label} ${sortAsc ? '↑' : '↓'}` : label;
+
   const counts = {
-    new:       rows.filter(r => r.status === 'new').length,
-    increased: rows.filter(r => r.status === 'increased').length,
-    decreased: rows.filter(r => r.status === 'decreased').length,
-    removed:   rows.filter(r => r.status === 'removed').length,
+    new:       baseRows.filter(r => r.status === 'new').length,
+    increased: baseRows.filter(r => r.status === 'increased').length,
+    decreased: baseRows.filter(r => r.status === 'decreased').length,
+    removed:   baseRows.filter(r => r.status === 'removed').length,
   };
   const totalChanged = counts.new + counts.increased + counts.decreased + counts.removed;
 
@@ -159,12 +213,22 @@ export default function CompareTab({ baseDate, cmpDate, baseHoldings, cmpHolding
         ))}
       </div>
 
-      {/* Legend + row count */}
+      {/* Legend + row count + export */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12, alignItems: 'center' }}>
         {(['new', 'increased', 'decreased', 'removed', 'unchanged'] as Status[]).map(s => (
           <span key={s} style={{ ...BADGE_STYLE, ...BADGE[s] }}>{BADGE_LABEL[s]}</span>
         ))}
-        <span style={{ marginLeft: 'auto', fontSize: '.8rem', color: SUB }}>顯示 {rows.length}/{rows.length} 筆</span>
+        <span style={{ marginLeft: 'auto', fontSize: '.8rem', color: SUB }}>顯示 {rows.length}/{rows.length} 筆　點擊欄位標題可排序</span>
+        <button
+          onClick={() => exportExcel(rows, baseDate, cmpDate, etfTicker, bs, cs)}
+          style={{
+            padding: '5px 14px', background: '#fff', border: `1px solid ${BORDER}`,
+            borderRadius: 6, cursor: 'pointer', fontSize: '.78rem', color: SUB,
+            fontFamily: SANS, fontWeight: 500,
+          }}
+        >
+          ↓ 匯出 Excel
+        </button>
       </div>
 
       {/* Table */}
@@ -172,17 +236,17 @@ export default function CompareTab({ baseDate, cmpDate, baseHoldings, cmpHolding
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 980 }}>
           <thead>
             <tr>
-              <th style={{ ...TH, textAlign: 'center', width: 78 }}>代碼</th>
-              <th style={{ ...TH, textAlign: 'left',   minWidth: 150 }}>名稱</th>
-              <th style={{ ...TH, textAlign: 'center', width: 80 }}>國家</th>
-              <th style={{ ...TH, textAlign: 'right',  width: 110 }}>持股 ({cs})</th>
-              <th style={{ ...TH, textAlign: 'right',  width: 110 }}>持股 ({bs})</th>
-              <th style={{ ...TH, textAlign: 'right',  width: 88 }}>持股變化</th>
-              <th style={{ ...TH, textAlign: 'right',  width: 105 }}>異動金額(萬)</th>
-              <th style={{ ...TH, textAlign: 'right',  width: 90 }}>佔比% ({cs})</th>
-              <th style={{ ...TH, textAlign: 'right',  width: 90 }}>佔比% ({bs})</th>
-              <th style={{ ...TH, textAlign: 'right',  width: 88 }}>佔比變化</th>
-              <th style={{ ...TH, textAlign: 'center', width: 68 }}>操作</th>
+              <th onClick={() => toggleSort('stockid')}     style={{ ...TH, textAlign: 'center', width: 78 }}>{thLabel('stockid', '代碼')}</th>
+              <th onClick={() => toggleSort('stockname')}   style={{ ...TH, textAlign: 'left',   minWidth: 150 }}>{thLabel('stockname', '名稱')}</th>
+              <th onClick={() => toggleSort('country')}     style={{ ...TH, textAlign: 'center', width: 80 }}>{thLabel('country', '國家')}</th>
+              <th onClick={() => toggleSort('prev_q')}      style={{ ...TH, textAlign: 'right',  width: 110 }}>{thLabel('prev_q', `持股 (${cs})`)}</th>
+              <th onClick={() => toggleSort('curr_q')}      style={{ ...TH, textAlign: 'right',  width: 110 }}>{thLabel('curr_q', `持股 (${bs})`)}</th>
+              <th onClick={() => toggleSort('diff_q')}      style={{ ...TH, textAlign: 'right',  width: 88 }}>{thLabel('diff_q', '持股變化')}</th>
+              <th onClick={() => toggleSort('diff_amount')} style={{ ...TH, textAlign: 'right',  width: 105 }}>{thLabel('diff_amount', '異動金額(萬)')}</th>
+              <th onClick={() => toggleSort('prev_p')}      style={{ ...TH, textAlign: 'right',  width: 90 }}>{thLabel('prev_p', `佔比% (${cs})`)}</th>
+              <th onClick={() => toggleSort('curr_p')}      style={{ ...TH, textAlign: 'right',  width: 90 }}>{thLabel('curr_p', `佔比% (${bs})`)}</th>
+              <th onClick={() => toggleSort('diff_p')}      style={{ ...TH, textAlign: 'right',  width: 88 }}>{thLabel('diff_p', '佔比變化')}</th>
+              <th style={{ ...TH, textAlign: 'center', width: 68, cursor: 'default' }}>操作</th>
             </tr>
           </thead>
           <tbody>

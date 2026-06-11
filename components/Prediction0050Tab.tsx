@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
+import * as XLSX from 'xlsx';
 import { RebalancePrediction, RankedStock } from '@/lib/tw0050';
 
 const RED    = '#C00000';
@@ -131,6 +132,28 @@ function FullTable({ rows }: { rows: RankedStock[] }) {
   );
 }
 
+function exportExcel(data: RebalancePrediction) {
+  const stockCols = ['排名', '代碼', '名稱', '市值(億)', '現價'];
+  const toRows = (rows: RankedStock[]) =>
+    rows.map(r => [r.rank, r.stockid, r.name, parseFloat(r.marketCap.toFixed(1)), r.price ?? '']);
+  const makeSheet = (rows: RankedStock[]) => {
+    const ws = XLSX.utils.aoa_to_sheet([stockCols, ...toRows(rows)]);
+    ws['!cols'] = [{ wch: 6 }, { wch: 8 }, { wch: 22 }, { wch: 12 }, { wch: 8 }];
+    return ws;
+  };
+
+  const allHeaders = ['排名', '代碼', '名稱', '市值(億)', '現價', '是否成分股'];
+  const allRows = data.rankedAll.map(r => [r.rank, r.stockid, r.name, parseFloat(r.marketCap.toFixed(1)), r.price ?? '', r.inFund ? '是' : '否']);
+  const allWs = XLSX.utils.aoa_to_sheet([allHeaders, ...allRows]);
+  allWs['!cols'] = [{ wch: 6 }, { wch: 8 }, { wch: 22 }, { wch: 12 }, { wch: 8 }, { wch: 10 }];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, makeSheet([...data.additions, ...data.addAlternates]), '預測納入');
+  XLSX.utils.book_append_sheet(wb, makeSheet([...data.deletions, ...data.delAlternates]), '預測剔除');
+  XLSX.utils.book_append_sheet(wb, allWs, '完整排行');
+  XLSX.writeFile(wb, `0050季調預測_${new Date(data.fetchedAt).toISOString().slice(0, 10)}.xlsx`);
+}
+
 export default function Prediction0050Tab() {
   const [data, setData] = useState<RebalancePrediction | null>(null);
   const [loading, setLoading] = useState(false);
@@ -168,6 +191,14 @@ export default function Prediction0050Tab() {
             <span style={{ fontSize: '.75rem', color: SUB }}>
               資料時間：{fmtTime(data.fetchedAt)}
             </span>
+          )}
+          {data && (
+            <button
+              onClick={() => exportExcel(data)}
+              style={{ padding: '6px 14px', background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 6, cursor: 'pointer', fontSize: '.78rem', color: SUB, fontFamily: SANS, fontWeight: 500 }}
+            >
+              ↓ 匯出 Excel
+            </button>
           )}
           <button
             onClick={load}

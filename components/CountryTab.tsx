@@ -1,4 +1,5 @@
 'use client';
+import * as XLSX from 'xlsx';
 import { Holding } from '@/lib/types';
 import PlotlyWrapper from './PlotlyWrapper';
 
@@ -17,7 +18,7 @@ const DONUT_COLORS = [
   '#6B6460', '#8A7F7A',
 ];
 
-export default function CountryTab({ holdings }: { holdings: Holding[] }) {
+export default function CountryTab({ holdings, date, etfTicker }: { holdings: Holding[]; date: string; etfTicker: string }) {
   const allocMap = new Map<string, number>();
   for (const h of holdings) {
     allocMap.set(h.country, (allocMap.get(h.country) ?? 0) + h.prate_addaccint);
@@ -136,7 +137,21 @@ export default function CountryTab({ holdings }: { holdings: Holding[] }) {
         <p style={{ margin: '0 0 4px 2px', fontSize: '.78rem', fontWeight: 600, color: SUB, letterSpacing: '.4px' }}>配置比例</p>
         <PlotlyWrapper traces={donutTrace} layout={donutLayout} />
 
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.82rem', marginTop: 12 }}>
+        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12, marginBottom: 4 }}>
+          <button
+            onClick={() => {
+              const ws = XLSX.utils.aoa_to_sheet([['國家 / 類別', '佔比%'], ...rows.map(r => [r.country, parseFloat(r.prate.toFixed(3))])]);
+              ws['!cols'] = [{ wch: 16 }, { wch: 10 }];
+              const wb = XLSX.utils.book_new();
+              XLSX.utils.book_append_sheet(wb, ws, '國家配置');
+              XLSX.writeFile(wb, `${etfTicker}_國家配置_${date}.xlsx`);
+            }}
+            style={{ padding: '4px 12px', background: '#fff', border: '1px solid #EEE9E4', borderRadius: 6, cursor: 'pointer', fontSize: '.75rem', color: SUB, fontFamily: SANS, fontWeight: 500 }}
+          >
+            ↓ 匯出 Excel
+          </button>
+        </div>
+        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.82rem' }}>
           <thead>
             <tr style={{ background: '#1C1C1E', color: '#fff' }}>
               <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, fontFamily: SANS }}>國家 / 類別</th>

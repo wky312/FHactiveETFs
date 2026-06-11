@@ -78,6 +78,7 @@ export interface PeerPerfResult extends PeerItem {
   pct3m:  number | null;
   pct6m:  number | null;
   pct1y:  number | null;
+  pctCustom: number | null;
   updatedAt: string | null;
   dataDate: string | null;  // YYYY-MM-DD date of the 'cur' price used for all metrics
 }
@@ -153,16 +154,22 @@ function taiwanMarketClosed(): boolean {
 
 // ── Fetch one ticker ──────────────────────────────────────────────────────────
 
-async function fetchOne(item: PeerItem): Promise<PeerPerfResult> {
+interface CustomRange { start: Date; end: Date }
+
+async function fetchOne(item: PeerItem, customRange?: CustomRange): Promise<PeerPerfResult> {
   const base: PeerPerfResult = {
     ...item, price: null,
     pct1d: null, pctWTD: null, pctMTD: null, pctYTD: null,
     pct5d: null, pct1m: null, pct3m: null, pct6m: null, pct1y: null,
+    pctCustom: null,
     updatedAt: null, dataDate: null,
   };
   try {
-    const today   = new Date();
-    const from    = new Date(today.getFullYear() - 1, today.getMonth() - 2, today.getDate());
+    const today    = new Date();
+    const baseFrom = new Date(today.getFullYear() - 1, today.getMonth() - 2, today.getDate());
+    const from     = customRange && customRange.start < baseFrom
+      ? new Date(customRange.start.getTime() - 7 * 86400 * 1000)
+      : baseFrom;
     const period2 = new Date(today); period2.setDate(period2.getDate() + 1);
 
     const [quote, chart, listingDate] = await Promise.all([
@@ -223,6 +230,10 @@ async function fetchOne(item: PeerItem): Promise<PeerPerfResult> {
       ? quote.regularMarketChangePercent
       : pct(cur, rows.length >= 2 ? rows[rows.length - 2].adjClose : null);
 
+    const pctCustom = customRange
+      ? pct(findOnOrBefore(rows, customRange.end), findOnOrBefore(rows, customRange.start))
+      : null;
+
     return {
       ...item,
       price:   quote?.regularMarketPrice ?? cur,
@@ -235,6 +246,7 @@ async function fetchOne(item: PeerItem): Promise<PeerPerfResult> {
       pct3m:   pctSince(exactMonthsAgo(3)),
       pct6m:   pctSince(exactMonthsAgo(6)),
       pct1y:   pctSince(exactMonthsAgo(12)),
+      pctCustom,
       updatedAt: quote?.regularMarketTime
         ? new Date(quote.regularMarketTime).toISOString()
         : null,
@@ -248,13 +260,19 @@ async function fetchOne(item: PeerItem): Promise<PeerPerfResult> {
 // ── Route handler ─────────────────────────────────────────────────────────────
 
 export async function GET(request: NextRequest) {
-  const groupId = request.nextUrl.searchParams.get('group') ?? 'active';
-  const group   = PEER_GROUPS[groupId] ?? PEER_GROUPS['active'];
+  const groupId     = request.nextUrl.searchParams.get('group') ?? 'active';
+  const group       = PEER_GROUPS[groupId] ?? PEER_GROUPS['active'];
+  const startStr    = request.nextUrl.searchParams.get('startDate');
+  const endStr      = request.nextUrl.searchParams.get('endDate');
+  const customRange: CustomRange | undefined = startStr && endStr ? {
+    start: new Date(startStr + 'T00:00:00'),
+    end:   new Date(endStr   + 'T23:59:59'),
+  } : undefined;
 
   const BATCH = 4;
   const results: PeerPerfResult[] = [];
   for (let i = 0; i < group.items.length; i += BATCH) {
-    const batch = await Promise.all(group.items.slice(i, i + BATCH).map(fetchOne));
+    const batch = await Promise.all(group.items.slice(i, i + BATCH).map(item => fetchOne(item, customRange)));
     results.push(...batch);
   }
   return NextResponse.json(results, { headers: { 'Cache-Control': 'no-store' } });

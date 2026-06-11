@@ -20,11 +20,16 @@ async function batchAll<T, R>(items: T[], fn: (item: T) => Promise<R>): Promise<
 }
 
 export async function GET(request: NextRequest) {
-  const date   = request.nextUrl.searchParams.get('date');
-  const fundId = request.nextUrl.searchParams.get('fundId') ?? 'ETF23';
+  const date       = request.nextUrl.searchParams.get('date');
+  const fundId     = request.nextUrl.searchParams.get('fundId') ?? 'ETF23';
+  const startStr   = request.nextUrl.searchParams.get('startDate');
+  const endStr     = request.nextUrl.searchParams.get('endDate');
   if (!date) {
     return NextResponse.json({ error: '缺少 date 參數（格式：YYYY/MM/DD）' }, { status: 400 });
   }
+
+  const customStart = startStr ? new Date(startStr + 'T00:00:00') : undefined;
+  const customEnd   = endStr   ? new Date(endStr   + 'T23:59:59') : undefined;
 
   try {
     const { holdings, date: holdDate } = await fetchHoldings(date, fundId);
@@ -37,12 +42,11 @@ export async function GET(request: NextRequest) {
 
     const results: StockPerformance[] = await batchAll(stocks, h => {
       const { ticker, suffix } = stockidToYfTicker(h.stockid);
-      // 00991A 台股沒有 Bloomberg 後綴：先試 .TW，上櫃備用 .TWO
       const base     = h.stockid.trim();
       const raw      = isTwOnly && !suffix ? `${base}.TW`  : (ticker || base);
       const yfTicker = TICKER_OVERRIDES[raw] ?? raw;
       const fallback = isTwOnly && !suffix ? `${base}.TWO` : undefined;
-      return fetchStockPerformance(h.stockid, h.stockname, h.prate_addaccint, yfTicker, fallback);
+      return fetchStockPerformance(h.stockid, h.stockname, h.prate_addaccint, yfTicker, fallback, customStart, customEnd);
     });
 
     return NextResponse.json(

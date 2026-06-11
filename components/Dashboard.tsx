@@ -324,7 +324,7 @@ export default function Dashboard() {
             </div>
             <ErrorMsg msg={holdError} onReset={() => { setHoldError(''); setHoldData(null); }} />
             {holdData
-              ? <HoldingsTab holdings={holdData.holdings} date={holdData.date} />
+              ? <HoldingsTab holdings={holdData.holdings} date={holdData.date} etfTicker={selectedEtf.ticker} />
               : !holdLoading && <EmptyHint text="請選擇日期並點擊「載入」" />
             }
           </Card>
@@ -336,13 +336,13 @@ export default function Dashboard() {
             onSave={baseData && cmpData ? () => saveImage(compareRef, imgName('持股比較')) : undefined}
           >
             <div style={{ display: 'flex', gap: 20, alignItems: 'flex-end', marginBottom: 18, flexWrap: 'wrap' }}>
-              <DateInput label="基準日期" value={baseDate} onChange={setBaseDate} />
               <DateInput label="比較日期" value={cmpDate}  onChange={setCmpDate} />
+              <DateInput label="基準日期" value={baseDate} onChange={setBaseDate} />
               <ActionButton onClick={loadCompare} loading={cmpLoading} label="載入比較" />
             </div>
             <ErrorMsg msg={cmpError} onReset={() => { setCmpError(''); setBaseData(null); setCmpData(null); }} />
             {baseData && cmpData
-              ? <CompareTab baseDate={baseData.date} cmpDate={cmpData.date} baseHoldings={baseData.holdings} cmpHoldings={cmpData.holdings} />
+              ? <CompareTab baseDate={baseData.date} cmpDate={cmpData.date} baseHoldings={baseData.holdings} cmpHoldings={cmpData.holdings} etfTicker={selectedEtf.ticker} />
               : !cmpLoading && <EmptyHint text="請選擇兩個日期並點擊「載入比較」" />
             }
           </Card>
@@ -358,6 +358,7 @@ export default function Dashboard() {
                   cmpHoldings={cmpData.holdings}
                   fundId={selectedEtf.fundId}
                   yfTicker={selectedEtf.yfTicker}
+                  etfTicker={selectedEtf.ticker}
                 />
               : (
                 <div style={{ textAlign: 'center', padding: '40px 0' }}>
@@ -382,7 +383,7 @@ export default function Dashboard() {
             {holdData
               ? <>
                   <p style={{ fontSize: '.82rem', color: SUB, marginBottom: 16, marginTop: 0 }}>資料來源：持股清單 {holdData.date}</p>
-                  <CountryTab holdings={holdData.holdings} />
+                  <CountryTab holdings={holdData.holdings} date={holdData.date} etfTicker={selectedEtf.ticker} />
                 </>
               : (
                 <div style={{ textAlign: 'center', padding: '40px 0' }}>
@@ -429,7 +430,7 @@ export default function Dashboard() {
             </div>
             <ErrorMsg msg={perfError} onReset={() => { setPerfError(''); setPerfData(null); }} />
             {perfData
-              ? <PerformanceTab results={perfData.results} date={perfData.date} etfTicker={selectedEtf.ticker} />
+              ? <PerformanceTab results={perfData.results} date={perfData.date} etfTicker={selectedEtf.ticker} fundId={selectedEtf.fundId} />
               : !perfLoading && <EmptyHint text="請選擇日期並點擊「載入」" />
             }
           </Card>
@@ -449,7 +450,7 @@ export default function Dashboard() {
 
         {activeTab === 'scale' && (
           <Card title="規模變化">
-            <ScaleTab key={selectedEtf.fundId} fundId={selectedEtf.fundId} />
+            <ScaleTab key={selectedEtf.fundId} fundId={selectedEtf.fundId} etfTicker={selectedEtf.ticker} />
           </Card>
         )}
 

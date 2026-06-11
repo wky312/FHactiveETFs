@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useMemo } from 'react';
+import * as XLSX from 'xlsx';
 import { Holding } from '@/lib/types';
 
 const TEXT   = '#1C1C1E';
@@ -121,14 +122,33 @@ interface EtfPrice { price: number | null; prevClose: number | null; priceAsOf: 
 interface Props {
   baseDate: string; cmpDate: string;
   baseHoldings: Holding[]; cmpHoldings: Holding[];
-  fundId: string; yfTicker: string;
+  fundId: string; yfTicker: string; etfTicker: string;
+}
+
+function exportExcel(rows: Row[], baseDate: string, cmpDate: string, ticker: string, bs: string, cs: string) {
+  const headers = ['代碼', '名稱', '國家', `持股(${cs})`, `持股(${bs})`, '持股變化', '異動金額(萬)', `佔比%(${cs})`, `佔比%(${bs})`, '佔比變化', '操作'];
+  const data = rows.map(r => [
+    r.stockid, r.stockname, r.country,
+    r.prev_q ?? '', r.curr_q ?? '',
+    r.diff_q !== null ? r.diff_q : '',
+    r.diff_amount !== null ? parseFloat((r.diff_amount / 10000).toFixed(1)) : '',
+    r.prev_p !== null ? parseFloat(r.prev_p.toFixed(3)) : '',
+    r.curr_p !== null ? parseFloat(r.curr_p.toFixed(3)) : '',
+    r.diff_p !== null ? parseFloat(r.diff_p.toFixed(3)) : '',
+    BADGE_LABEL[r.status],
+  ]);
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+  ws['!cols'] = [{ wch: 10 }, { wch: 20 }, { wch: 8 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 14 }, { wch: 12 }, { wch: 12 }, { wch: 10 }, { wch: 8 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '當日摘要');
+  XLSX.writeFile(wb, `${ticker}_當日摘要_${baseDate}.xlsx`);
 }
 
 function fmtAum(v: number)      { return `${v.toFixed(2)} 億`; }
 function fmtAumDiff(v: number)  { return `${v > 0 ? '+' : ''}${v.toFixed(2)} 億`; }
 function fmtPrice(v: number)    { return v.toFixed(2); }
 
-export default function DailySummaryTab({ baseDate, cmpDate, baseHoldings, cmpHoldings, fundId, yfTicker }: Props) {
+export default function DailySummaryTab({ baseDate, cmpDate, baseHoldings, cmpHoldings, fundId, yfTicker, etfTicker }: Props) {
   const [snapshot, setSnapshot] = useState<{
     curr: PcfSnapshot | null; prev: PcfSnapshot | null; etfPrice: EtfPrice;
   } | null>(null);
@@ -282,6 +302,14 @@ export default function DailySummaryTab({ baseDate, cmpDate, baseHoldings, cmpHo
           <span key={s} style={{ ...BADGE_STYLE, ...BADGE[s] }}>{BADGE_LABEL[s]}</span>
         ))}
         <span style={{ marginLeft: 'auto', fontSize: '.8rem', color: SUB }}>共 {total} 筆變動　點擊欄位標題可排序</span>
+        {sorted.length > 0 && (
+          <button
+            onClick={() => exportExcel(sorted, baseDate, cmpDate, etfTicker, bs, cs)}
+            style={{ padding: '5px 14px', background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 6, cursor: 'pointer', fontSize: '.78rem', color: SUB, fontFamily: SANS, fontWeight: 500 }}
+          >
+            ↓ 匯出 Excel
+          </button>
+        )}
       </div>
 
       {/* ── Table ── */}

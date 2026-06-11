@@ -20,8 +20,10 @@ ETFS = [
     {'ticker': '00991A', 'name': '復華主動式ETF', 'fundId': 'ETF23', 'yfTicker': '00991A.TW'},
 ]
 
-PUSHOVER_TOKEN = os.environ.get('PUSHOVER_TOKEN', '')
-PUSHOVER_USER  = os.environ.get('PUSHOVER_USER', '')
+PUSHOVER_TOKEN     = os.environ.get('PUSHOVER_TOKEN', '')
+PUSHOVER_USER      = os.environ.get('PUSHOVER_USER', '')
+SUPABASE_URL       = os.environ.get('SUPABASE_URL', '')
+SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_KEY', '')
 
 
 # ── Helpers ──────────────────────────────────────────────────────────────────
@@ -605,16 +607,48 @@ async def process_etf(etf: dict, today: date):
     )
 
 
+def write_peer_to_supabase(peer_results: list, transaction_date: date):
+    """Upsert peer redemption data to Supabase. Silently skips if credentials missing."""
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        print('  Supabase credentials not set, skipping DB write.')
+        return
+    try:
+        from supabase import create_client
+        client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+        rows = [
+            {
+                'date':    str(transaction_date),
+                'ticker':  etf['ticker'],
+                'net_sub': round(float(etf['data']['netSub']), 6),
+                'aum':     round(float(etf['data']['aum']),    6),
+            }
+            for etf in peer_results
+            if etf.get('data')
+            and etf['data'].get('netSub') is not None
+            and etf['data'].get('aum')    is not None
+        ]
+        if rows:
+            client.table('peer_redemption').upsert(rows).execute()
+            print(f'  ✓ Supabase: upserted {len(rows)} rows for {transaction_date}')
+        else:
+            print('  No valid rows to write to Supabase.')
+    except Exception as e:
+        print(f'  Supabase write error: {e}')
+        import traceback; traceback.print_exc()
+
+
 async def process_peer_redemption(today: date):
-    """Fetch peer redemption data and send Pushover notification."""
+    """Fetch peer redemption data, write to Supabase, and send Pushover notification."""
     print('\n[同業申贖觀測]')
-    # Find the latest trading day with data (same as ETF processing)
     base_date, _ = find_trading_day_with_data(today, 'ETF23')
     if not base_date:
         print('  No base date found, skipping.')
         return
     print(f'  date={base_date}')
     peer_results = fetch_all_peer_data(base_date)
+
+    write_peer_to_supabase(peer_results, base_date)
+
     html = build_peer_html(peer_results, base_date)
     img  = await screenshot_html(html)
     send_pushover(

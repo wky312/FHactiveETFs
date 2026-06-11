@@ -17,13 +17,15 @@ jobs:
           python-version: '3.11'
 
       - name: Install Python dependencies
-        run: pip install playwright requests pytz yfinance
+        run: pip install playwright requests pytz yfinance supabase
 
       - name: Install Playwright browser
         run: playwright install chromium --with-deps
 
       - name: Run daily summary script
         env:
-          PUSHOVER_TOKEN: ${{ secrets.PUSHOVER_TOKEN }}
-          PUSHOVER_USER:  ${{ secrets.PUSHOVER_USER }}
+          PUSHOVER_TOKEN:      ${{ secrets.PUSHOVER_TOKEN }}
+          PUSHOVER_USER:       ${{ secrets.PUSHOVER_USER }}
+          SUPABASE_URL:        ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
         run: python scripts/daily_summary.py

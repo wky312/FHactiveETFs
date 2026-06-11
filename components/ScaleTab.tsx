@@ -1,5 +1,6 @@
 'use client';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useMemo } from 'react';
+import * as XLSX from 'xlsx';
 import { ScaleDay } from '@/lib/fhtrustScale';
 import PlotlyWrapper from './PlotlyWrapper';
 
@@ -48,25 +49,53 @@ function aggregateMonthly(data: ScaleDay[]): MonthRow[] {
   return Array.from(map.values()).sort((a, b) => a.month.localeCompare(b.month));
 }
 
+type DailySortKey = 'date' | 'netSub' | 'aum' | 'pnav';
+type MonthlySortKey = 'month' | 'netSub' | 'lastAum' | 'days';
+
 const TH: React.CSSProperties = {
   padding: '8px 14px', fontWeight: 600, fontSize: '.75rem',
   background: TEXT, color: '#fff', whiteSpace: 'nowrap',
   position: 'sticky', top: 0, zIndex: 1,
+  cursor: 'pointer', userSelect: 'none',
 };
 
-export default function ScaleTab({ fundId }: { fundId: string }) {
+function exportDailyExcel(rows: ScaleDay[], ticker: string, start: string, end: string) {
+  const headers = ['日期', '淨申購/贖回(億)', '基金規模(億)', '單位淨值'];
+  const data = rows.map(r => [r.date, parseFloat(r.netSub.toFixed(2)), parseFloat(r.aum.toFixed(2)), parseFloat(r.pnav.toFixed(4))]);
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+  ws['!cols'] = [{ wch: 12 }, { wch: 16 }, { wch: 14 }, { wch: 10 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '每日規模');
+  XLSX.writeFile(wb, `${ticker}_規模變化_每日_${start}_${end}.xlsx`);
+}
+
+function exportMonthlyExcel(rows: MonthRow[], ticker: string, start: string, end: string) {
+  const headers = ['月份', '月淨申購/贖回(億)', '月底基金規模(億)', '交易天數'];
+  const data = rows.map(r => [r.month, parseFloat(r.netSub.toFixed(2)), parseFloat(r.lastAum.toFixed(2)), r.days]);
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+  ws['!cols'] = [{ wch: 10 }, { wch: 18 }, { wch: 16 }, { wch: 10 }];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '每月規模');
+  XLSX.writeFile(wb, `${ticker}_規模變化_每月_${start}_${end}.xlsx`);
+}
+
+export default function ScaleTab({ fundId, etfTicker }: { fundId: string; etfTicker: string }) {
   const today = new Date();
   const defaultEnd = new Date(today);
   defaultEnd.setDate(defaultEnd.getDate() - 1);
   const defaultStart = new Date(defaultEnd);
   defaultStart.setDate(defaultStart.getDate() - 29);
 
-  const [startDate, setStartDate] = useState(localStr(defaultStart));
-  const [endDate,   setEndDate]   = useState(localStr(defaultEnd));
-  const [data,      setData]      = useState<ScaleDay[] | null>(null);
-  const [loading,   setLoading]   = useState(false);
-  const [error,     setError]     = useState<string | null>(null);
-  const [view,      setView]      = useState<'daily' | 'monthly'>('daily');
+  const [startDate,    setStartDate]    = useState(localStr(defaultStart));
+  const [endDate,      setEndDate]      = useState(localStr(defaultEnd));
+  const [data,         setData]         = useState<ScaleDay[] | null>(null);
+  const [loading,      setLoading]      = useState(false);
+  const [error,        setError]        = useState<string | null>(null);
+  const [view,         setView]         = useState<'daily' | 'monthly'>('daily');
+  const [dSortKey,     setDSortKey]     = useState<DailySortKey>('date');
+  const [dSortAsc,     setDSortAsc]     = useState(false);
+  const [mSortKey,     setMSortKey]     = useState<MonthlySortKey>('month');
+  const [mSortAsc,     setMSortAsc]     = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -95,6 +124,36 @@ export default function ScaleTab({ fundId }: { fundId: string }) {
   };
 
   const monthly = data ? aggregateMonthly(data) : [];
+
+  const toggleDSort = (key: DailySortKey) => {
+    if (key === dSortKey) setDSortAsc(p => !p);
+    else { setDSortKey(key); setDSortAsc(false); }
+  };
+  const toggleMSort = (key: MonthlySortKey) => {
+    if (key === mSortKey) setMSortAsc(p => !p);
+    else { setMSortKey(key); setMSortAsc(false); }
+  };
+  const dLabel = (key: DailySortKey, label: string) =>
+    dSortKey === key ? `${label} ${dSortAsc ? '↑' : '↓'}` : label;
+  const mLabel = (key: MonthlySortKey, label: string) =>
+    mSortKey === key ? `${label} ${mSortAsc ? '↑' : '↓'}` : label;
+
+  const sortedDaily = useMemo(() => {
+    if (!data) return [];
+    return [...data].sort((a, b) => {
+      if (dSortKey === 'date') return dSortAsc ? a.date.localeCompare(b.date) : b.date.localeCompare(a.date);
+      const av = a[dSortKey], bv = b[dSortKey];
+      return dSortAsc ? av - bv : bv - av;
+    });
+  }, [data, dSortKey, dSortAsc]);
+
+  const sortedMonthly = useMemo(() => {
+    return [...monthly].sort((a, b) => {
+      if (mSortKey === 'month') return mSortAsc ? a.month.localeCompare(b.month) : b.month.localeCompare(a.month);
+      const av = a[mSortKey], bv = b[mSortKey];
+      return mSortAsc ? av - bv : bv - av;
+    });
+  }, [monthly, mSortKey, mSortAsc]);
 
   const latestAum   = data && data.length > 0 ? data[data.length - 1].aum : null;
   const totalNetSub = data ? data.reduce((s, d) => s + d.netSub, 0) : null;
@@ -245,8 +304,8 @@ export default function ScaleTab({ fundId }: { fundId: string }) {
             ))}
           </div>
 
-          {/* View toggle */}
-          <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+          {/* View toggle + export */}
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14, alignItems: 'center' }}>
             {(['daily', 'monthly'] as const).map(v => (
               <button key={v} onClick={() => setView(v)}
                 style={{
@@ -257,6 +316,15 @@ export default function ScaleTab({ fundId }: { fundId: string }) {
                 {v === 'daily' ? '每日' : '每月'}
               </button>
             ))}
+            <button
+              onClick={() => view === 'daily'
+                ? exportDailyExcel(sortedDaily, etfTicker, startDate, endDate)
+                : exportMonthlyExcel(sortedMonthly, etfTicker, startDate, endDate)
+              }
+              style={{ marginLeft: 'auto', padding: '5px 14px', background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 6, cursor: 'pointer', fontSize: '.78rem', color: SUB, fontFamily: SANS, fontWeight: 500 }}
+            >
+              ↓ 匯出 Excel
+            </button>
           </div>
 
           {/* Chart */}
@@ -268,14 +336,14 @@ export default function ScaleTab({ fundId }: { fundId: string }) {
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 480 }}>
                 <thead>
                   <tr>
-                    <th style={{ ...TH, textAlign: 'left' }}>日期</th>
-                    <th style={{ ...TH, textAlign: 'right' }}>淨申購/贖回 (億)</th>
-                    <th style={{ ...TH, textAlign: 'right' }}>基金規模 (億)</th>
-                    <th style={{ ...TH, textAlign: 'right' }}>單位淨值</th>
+                    <th onClick={() => toggleDSort('date')}   style={{ ...TH, textAlign: 'left' }}>{dLabel('date', '日期')}</th>
+                    <th onClick={() => toggleDSort('netSub')} style={{ ...TH, textAlign: 'right' }}>{dLabel('netSub', '淨申購/贖回 (億)')}</th>
+                    <th onClick={() => toggleDSort('aum')}    style={{ ...TH, textAlign: 'right' }}>{dLabel('aum', '基金規模 (億)')}</th>
+                    <th onClick={() => toggleDSort('pnav')}   style={{ ...TH, textAlign: 'right' }}>{dLabel('pnav', '單位淨值')}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {[...data].reverse().map((r, i) => (
+                  {sortedDaily.map((r, i) => (
                     <tr key={r.date} style={{ background: i % 2 === 0 ? '#fff' : '#FAFAF9', borderBottom: `1px solid ${BORDER}` }}>
                       <td style={{ padding: '7px 14px', fontFamily: MONO, fontSize: '.8rem', color: TEXT }}>{r.date}</td>
                       <td style={{ padding: '7px 14px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: r.netSub >= 0 ? RED : GREEN, fontWeight: 600 }}>
@@ -295,14 +363,14 @@ export default function ScaleTab({ fundId }: { fundId: string }) {
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 400 }}>
                 <thead>
                   <tr>
-                    <th style={{ ...TH, textAlign: 'left' }}>月份</th>
-                    <th style={{ ...TH, textAlign: 'right' }}>月淨申購/贖回 (億)</th>
-                    <th style={{ ...TH, textAlign: 'right' }}>月底基金規模 (億)</th>
-                    <th style={{ ...TH, textAlign: 'right' }}>交易天數</th>
+                    <th onClick={() => toggleMSort('month')}   style={{ ...TH, textAlign: 'left' }}>{mLabel('month', '月份')}</th>
+                    <th onClick={() => toggleMSort('netSub')}  style={{ ...TH, textAlign: 'right' }}>{mLabel('netSub', '月淨申購/贖回 (億)')}</th>
+                    <th onClick={() => toggleMSort('lastAum')} style={{ ...TH, textAlign: 'right' }}>{mLabel('lastAum', '月底基金規模 (億)')}</th>
+                    <th onClick={() => toggleMSort('days')}    style={{ ...TH, textAlign: 'right' }}>{mLabel('days', '交易天數')}</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {[...monthly].reverse().map((r, i) => (
+                  {sortedMonthly.map((r, i) => (
                     <tr key={r.month} style={{ background: i % 2 === 0 ? '#fff' : '#FAFAF9', borderBottom: `1px solid ${BORDER}` }}>
                       <td style={{ padding: '7px 14px', fontFamily: MONO, fontSize: '.8rem', color: TEXT }}>{r.month}</td>
                       <td style={{ padding: '7px 14px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: r.netSub >= 0 ? RED : GREEN, fontWeight: 600 }}>

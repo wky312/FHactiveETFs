@@ -3,6 +3,8 @@ import { useState, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { StockPerformance } from '@/lib/yahooFinance';
 
+type SortKey = 'prate' | 'today' | 'd3' | 'd5' | 'm1' | 'm3' | 'ytd' | 'pctCustom';
+
 const RED    = '#C00000';
 const GREEN  = '#1a7f37';
 const TEXT   = '#1C1C1E';
@@ -10,8 +12,6 @@ const SUB    = '#6B6460';
 const BORDER = '#EEE9E4';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
-
-type SortKey = 'prate' | 'today' | 'd3' | 'd5' | 'm1' | 'm3' | 'ytd';
 
 const PERF_COLS: { key: SortKey; label: string }[] = [
   { key: 'today', label: '今日' },
@@ -56,26 +56,28 @@ const TH: React.CSSProperties = {
   position: 'sticky', top: 0, zIndex: 1, cursor: 'pointer', userSelect: 'none',
 };
 
-function exportExcel(results: StockPerformance[], date: string, ticker: string) {
-  const headers = ['代碼', '名稱', '佔比%', '現價', '今日%', '近3日%', '近5日%', '近一月%', '近三月%', 'YTD%'];
-  const rows = results.map(r => [
-    r.stockid,
-    r.stockname,
-    fmtNum(r.prate, 3),
-    r.currentPrice ?? '',
-    fmtNum(r.today),
-    fmtNum(r.d3),
-    fmtNum(r.d5),
-    fmtNum(r.m1),
-    fmtNum(r.m3),
-    fmtNum(r.ytd),
-  ]);
+function exportExcel(
+  results: StockPerformance[],
+  date: string, ticker: string,
+  appliedRange: { start: string; end: string } | null,
+  customMap: Map<string, number | null>,
+) {
+  const customLabel = appliedRange ? [`自訂區間%(${appliedRange.start}→${appliedRange.end})`] : [];
+  const headers = ['代碼', '名稱', '佔比%', '現價', ...customLabel, '今日%', '近3日%', '近5日%', '近一月%', '近三月%', 'YTD%'];
+  const rows = results.map(r => {
+    const customVal = appliedRange ? [fmtNum(customMap.get(r.stockid) ?? null)] : [];
+    return [
+      r.stockid, r.stockname, fmtNum(r.prate, 3), r.currentPrice ?? '',
+      ...customVal,
+      fmtNum(r.today), fmtNum(r.d3), fmtNum(r.d5),
+      fmtNum(r.m1), fmtNum(r.m3), fmtNum(r.ytd),
+    ];
+  });
 
   const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-
-  // Column widths
   ws['!cols'] = [
     { wch: 8 }, { wch: 16 }, { wch: 8 }, { wch: 8 },
+    ...customLabel.map(() => ({ wch: 14 })),
     { wch: 8 }, { wch: 8 }, { wch: 8 }, { wch: 10 }, { wch: 10 }, { wch: 8 },
   ];
 
@@ -85,22 +87,62 @@ function exportExcel(results: StockPerformance[], date: string, ticker: string) 
 }
 
 export default function PerformanceTab({
-  results, date, etfTicker,
+  results, date, etfTicker, fundId,
 }: {
   results: StockPerformance[];
   date: string;
   etfTicker: string;
+  fundId: string;
 }) {
-  const [sortKey, setSortKey] = useState<SortKey>('today');
-  const [sortAsc, setSortAsc] = useState(false);
+  const [sortKey,      setSortKey]      = useState<SortKey>('today');
+  const [sortAsc,      setSortAsc]      = useState(false);
+  const [customStart,  setCustomStart]  = useState('');
+  const [customEnd,    setCustomEnd]    = useState('');
+  const [appliedRange, setAppliedRange] = useState<{ start: string; end: string } | null>(null);
+  const [customMap,    setCustomMap]    = useState<Map<string, number | null>>(new Map());
+  const [customLoading, setCustomLoading] = useState(false);
+  const [customError,  setCustomError]  = useState('');
+
+  const applyCustomRange = async () => {
+    if (!customStart || !customEnd) return;
+    const range = { start: customStart, end: customEnd };
+    setAppliedRange(range);
+    setCustomLoading(true);
+    setCustomError('');
+    try {
+      const r = await fetch(
+        `/api/performance?date=${encodeURIComponent(date)}&fundId=${encodeURIComponent(fundId)}&startDate=${customStart}&endDate=${customEnd}`
+      );
+      if (!r.ok) throw new Error(`HTTP ${r.status}`);
+      const json = await r.json();
+      const map = new Map<string, number | null>();
+      for (const item of (json.results as StockPerformance[])) {
+        map.set(item.stockid, item.pctCustom);
+      }
+      setCustomMap(map);
+    } catch (e) {
+      setCustomError(e instanceof Error ? e.message : '載入失敗');
+      setAppliedRange(null);
+    } finally {
+      setCustomLoading(false);
+    }
+  };
+
+  const clearCustomRange = () => {
+    setCustomStart('');
+    setCustomEnd('');
+    setAppliedRange(null);
+    setCustomMap(new Map());
+    setCustomError('');
+  };
 
   const sorted = useMemo(() => {
     return [...results].sort((a, b) => {
-      const av = a[sortKey] ?? -Infinity;
-      const bv = b[sortKey] ?? -Infinity;
+      const av = (sortKey === 'pctCustom' ? (customMap.get(a.stockid) ?? null) : a[sortKey]) ?? -Infinity;
+      const bv = (sortKey === 'pctCustom' ? (customMap.get(b.stockid) ?? null) : b[sortKey]) ?? -Infinity;
       return sortAsc ? av - bv : bv - av;
     });
-  }, [results, sortKey, sortAsc]);
+  }, [results, sortKey, sortAsc, customMap]);
 
   const toggleSort = (key: SortKey) => {
     if (key === sortKey) setSortAsc(p => !p);
@@ -133,14 +175,14 @@ export default function PerformanceTab({
           ⚠ 台股盤中（09:00–13:30）：Yahoo Finance 不提供即時報價，現價顯示為<strong>前一交易日收盤價</strong>，13:30 收盤後約 1–2 小時更新為今日收盤價。
         </div>
       )}
-      <div style={{ display: 'flex', gap: 16, marginBottom: 12, fontSize: '.82rem', color: SUB, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+      <div style={{ display: 'flex', gap: 16, marginBottom: 10, fontSize: '.82rem', color: SUB, alignItems: 'center', flexWrap: 'wrap', justifyContent: 'space-between' }}>
         <div style={{ display: 'flex', gap: 16, alignItems: 'center', flexWrap: 'wrap' }}>
           <span>持股日期：<strong style={{ color: TEXT, fontFamily: MONO }}>{date}</strong></span>
           <span style={{ color: BORDER }}>|</span>
           <span>股價來源：Yahoo Finance{priceAsOfStr ? `（報價截至 ${priceAsOfStr}）` : '（延遲）'}</span>
         </div>
         <button
-          onClick={() => exportExcel(sorted, date, etfTicker)}
+          onClick={() => exportExcel(sorted, date, etfTicker, appliedRange, customMap)}
           style={{
             padding: '6px 16px', background: '#fff', border: `1px solid ${BORDER}`,
             borderRadius: 6, cursor: 'pointer', fontSize: '.8rem', color: SUB,
@@ -149,6 +191,47 @@ export default function PerformanceTab({
         >
           ↓ 匯出 Excel
         </button>
+      </div>
+
+      {/* Custom date range */}
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', padding: '10px 14px', background: '#FAFAF9', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
+        <span style={{ fontSize: '.78rem', color: SUB, fontWeight: 600, whiteSpace: 'nowrap' }}>自訂區間</span>
+        <input
+          type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
+          style={{ padding: '5px 10px', border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: '.85rem', fontFamily: MONO, color: TEXT }}
+        />
+        <span style={{ fontSize: '.8rem', color: SUB }}>至</span>
+        <input
+          type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
+          style={{ padding: '5px 10px', border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: '.85rem', fontFamily: MONO, color: TEXT }}
+        />
+        <button
+          onClick={applyCustomRange}
+          disabled={!customStart || !customEnd || customLoading}
+          style={{
+            padding: '6px 16px', background: customStart && customEnd && !customLoading ? RED : '#ccc',
+            color: '#fff', border: 'none', borderRadius: 6,
+            cursor: customStart && customEnd && !customLoading ? 'pointer' : 'not-allowed',
+            fontSize: '.82rem', fontWeight: 600,
+          }}
+        >
+          {customLoading ? '計算中…' : '套用'}
+        </button>
+        {appliedRange && !customLoading && (
+          <button
+            onClick={clearCustomRange}
+            style={{ padding: '6px 14px', background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 6, cursor: 'pointer', fontSize: '.78rem', color: SUB }}
+          >
+            清除
+          </button>
+        )}
+        {customLoading && <span style={{ fontSize: '.8rem', color: SUB }}>查詢 Yahoo Finance 中，約需 15–30 秒…</span>}
+        {appliedRange && !customLoading && (
+          <span style={{ fontSize: '.76rem', color: RED, fontWeight: 600 }}>
+            已套用：{appliedRange.start} → {appliedRange.end}
+          </span>
+        )}
+        {customError && <span style={{ fontSize: '.78rem', color: RED }}>{customError}</span>}
       </div>
 
       {/* Summary bar */}
@@ -190,6 +273,15 @@ export default function PerformanceTab({
                 佔比{sortKey === 'prate' ? (sortAsc ? ' ↑' : ' ↓') : ''}
               </th>
               <th style={{ ...TH, textAlign: 'right', width: 70 }}>現價</th>
+              {appliedRange && (
+                <th
+                  onClick={() => toggleSort('pctCustom')}
+                  style={{ ...TH, textAlign: 'right', width: 110, background: sortKey === 'pctCustom' ? '#7C3030' : '#A03030', whiteSpace: 'normal', lineHeight: 1.3 }}
+                >
+                  自訂區間{sortKey === 'pctCustom' ? (sortAsc ? ' ↑' : ' ↓') : ''}<br />
+                  <span style={{ fontWeight: 400, fontSize: '.65rem', opacity: .85 }}>{appliedRange.start.slice(5)}→{appliedRange.end.slice(5)}</span>
+                </th>
+              )}
               {PERF_COLS.map(c => (
                 <th
                   key={c.key}
@@ -213,6 +305,14 @@ export default function PerformanceTab({
                 <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: SUB }}>
                   {r.currentPrice !== null ? r.currentPrice.toFixed(2) : '—'}
                 </td>
+                {appliedRange && (() => {
+                  const v = customMap.get(r.stockid) ?? null;
+                  return (
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', fontWeight: 700, color: perfColor(v), background: perfBg(v) }}>
+                      {customLoading ? '…' : fmtPct(v)}
+                    </td>
+                  );
+                })()}
                 {PERF_COLS.map(c => {
                   const v = r[c.key];
                   return (

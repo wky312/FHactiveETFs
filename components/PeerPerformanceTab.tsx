@@ -1,5 +1,6 @@
 'use client';
 import { useState, useMemo } from 'react';
+import * as XLSX from 'xlsx';
 import type { PeerPerfResult } from '@/app/api/peer-performance/route';
 
 const GROUPS = [
@@ -60,15 +61,40 @@ function fmtPrice(v: number | null): string {
   return v.toFixed(2);
 }
 
+function exportExcel(
+  rows: PeerPerfResult[], group: string, dataDate: string,
+  appliedRange: { start: string; end: string } | null,
+) {
+  const customLabel = appliedRange ? [`自訂區間%(${appliedRange.start}→${appliedRange.end})`] : [];
+  const headers = ['代號', '名稱', '收盤價', ...customLabel,
+    '當日%', '週初至今%', '月初至今%', '年初至今%', '近5日%', '近1月%', '近3月%', '近6月%', '近一年%'];
+  const data = rows.map(r => {
+    const customVal = appliedRange ? [r.pctCustom !== null ? parseFloat(r.pctCustom.toFixed(2)) : ''] : [];
+    const n = (v: number | null) => v !== null ? parseFloat(v.toFixed(2)) : '';
+    return [r.ticker, r.name, r.price ?? '', ...customVal,
+      n(r.pct1d), n(r.pctWTD), n(r.pctMTD), n(r.pctYTD),
+      n(r.pct5d), n(r.pct1m), n(r.pct3m), n(r.pct6m), n(r.pct1y)];
+  });
+  const ws = XLSX.utils.aoa_to_sheet([headers, ...data]);
+  ws['!cols'] = [{ wch: 10 }, { wch: 22 }, { wch: 8 }, ...headers.slice(3).map(() => ({ wch: 14 }))];
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '同業績效');
+  const groupLabel = group === 'active' ? '主動ETF' : '台股50';
+  XLSX.writeFile(wb, `同業績效觀測_${groupLabel}_${dataDate || new Date().toISOString().slice(0, 10)}.xlsx`);
+}
+
 export default function PeerPerformanceTab() {
-  const [group,   setGroup]   = useState('active');
-  const [data,    setData]    = useState<PeerPerfResult[] | null>(null);
-  const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState('');
-  const [asOf,    setAsOf]    = useState('');
-  const [dataDate, setDataDate] = useState('');
-  const [sortKey, setSortKey] = useState<SortKey>('pct1d');
-  const [sortAsc, setSortAsc] = useState(false);
+  const [group,        setGroup]        = useState('active');
+  const [data,         setData]         = useState<PeerPerfResult[] | null>(null);
+  const [loading,      setLoading]      = useState(false);
+  const [error,        setError]        = useState('');
+  const [asOf,         setAsOf]         = useState('');
+  const [dataDate,     setDataDate]     = useState('');
+  const [sortKey,      setSortKey]      = useState<SortKey>('pct1d');
+  const [sortAsc,      setSortAsc]      = useState(false);
+  const [customStart,  setCustomStart]  = useState('');
+  const [customEnd,    setCustomEnd]    = useState('');
+  const [appliedRange, setAppliedRange] = useState<{ start: string; end: string } | null>(null);
 
   const switchGroup = (id: string) => {
     setGroup(id);
@@ -79,10 +105,12 @@ export default function PeerPerformanceTab() {
     setSortKey('pct1d');
   };
 
-  const load = async (grp = group) => {
+  const load = async (grp = group, range = appliedRange) => {
     setLoading(true); setError(''); setData(null);
     try {
-      const r = await fetch(`/api/peer-performance?group=${grp}`);
+      let url = `/api/peer-performance?group=${grp}`;
+      if (range) url += `&startDate=${range.start}&endDate=${range.end}`;
+      const r = await fetch(url);
       if (!r.ok) throw new Error(`HTTP ${r.status}`);
       const json: PeerPerfResult[] = await r.json();
       setData(json);
@@ -101,6 +129,20 @@ export default function PeerPerformanceTab() {
     } finally {
       setLoading(false);
     }
+  };
+
+  const applyCustomRange = () => {
+    if (!customStart || !customEnd) return;
+    const range = { start: customStart, end: customEnd };
+    setAppliedRange(range);
+    load(group, range);
+  };
+
+  const clearCustomRange = () => {
+    setCustomStart('');
+    setCustomEnd('');
+    setAppliedRange(null);
+    load(group, null);
   };
 
   const toggleSort = (key: SortKey) => {
@@ -153,7 +195,7 @@ export default function PeerPerformanceTab() {
       </div>
 
       {/* Controls */}
-      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap' }}>
+      <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
         <button onClick={() => load(group)} disabled={loading}
           style={{ padding: '8px 22px', background: loading ? '#999' : RED, color: '#fff', border: 'none', borderRadius: 6, cursor: loading ? 'not-allowed' : 'pointer', fontSize: '.88rem', fontWeight: 600 }}>
           {loading ? '載入中…' : data ? '重新整理' : '載入'}
@@ -162,6 +204,54 @@ export default function PeerPerformanceTab() {
         {asOf && !loading && <span style={{ fontSize: '.78rem', color: SUB }}>報價截至 {asOf} TST</span>}
         {dataDate && !loading && <span style={{ fontSize: '.78rem', color: SUB }}>區間績效計算至 {dataDate}</span>}
         <span style={{ marginLeft: 'auto', fontSize: '.75rem', color: SUB }}>績效已還原權息　點擊欄位標題排序</span>
+        {sorted.length > 0 && !loading && (
+          <button
+            onClick={() => exportExcel(sorted, group, dataDate, appliedRange)}
+            style={{ padding: '6px 16px', background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 6, cursor: 'pointer', fontSize: '.8rem', color: SUB, fontFamily: SANS, fontWeight: 500 }}
+          >
+            ↓ 匯出 Excel
+          </button>
+        )}
+      </div>
+
+      {/* Custom date range */}
+      <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 16, flexWrap: 'wrap', padding: '10px 14px', background: '#FAFAF9', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
+        <span style={{ fontSize: '.78rem', color: SUB, fontWeight: 600, whiteSpace: 'nowrap' }}>自訂區間</span>
+        <input
+          type="date" value={customStart} onChange={e => setCustomStart(e.target.value)}
+          style={{ padding: '5px 10px', border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: '.85rem', fontFamily: MONO, color: TEXT }}
+        />
+        <span style={{ fontSize: '.8rem', color: SUB }}>至</span>
+        <input
+          type="date" value={customEnd} onChange={e => setCustomEnd(e.target.value)}
+          style={{ padding: '5px 10px', border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: '.85rem', fontFamily: MONO, color: TEXT }}
+        />
+        <button
+          onClick={applyCustomRange}
+          disabled={!customStart || !customEnd || loading}
+          style={{
+            padding: '6px 16px', background: customStart && customEnd && !loading ? RED : '#ccc',
+            color: '#fff', border: 'none', borderRadius: 6,
+            cursor: customStart && customEnd && !loading ? 'pointer' : 'not-allowed',
+            fontSize: '.82rem', fontWeight: 600,
+          }}
+        >
+          套用
+        </button>
+        {appliedRange && (
+          <button
+            onClick={clearCustomRange}
+            disabled={loading}
+            style={{ padding: '6px 14px', background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 6, cursor: 'pointer', fontSize: '.78rem', color: SUB }}
+          >
+            清除
+          </button>
+        )}
+        {appliedRange && (
+          <span style={{ fontSize: '.76rem', color: RED, fontWeight: 600 }}>
+            已套用：{appliedRange.start} → {appliedRange.end}
+          </span>
+        )}
       </div>
 
       {error && (
@@ -182,6 +272,13 @@ export default function PeerPerformanceTab() {
                 <th onClick={() => toggleSort('ticker')}   style={{ ...TH, textAlign: 'left',  width: 72  }}>{thLabel('ticker',  '代號')}</th>
                 <th onClick={() => toggleSort('name')}     style={{ ...TH, textAlign: 'left',  minWidth: 100, width: 100 }}>{thLabel('name', '名稱')}</th>
                 <th onClick={() => toggleSort('price')}    style={{ ...TH, textAlign: 'right', width: 70  }}>{thLabel('price',  '收盤價')}</th>
+                {appliedRange && (
+                  <th onClick={() => toggleSort('pctCustom')}
+                    style={{ ...TH, textAlign: 'right', width: 110, background: sortKey === 'pctCustom' ? '#7C3030' : '#A03030', whiteSpace: 'normal', lineHeight: 1.3 }}>
+                    {thLabel('pctCustom', `自訂區間%`)}<br />
+                    <span style={{ fontWeight: 400, fontSize: '.65rem', opacity: .85 }}>{appliedRange.start.slice(5)}→{appliedRange.end.slice(5)}</span>
+                  </th>
+                )}
                 {PERF_COLS.map(c => (
                   <th key={c.key} onClick={() => toggleSort(c.key)}
                     style={{ ...TH, textAlign: 'right', width: 78, background: sortKey === c.key ? '#333' : '#1C1C1E' }}>
@@ -196,6 +293,11 @@ export default function PeerPerformanceTab() {
                   <td style={{ padding: '8px 10px', fontFamily: MONO, fontSize: '.8rem', color: SUB, fontWeight: 600 }}>{r.ticker}</td>
                   <td style={{ padding: '8px 10px', fontSize: '.83rem', color: TEXT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 100 }}>{r.name}</td>
                   <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', color: TEXT }}>{fmtPrice(r.price)}</td>
+                  {appliedRange && (
+                    <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', fontWeight: 700, color: perfColor(r.pctCustom), background: perfBg(r.pctCustom) }}>
+                      {fmtPct(r.pctCustom)}
+                    </td>
+                  )}
                   {PERF_COLS.map(c => {
                     const v = r[c.key] as number | null;
                     return (
@@ -211,6 +313,15 @@ export default function PeerPerformanceTab() {
                 <tr style={{ background: '#F0EDE8', borderTop: `2px solid ${BORDER}` }}>
                   <td colSpan={2} style={{ padding: '8px 10px', fontSize: '.78rem', color: SUB, fontWeight: 600 }}>等權平均</td>
                   <td style={{ padding: '8px 10px', textAlign: 'right', fontSize: '.78rem', color: SUB }}>—</td>
+                  {appliedRange && (() => {
+                    const vals = sorted.map(r => r.pctCustom).filter((v): v is number => v !== null);
+                    const v = vals.length ? vals.reduce((s, x) => s + x, 0) / vals.length : null;
+                    return (
+                      <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.78rem', fontWeight: 700, color: perfColor(v), background: perfBg(v) }}>
+                        {fmtPct(v)}
+                      </td>
+                    );
+                  })()}
                   {PERF_COLS.map(c => {
                     const v = avg[c.key] as number | null;
                     return (
