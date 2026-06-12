@@ -111,12 +111,18 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
   const [data,    setData]    = useState<TrajectoryResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
+  // 此分頁可獨立選基金：沿用全域所選復華 ETF，或改查統一 00981A（資料源 = CMoney/pocket）。
+  const [fundOverride, setFundOverride] = useState<'' | '00981A'>('');
+  const fund = fundOverride === '00981A'
+    ? { fundId: '00981A', ticker: '00981A', name: '主動統一台股增長' }
+    : selectedEtf;
+  const isCmoney = fund.fundId === '00981A';
 
   const search = useCallback(async () => {
     if (!query.trim()) { setError('請輸入股票代碼或名稱'); return; }
     setLoading(true); setError(''); setData(null);
     try {
-      const url = `/api/stock-trajectory?fundId=${encodeURIComponent(selectedEtf.fundId)}&q=${encodeURIComponent(query.trim())}`;
+      const url = `/api/stock-trajectory?fundId=${encodeURIComponent(fund.fundId)}&q=${encodeURIComponent(query.trim())}`;
       const res  = await fetch(url);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
@@ -126,7 +132,7 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
     } finally {
       setLoading(false);
     }
-  }, [query, selectedEtf.fundId]);
+  }, [query, fund.fundId]);
 
   // 圖表資料（升冪）
   const dates   = data?.series.map(p => p.date) ?? [];
@@ -198,6 +204,18 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 8, flexWrap: 'wrap' }}>
         <div>
           <label style={{ display: 'block', fontSize: '.78rem', color: SUB, marginBottom: 4, fontWeight: 500 }}>
+            ETF
+          </label>
+          <select
+            value={fundOverride}
+            onChange={e => { setFundOverride(e.target.value as '' | '00981A'); setData(null); setError(''); }}
+            style={{ padding: '7px 12px', border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: '.87rem', color: TEXT, background: '#fff', fontFamily: SANS }}>
+            <option value="">{selectedEtf.ticker}（復華）</option>
+            <option value="00981A">00981A 統一台股增長</option>
+          </select>
+        </div>
+        <div>
+          <label style={{ display: 'block', fontSize: '.78rem', color: SUB, marginBottom: 4, fontWeight: 500 }}>
             股票代碼或名稱
           </label>
           <input
@@ -215,12 +233,12 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
         </button>
         {loading && (
           <span style={{ fontSize: '.8rem', color: SUB, alignSelf: 'center' }}>
-            逐日查詢 {selectedEtf.ticker} 持股，可能需 15–30 秒…
+            逐日查詢 {fund.ticker} 持股，可能需 15–30 秒…
           </span>
         )}
       </div>
       <p style={{ fontSize: '.74rem', color: SUB, margin: '0 0 16px' }}>
-        查詢 <strong style={{ color: TEXT }}>{selectedEtf.ticker}</strong> 自成立以來，對該個股每日的持有張數、佔比與加碼/減碼軌跡。
+        查詢 <strong style={{ color: TEXT }}>{fund.ticker}</strong> 自成立以來，對該個股每日的持有張數、佔比與加碼/減碼軌跡。
       </p>
 
       {error && (
@@ -237,7 +255,7 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
 
       {data && data.notHeld && (
         <div style={{ padding: '24px', textAlign: 'center', color: SUB, fontSize: '.88rem' }}>
-          {selectedEtf.ticker} 期間內未持有「{query.trim()}」，或查無此股票。
+          {fund.ticker} 期間內未持有「{query.trim()}」，或查無此股票。
         </div>
       )}
 
@@ -254,8 +272,8 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
               <span>掃描 <strong style={{ color: TEXT }}>{data.scannedDays}</strong> 個交易日</span>
             </div>
             <div style={{ display: 'flex', gap: 8 }}>
-              <button onClick={() => downloadChart(data, selectedEtf.ticker)} style={DL_BTN}>↓ 下載圖表 PNG</button>
-              <button onClick={() => exportExcel(data, selectedEtf.ticker)} style={DL_BTN}>↓ 匯出 Excel</button>
+              <button onClick={() => downloadChart(data, fund.ticker)} style={DL_BTN}>↓ 下載圖表 PNG</button>
+              <button onClick={() => exportExcel(data, fund.ticker)} style={DL_BTN}>↓ 匯出 Excel</button>
             </div>
           </div>
 
@@ -320,10 +338,10 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
           </div>
 
           <div style={{ marginTop: 12, fontSize: '.72rem', color: SUB, lineHeight: 1.8 }}>
-            <b>持股 (張)</b>＝復華公告股數 ÷ 1000　<b>當日增減</b>＝較前一交易日張數變化（紅色加碼、綠色減碼）<br />
+            <b>持股 (張)</b>＝{isCmoney ? '統一' : '復華'}公告股數 ÷ 1000　<b>當日增減</b>＝較前一交易日張數變化（紅色加碼、綠色減碼）<br />
             <b>中間價</b>＝當日 (最高價＋最低價) ÷ 2（Yahoo Finance）　<b>預估均價</b>＝以加碼日中間價估算的移動平均持倉成本（元/股）<br />
             <b>說明：</b>均價為<u>推估值</u>——以每日中間價近似實際成交價，且減碼採移動平均成本法（賣出不影響均價）。<br />
-            <b>資料來源：</b>復華投信 ETF 每日持股 ＋ Yahoo Finance 日 K（即時逐日查詢，僅含有交易資料的日期）
+            <b>資料來源：</b>{isCmoney ? 'CMoney／口袋證券（保留逐日歷史持股）' : '復華投信 ETF 每日持股'} ＋ Yahoo Finance 日 K{isCmoney ? '；市值＝股數×當日收盤估算' : ''}
           </div>
         </>
       )}

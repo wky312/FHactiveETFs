@@ -4,6 +4,7 @@ import { UNIVERSE_NAMES } from './twseUniverse';
 import { stockidToYfTicker } from './exchangeMap';
 import { fetchDailyBars } from './yahooFinance';
 import { loadStoredHoldings } from './holdingsStore';
+import { fetchCmoneyHoldings, CMONEY_FUNDS } from './cmoneyHoldings';
 
 /* 個股持股軌跡：逐交易日抓復華持股，組出某一檔個股在某 ETF 的進出時間序列。
    策略 = 即時查詢（不存檔），重用 lib/fhtrust.ts 的 fetchHoldings（已內建快取）。 */
@@ -120,7 +121,8 @@ export async function fetchTrajectory(rawQuery: string, fundId = 'ETF23'): Promi
     }
   };
 
-  if (stored) {
+  const populateFromStored = () => {
+    if (!stored) return;
     for (const [date, recs] of Object.entries(stored.days)) {
       dayMap.set(date, recs.map(r => ({
         stockid: r.c,
@@ -132,6 +134,16 @@ export async function fetchTrajectory(rawQuery: string, fundId = 'ETF23'): Promi
         ftype: '',
       })));
     }
+  };
+
+  if (CMONEY_FUNDS[fundId]) {
+    // CMoney 來源（如統一 00981A，官網只給最新一天）：先讀存檔（毫秒），再用 CMoney
+    // 補近端含今日；無存檔則一次抓全歷史（DTRange 大）。
+    populateFromStored();
+    const live = await fetchCmoneyHoldings(CMONEY_FUNDS[fundId], dayMap.size > 0 ? 20 : 400);
+    for (const [date, holdings] of live) dayMap.set(date, holdings);
+  } else if (stored) {
+    populateFromStored();
     const lastStored = Array.from(dayMap.keys()).sort((a, b) => a.localeCompare(b)).pop()!;
     await scan(addDays(lastStored, 1), end); // gap：存檔後到今天，通常 0–數天
   } else {
@@ -226,7 +238,9 @@ export async function fetchTrajectory(rawQuery: string, fundId = 'ETF23'): Promi
       if (runShares <= 0) { runShares = 0; runCost = 0; }
     }
     const avgCost = runShares > 0 ? runCost / runShares : null;
-    return { ...p, deltaLots, mid, close, dayBuyCost, avgCost };
+    // CMoney 來源無市值（mvalue=0）→ 以股數×當日收盤估算；復華原有市值則保留。
+    const mvalue = p.mvalue || (close !== null ? Math.round(p.qshare * close) : 0);
+    return { ...p, mvalue, deltaLots, mid, close, dayBuyCost, avgCost };
   });
 
   const maxLots = series.reduce((m, p) => Math.max(m, p.lots), 0);
@@ -267,7 +281,7 @@ function forwardFill(raw: Map<string, number>, start: string, end: string): Map<
 async function fetchPriceMaps(stockid: string, fundId: string, start: string, end: string): Promise<{ mid: Map<string, number>; close: Map<string, number> }> {
   const { ticker, suffix } = stockidToYfTicker(stockid);
   const base = stockid.trim();
-  const isTwOnly = fundId === 'ETF23';
+  const isTwOnly = fundId === 'ETF23' || !!CMONEY_FUNDS[fundId];
   const yfTicker = isTwOnly && !suffix ? `${base}.TW` : (ticker || base);
   const fallback = isTwOnly && !suffix ? `${base}.TWO` : undefined;
 

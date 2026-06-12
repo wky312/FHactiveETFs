@@ -21,6 +21,12 @@ HEADERS = {'User-Agent': 'Mozilla/5.0'}
 # 對應 lib/etfList.ts（00991A→ETF23、00998A→ETF24）
 FUND_IDS = ['ETF23', 'ETF24']
 
+# CMoney（pocket.tw 代理）來源：投信官網只給最新一天，CMoney 保留逐日歷史。
+# fundId → CMoney AssignID（對齊 lib/cmoneyHoldings.ts 的 CMONEY_FUNDS）
+CMONEY_FUNDS = {'00981A': '00981A'}  # 主動統一台股增長
+CMONEY_API = 'https://www.pocket.tw/api/cm/MobileService/ashx/GetDtnoData.ashx'
+CMONEY_DTNO = '59449513'  # M722：日期/標的代號/標的名稱/權重(%)/持有數/單位
+
 # 主動式 ETF 最早約 2025-05 上市，全回補的掃描下限（成立前的日期會回 null、自動跳過）
 FLOOR = date(2025, 5, 1)
 
@@ -137,11 +143,65 @@ def update_fund(fund_id: str) -> int:
     return added
 
 
+def fetch_cmoney_days(assign_id: str, dt_range: int = 400):
+    """從 CMoney 取整段逐日個股持股，回傳 (days, names)。
+    days = { 'YYYY/MM/DD': [{c,q,m,p}] }、names = {sid:name}。市值 m 無資料填 0。"""
+    param = (f'AssignID={assign_id};MTPeriod=0;DTMode=0;'
+             f'DTRange={dt_range};DTOrder=1;MajorTable=M722;')
+    params = {'action': 'getdtnodata', 'DtNo': CMONEY_DTNO, 'ParamStr': param, 'FilterNo': '0'}
+    try:
+        r = requests.get(CMONEY_API, params=params, headers=HEADERS, timeout=30)
+    except requests.exceptions.SSLError:
+        # pocket.tw 憑證缺 Subject Key Identifier，嚴格 OpenSSL 3.x 會拒；只對此唯讀公開 API 退回不驗證。
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        r = requests.get(CMONEY_API, params=params, headers=HEADERS, timeout=30, verify=False)
+    r.raise_for_status()
+    rows = r.json().get('Data') or []
+    days, names = {}, {}
+    for row in rows:
+        ymd = str(row[0])
+        date_key = f'{ymd[0:4]}/{ymd[4:6]}/{ymd[6:8]}'
+        sid = str(row[1] or '').strip()
+        if not sid:
+            continue
+        days.setdefault(date_key, []).append({
+            'c': sid,
+            'q': int(parse_num(row[4])),       # 持有數（股）
+            'm': 0,                            # CMoney 無市值
+            'p': round(parse_num(row[3]), 4),  # 權重(%)
+        })
+        names[sid] = str(row[2] or '').strip()
+    return days, names
+
+
+def update_cmoney_fund(fund_id: str, assign_id: str) -> int:
+    """CMoney 一次回整段歷史 → 直接覆蓋補齊存檔（idempotent）。回傳新增天數。"""
+    data = load(fund_id)
+    before = len(data['days'])
+    try:
+        days, names = fetch_cmoney_days(assign_id)
+    except Exception as e:
+        print(f'  ! {fund_id} CMoney fetch error: {e}', file=sys.stderr)
+        print(f'{fund_id}: +0 天（CMoney 失敗）')
+        return 0
+    data['days'].update(days)
+    data['names'].update(names)
+    added = len(data['days']) - before
+    if added or days:
+        save(fund_id, data)
+    print(f'{fund_id}: +{added} 天，共 {len(data["days"])} 天（CMoney）')
+    return added
+
+
 def main():
     total = 0
     for fund_id in FUND_IDS:
         print(f'== {fund_id} ==')
         total += update_fund(fund_id)
+    for fund_id, assign_id in CMONEY_FUNDS.items():
+        print(f'== {fund_id} (CMoney) ==')
+        total += update_cmoney_fund(fund_id, assign_id)
     print(f'完成，共新增 {total} 天')
 
 
