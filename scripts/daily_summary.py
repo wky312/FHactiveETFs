@@ -111,6 +111,7 @@ PEER_ETFS = [
     {'ticker': '00403A', 'name': '統一403', 'source': 'ezmoney',  'key': '63YTW'},
     {'ticker': '00982A', 'name': '群益982', 'source': 'capital',  'key': '399'},
     {'ticker': '00992A', 'name': '群益992', 'source': 'capital',  'key': '500'},
+    {'ticker': '00405A', 'name': '富邦405', 'source': 'fubon',    'key': '00405A'},
 ]
 
 EZMONEY_HOST = 'www.ezmoney.com.tw'
@@ -238,6 +239,64 @@ def fetch_fhtrust_peer_day(fund_id: str, transaction_date: date) -> dict | None:
     return {'aum': result['aum'], 'netSub': None}  # netSub requires scale API separately
 
 
+FUBON_HOST = 'websys.fsit.com.tw'
+
+
+def _fubon_field(html: str, label: str) -> str | None:
+    import re
+    m = re.search(rf'>{re.escape(label)}</p>\s*<p>([^<]*)</p>', html)
+    return m.group(1).strip() if m else None
+
+
+def _fubon_num(v) -> float:
+    """Parse Fubon value strings: strip NT$/commas, treat parens/minus as negative."""
+    if not v:
+        return 0.0
+    import re
+    neg = '(' in v or '−' in v or '-' in v
+    s = re.sub(r'[^0-9.]', '', v.replace('NT$', ''))
+    n = float(s) if s else 0.0
+    return -n if neg else n
+
+
+def fetch_fubon_day(stk_id: str, transaction_date: date) -> dict | None:
+    """Return {'netSub': float, 'aum': float} for given trade date, or None.
+    Fubon PCF page selects a date purely via &ddate=YYYYMMDD (a GET), no postback.
+    netSub = 與前日已發行單位差異數 × 每申購基數實際申購總價金 ÷ 每申購基數單位數 ÷ 1e8."""
+    try:
+        import re
+        ddate = transaction_date.strftime('%Y%m%d')
+        url = (f'https://{FUBON_HOST}/FubonETF/Trade/Pcf.aspx'
+               f'?stkId={stk_id}&ddate={ddate}&lan=TW')
+        headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+        try:
+            r = requests.get(url, headers=headers, timeout=20)
+        except requests.exceptions.SSLError:
+            # Fubon's TLS cert lacks a Subject Key Identifier, which strict OpenSSL 3.x
+            # rejects (curl/Node and older OpenSSL accept it). Keep verification on
+            # everywhere it works; only fall back to unverified for this known-malformed
+            # cert on a read-only public page.
+            import urllib3
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            r = requests.get(url, headers=headers, timeout=20, verify=False)
+        if r.status_code != 200:
+            return None
+        html = r.text
+        # 每申購基數實際申購總價金 label is prefixed with the date, so match without a leading '>'.
+        act_m   = re.search(r'每申購基數實際申購總價金</p>\s*<p>([^<]*)</p>', html)
+        q_diff  = _fubon_num(_fubon_field(html, '與前日已發行單位差異數'))
+        cu      = _fubon_num(_fubon_field(html, '每申購/買回基數之受益權單位數'))
+        nav     = _fubon_num(_fubon_field(html, '基金淨資產價值'))
+        act_val = _fubon_num(act_m.group(1).strip() if act_m else None)
+        # cu/nav are 0 on non-trading days and before listing → no data.
+        if cu == 0 or nav == 0:
+            return None
+        return {'netSub': (q_diff * act_val) / cu / 1e8, 'aum': nav / 1e8}
+    except Exception as e:
+        print(f'  fubon {stk_id} {transaction_date}: {e}')
+        return None
+
+
 def fetch_all_peer_data(transaction_date: date) -> list:
     """Fetch net subscription data for all peer ETFs on the given date."""
     # Build shared ezmoney session once for all ezmoney ETFs
@@ -256,6 +315,8 @@ def fetch_all_peer_data(transaction_date: date) -> list:
             data = fetch_ezmoney_day(etf['key'], transaction_date, session=ezmoney_session)
         elif etf['source'] == 'capital':
             data = fetch_capital_day(etf['key'], transaction_date)
+        elif etf['source'] == 'fubon':
+            data = fetch_fubon_day(etf['key'], transaction_date)
         elif etf['source'] == 'fhtrust':
             # For fhtrust, netSub comes from PCF DIFF_UNIT calculation
             # Use fhtrust PCF API (same as etf-scale)

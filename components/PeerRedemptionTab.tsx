@@ -4,6 +4,7 @@ import * as XLSX from 'xlsx';
 import { ScaleDay } from '@/lib/fhtrustScale';
 import { EzmoneyDay } from '@/lib/ezmoneyScale';
 import { CapitalDay } from '@/lib/capitalScale';
+import { FubonDay } from '@/lib/fubonScale';
 
 const RED    = '#C00000';
 const GREEN  = '#1A6B45';
@@ -25,10 +26,14 @@ const CAPITAL_ETFS = [
   { ticker: '00982A', name: '群益982', fundId: '399' },
   { ticker: '00992A', name: '群益992', fundId: '500' },
 ];
+const FUBON_ETFS = [
+  { ticker: '00405A', name: '富邦405', stkId: '00405A' },
+];
 const ALL_TICKERS = [
   ...FHTRUST_ETFS.map(e => e.ticker),
   ...EZMONEY_ETFS.map(e => e.ticker),
   ...CAPITAL_ETFS.map(e => e.ticker),
+  ...FUBON_ETFS.map(e => e.ticker),
 ];
 
 type PeerSortKey = 'date' | string;
@@ -76,11 +81,13 @@ function mergeDays(
   fhData: Map<string, ScaleDay[]>,
   ezData: Map<string, EzmoneyDay[]>,
   capData: Map<string, CapitalDay[]>,
+  fubonData: Map<string, FubonDay[]>,
 ): DayRow[] {
   const dateSet = new Set<string>();
-  fhData.forEach(days  => days.forEach(d => dateSet.add(norm(d.date))));
-  ezData.forEach(days  => days.forEach(d => dateSet.add(norm(d.date))));
-  capData.forEach(days => days.forEach(d => dateSet.add(norm(d.date))));
+  fhData.forEach(days    => days.forEach(d => dateSet.add(norm(d.date))));
+  ezData.forEach(days    => days.forEach(d => dateSet.add(norm(d.date))));
+  capData.forEach(days   => days.forEach(d => dateSet.add(norm(d.date))));
+  fubonData.forEach(days => days.forEach(d => dateSet.add(norm(d.date))));
 
   const rows: DayRow[] = [];
   for (const date of Array.from(dateSet).sort()) {
@@ -95,6 +102,10 @@ function mergeDays(
     }
     for (const { ticker, fundId } of CAPITAL_ETFS) {
       const d = (capData.get(fundId) ?? []).find(x => norm(x.date) === date);
+      data[ticker] = d ? { netSub: d.netSub, aum: d.aum } : null;
+    }
+    for (const { ticker, stkId } of FUBON_ETFS) {
+      const d = (fubonData.get(stkId) ?? []).find(x => norm(x.date) === date);
       data[ticker] = d ? { netSub: d.netSub, aum: d.aum } : null;
     }
     rows.push({ date, data });
@@ -164,7 +175,7 @@ export default function PeerRedemptionTab() {
     const ed = toApi(endDate);
     const sdDash = startDate;
     const edDash = endDate;
-    const [fhMap, ezMap, capMap] = await Promise.all([
+    const [fhMap, ezMap, capMap, fubonMap] = await Promise.all([
       Promise.all(FHTRUST_ETFS.map(async ({ fundId }) => {
         const r = await fetch(`/api/etf-scale?startDate=${encodeURIComponent(sd)}&endDate=${encodeURIComponent(ed)}&fundId=${encodeURIComponent(fundId)}`);
         return { fundId, data: r.ok ? (await r.json() as ScaleDay[]) : [] };
@@ -177,8 +188,12 @@ export default function PeerRedemptionTab() {
         const r = await fetch(`/api/capital-scale?fundId=${encodeURIComponent(fundId)}&startDate=${encodeURIComponent(sdDash)}&endDate=${encodeURIComponent(edDash)}`);
         return { fundId, data: r.ok ? (await r.json() as CapitalDay[]) : [] };
       })).then(arr => new Map(arr.map(({ fundId, data }) => [fundId, data]))),
+      Promise.all(FUBON_ETFS.map(async ({ stkId }) => {
+        const r = await fetch(`/api/fubon-scale?stkId=${encodeURIComponent(stkId)}&startDate=${encodeURIComponent(sdDash)}&endDate=${encodeURIComponent(edDash)}`);
+        return { stkId, data: r.ok ? (await r.json() as FubonDay[]) : [] };
+      })).then(arr => new Map(arr.map(({ stkId, data }) => [stkId, data]))),
     ]);
-    return mergeDays(fhMap, ezMap, capMap);
+    return mergeDays(fhMap, ezMap, capMap, fubonMap);
   }, [startDate, endDate]);
 
   const load = useCallback(async (forceLive = false) => {
