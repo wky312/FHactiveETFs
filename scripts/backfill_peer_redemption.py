@@ -20,7 +20,18 @@ from daily_summary import (
 
 SUPABASE_URL         = os.environ.get('SUPABASE_URL', '')
 SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_KEY', '')
-START_DATE           = date(2025, 12, 8)
+
+
+def _parse_start_date() -> date:
+    """START_DATE env (YYYY-MM-DD or YYYY/MM/DD) overrides the default 2025-12-08."""
+    raw = os.environ.get('START_DATE', '').strip()
+    if raw:
+        from datetime import datetime
+        return datetime.strptime(raw.replace('/', '-'), '%Y-%m-%d').date()
+    return date(2025, 12, 8)
+
+
+START_DATE = _parse_start_date()
 
 
 def trading_days(start: date, end: date):
