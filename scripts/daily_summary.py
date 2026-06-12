@@ -689,7 +689,10 @@ def write_peer_to_supabase(peer_results: list, transaction_date: date):
             and etf['data'].get('aum')    is not None
         ]
         if rows:
-            client.table('peer_redemption').upsert(rows).execute()
+            # Must name the conflict target, else an existing (date,ticker) makes the
+            # whole batch fail with 23505 — which is why newly-added tickers (e.g.
+            # 00405A) never landed: they rode in a batch alongside already-stored rows.
+            client.table('peer_redemption').upsert(rows, on_conflict='date,ticker').execute()
             print(f'  ✓ Supabase: upserted {len(rows)} rows for {transaction_date}')
         else:
             print('  No valid rows to write to Supabase.')
