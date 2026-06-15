@@ -19,6 +19,7 @@ export const PEER_GROUPS: Record<string, { label: string; items: PeerItem[] }> =
   active: {
     label: '台股主動式ETF',
     items: [
+      { ticker: '00980A', yfTicker: '00980A.TW', name: '主動野村台灣優選' },
       { ticker: '00981A', yfTicker: '00981A.TW', name: '主動統一台股增長' },
       { ticker: '00982A', yfTicker: '00982A.TW', name: '主動群益台灣強棒' },
       { ticker: '00984A', yfTicker: '00984A.TW', name: '主動安聯台灣高息' },
@@ -30,6 +31,7 @@ export const PEER_GROUPS: Record<string, { label: string; items: PeerItem[] }> =
       { ticker: '00994A', yfTicker: '00994A.TW', name: '主動第一金台股優' },
       { ticker: '00995A', yfTicker: '00995A.TW', name: '主動中信台灣卓越' },
       { ticker: '00996A', yfTicker: '00996A.TW', name: '主動兆豐台灣豐收' },
+      { ticker: '00999A', yfTicker: '00999A.TW', name: '主動野村台灣高息' },
       { ticker: '00400A', yfTicker: '00400A.TW', name: '主動國泰動能高息' },
       { ticker: '00401A', yfTicker: '00401A.TW', name: '主動摩根台灣鑫收' },
       { ticker: '00403A', yfTicker: '00403A.TW', name: '主動統一升級50' },
