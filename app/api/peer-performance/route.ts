@@ -293,8 +293,11 @@ export async function GET(request: NextRequest) {
   const group       = PEER_GROUPS[groupId] ?? PEER_GROUPS['active'];
   const startStr    = request.nextUrl.searchParams.get('startDate');
   const endStr      = request.nextUrl.searchParams.get('endDate');
+  // 兩端都用當日 23:59:59 當截止點：Yahoo 日 K 棒時間戳為 01:00Z（台股開盤），
+  // 若起始日用 00:00:00 會落在「前一個交易日」，導致基準價抓錯（區間報酬被灌高）。
+  // 以還原收盤計算，起始日的基準即為「起始日當天收盤」，與年初至今(去年底收盤)同口徑。
   const customRange: CustomRange | undefined = startStr && endStr ? {
-    start: new Date(startStr + 'T00:00:00'),
+    start: new Date(startStr + 'T23:59:59'),
     end:   new Date(endStr   + 'T23:59:59'),
   } : undefined;
 
