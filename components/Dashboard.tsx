@@ -13,6 +13,7 @@ import ScaleTab from './ScaleTab';
 import PeerRedemptionTab from './PeerRedemptionTab';
 import PeerPerformanceTab from './PeerPerformanceTab';
 import StockTrajectoryTab from './StockTrajectoryTab';
+import CumulativeReturnTab from './CumulativeReturnTab';
 
 /* ── Design tokens ── */
 const RED    = '#C00000';
@@ -26,7 +27,7 @@ const BORDER = '#E8E3DF';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'pred0050' | 'scale' | 'peer' | 'peerperf';
+type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret';
 interface LoadedData { date: string; holdings: Holding[] }
 interface PerfData { date: string; results: StockPerformance[] }
 
@@ -251,6 +252,7 @@ export default function Dashboard() {
     { id: 'scale',       label: '規模變化' },
     { id: 'peer',        label: '同業申贖觀測' },
     { id: 'peerperf',   label: '同業績效觀測' },
+    { id: 'cumret',     label: '累積報酬走勢' },
   ];
 
   return (
@@ -463,6 +465,12 @@ export default function Dashboard() {
         {activeTab === 'peerperf' && (
           <Card title="同業績效觀測">
             <PeerPerformanceTab />
+          </Card>
+        )}
+
+        {activeTab === 'cumret' && (
+          <Card title="累積報酬走勢圖">
+            <CumulativeReturnTab />
           </Card>
         )}
       </main>
