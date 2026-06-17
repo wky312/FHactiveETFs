@@ -85,11 +85,17 @@ export interface PeerPerfResult extends PeerItem {
   dataDate: string | null;  // YYYY-MM-DD date of the 'cur' price used for all metrics
 }
 
-interface DayRow { date: Date; adjClose: number }
+interface DayRow { date: Date; adjClose: number; close: number }
+
+// 還原價格先四捨五入到小數 2 位，再相除 —— 對齊券商軟體的「先進位」算法
+const round2 = (x: number): number => Math.round(x * 100) / 100;
 
 function pct(curr: number | null | undefined, base: number | null | undefined): number | null {
   if (curr == null || base == null || base === 0) return null;
-  return (curr - base) / base * 100;
+  const c = round2(curr);
+  const b = round2(base);
+  if (b === 0) return null;
+  return (c - b) / b * 100;
 }
 
 function findOnOrBefore(rows: DayRow[], cutoff: Date): number | null {
@@ -189,7 +195,11 @@ async function fetchOne(item: PeerItem, customRange?: CustomRange): Promise<Peer
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .filter((q: any) => (q.adjClose ?? q.adjclose ?? q.close) != null)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .map((q: any) => ({ date: new Date(q.date), adjClose: q.adjClose ?? q.adjclose ?? q.close }))
+      .map((q: any) => ({
+        date: new Date(q.date),
+        adjClose: q.adjClose ?? q.adjclose ?? q.close,
+        close: q.close ?? q.adjClose ?? q.adjclose,   // 保留原始收盤價，供下方還原基準換算
+      }))
       // Exclude today's intraday data when market hasn't closed yet
       .filter(r => marketClosed || r.date.toISOString().split('T')[0] < todayStr)
       .sort((a, b) => a.date.getTime() - b.date.getTime());
@@ -208,9 +218,17 @@ async function fetchOne(item: PeerItem, customRange?: CustomRange): Promise<Peer
     //   with date = last weekday before today
     // - Market closed today → use regularMarketPrice (today's close) if newer than chart
     // - quoteTime is a prev day → use regularMarketPrice directly
-    const lastChartDate = rows[rows.length - 1].date;
+    const lastRow = rows[rows.length - 1];
+    const lastChartDate = lastRow.date;
     const quoteTime = quote?.regularMarketTime ? new Date(quote.regularMarketTime) : null;
     const quoteDate = quoteTime ? quoteTime.toISOString().split('T')[0] : null;
+
+    // 最新交易日本身即為「還原基準日」，其還原係數 = 1，所以即時最新價可直接視為還原價。
+    // 但若即時報價恰好等於最後一根 K 棒的「原始收盤價」，代表報價尚未更新到新交易日
+    // —— 常見於除息日早盤：歷史價已還原、報價卻仍停在前一日。此時若併入，就會用「除息前原始價」
+    // 去比「已還原基準」，把報酬灌高（曾出現 YTD 93.83% 的假數字）。故偵測到即略過，改用 K 棒還原價。
+    const quoteStale = quote?.regularMarketPrice != null
+      && round2(quote.regularMarketPrice) === round2(lastRow.close);
 
     if (quoteDate === todayStr && !marketClosed) {
       // Intraday: use previous session's close with last-weekday date
@@ -218,12 +236,21 @@ async function fetchOne(item: PeerItem, customRange?: CustomRange): Promise<Peer
         const prevDay = new Date();
         do { prevDay.setDate(prevDay.getDate() - 1); } while (prevDay.getDay() === 0 || prevDay.getDay() === 6);
         if (prevDay.getTime() > lastChartDate.getTime()) {
-          rows.push({ date: prevDay, adjClose: quote.regularMarketPreviousClose });
+          rows.push({
+            date: prevDay,
+            adjClose: quote.regularMarketPreviousClose,
+            close: quote.regularMarketPreviousClose,
+          });
         }
       }
-    } else if (quoteTime && quote?.regularMarketPrice != null && quoteTime.getTime() > lastChartDate.getTime()) {
-      // Post-close today or previous day quote newer than chart
-      rows.push({ date: quoteTime, adjClose: quote.regularMarketPrice });
+    } else if (quoteTime && quote?.regularMarketPrice != null
+        && quoteTime.getTime() > lastChartDate.getTime() && !quoteStale) {
+      // 收盤後：最新交易日即還原基準（係數=1），直接採用最新原始價
+      rows.push({
+        date: quoteTime,
+        adjClose: quote.regularMarketPrice,
+        close: quote.regularMarketPrice,
+      });
     }
 
     const cur = rows[rows.length - 1].adjClose;
