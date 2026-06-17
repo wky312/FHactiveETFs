@@ -21,6 +21,7 @@ interface TrajectoryPoint {
   prate: number;
   deltaLots: number;
   mid: number | null;
+  avg: number | null;
   close: number | null;
   dayBuyCost: number | null;
   avgCost: number | null;
@@ -74,18 +75,19 @@ function round(n: number | null, d: number): number | string {
 
 // 匯出每日表格成 Excel（比照 PerformanceTab）
 function exportExcel(data: TrajectoryResult, ticker: string) {
-  const headers = ['日期', '持股(張)', '當日增減(張)', '中間價', '預估均價', '市值(NTD)', '佔比%'];
+  const headers = ['日期', '持股(張)', '當日增減(張)', '成交均價', '中間價', '預估均價', '市值(NTD)', '佔比%'];
   const rows = data.series.map(p => [
     p.date,
     round(p.lots, 1),
     Math.abs(p.deltaLots) < 1e-4 ? '' : round(p.deltaLots, 1),
+    round(p.avg, 2),
     round(p.mid, 2),
     round(p.avgCost, 2),
     p.mvalue,
     round(p.prate, 3),
   ]);
   const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
-  ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 16 }, { wch: 9 }];
+  ws['!cols'] = [{ wch: 12 }, { wch: 10 }, { wch: 12 }, { wch: 10 }, { wch: 10 }, { wch: 10 }, { wch: 16 }, { wch: 9 }];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '持股軌跡');
   XLSX.writeFile(wb, `${ticker}_${data.stockid}_${data.stockname}_持股軌跡.xlsx`);
@@ -312,6 +314,7 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
                   <th style={{ ...TH, textAlign: 'left' }}>日期</th>
                   <th style={{ ...TH, textAlign: 'right' }}>持股 (張)</th>
                   <th style={{ ...TH, textAlign: 'right' }}>當日增減 (張)</th>
+                  <th style={{ ...TH, textAlign: 'right' }}>成交均價</th>
                   <th style={{ ...TH, textAlign: 'right' }}>中間價</th>
                   <th style={{ ...TH, textAlign: 'right' }}>預估均價</th>
                   <th style={{ ...TH, textAlign: 'right' }}>市值 (NTD)</th>
@@ -327,6 +330,7 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
                       color: p.deltaLots > 0.0001 ? RED : p.deltaLots < -0.0001 ? GREEN : SUB }}>
                       {fmtDelta(p.deltaLots)}
                     </td>
+                    <td style={{ padding: '7px 14px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: p.avg !== null ? TEXT : SUB }}>{fmtPrice(p.avg)}</td>
                     <td style={{ padding: '7px 14px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: SUB }}>{fmtPrice(p.mid)}</td>
                     <td style={{ padding: '7px 14px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: TEXT, fontWeight: 500 }}>{fmtPrice(p.avgCost)}</td>
                     <td style={{ padding: '7px 14px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: SUB }}>{fmtMvalue(p.mvalue)}</td>
@@ -339,8 +343,9 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
 
           <div style={{ marginTop: 12, fontSize: '.72rem', color: SUB, lineHeight: 1.8 }}>
             <b>持股 (張)</b>＝{isCmoney ? '統一' : '復華'}公告股數 ÷ 1000　<b>當日增減</b>＝較前一交易日張數變化（紅色加碼、綠色減碼）<br />
-            <b>中間價</b>＝當日 (最高價＋最低價) ÷ 2（Yahoo Finance）　<b>預估均價</b>＝以加碼日中間價估算的移動平均持倉成本（元/股）<br />
-            <b>說明：</b>均價為<u>推估值</u>——以每日中間價近似實際成交價，且減碼採移動平均成本法（賣出不影響均價）。<br />
+            <b>成交均價</b>＝當日 成交金額 ÷ 成交股數（≈當日VWAP，台股 TWSE／TPEx）　<b>中間價</b>＝(最高＋最低) ÷ 2（Yahoo，海外股用）<br />
+            <b>預估均價</b>＝以加碼日成本基準價估算的移動平均持倉成本（元/股）；成本基準＝台股取成交均價、海外股取中間價<br />
+            <b>說明：</b>均價為<u>推估值</u>——台股以當日真實成交均價為基準較貼近實際成交；海外股無此資料，仍以中間價近似。減碼採移動平均成本法（賣出不影響均價）。<br />
             <b>資料來源：</b>{isCmoney ? 'CMoney／口袋證券（保留逐日歷史持股）' : '復華投信 ETF 每日持股'} ＋ Yahoo Finance 日 K{isCmoney ? '；市值＝股數×當日收盤估算' : ''}
           </div>
         </>

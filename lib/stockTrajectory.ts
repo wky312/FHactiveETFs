@@ -5,6 +5,7 @@ import { stockidToYfTicker } from './exchangeMap';
 import { fetchDailyBars } from './yahooFinance';
 import { loadStoredHoldings } from './holdingsStore';
 import { fetchCmoneyHoldings, CMONEY_FUNDS } from './cmoneyHoldings';
+import { fetchTwseAvgMap } from './twseDaily';
 
 /* 個股持股軌跡：逐交易日抓復華持股，組出某一檔個股在某 ETF 的進出時間序列。
    策略 = 即時查詢（不存檔），重用 lib/fhtrust.ts 的 fetchHoldings（已內建快取）。 */
@@ -16,9 +17,10 @@ export interface TrajectoryPoint {
   mvalue: number;     // 市值 (NTD)
   prate: number;      // 佔淨值比例 (%)
   deltaLots: number;  // 較前一交易日的張數增減（首日 = 初始買入張數）
-  mid: number | null;       // 當日中間價 (高+低)/2，元/股
+  mid: number | null;       // 當日中間價 (高+低)/2，元/股（Yahoo，海外股成本基準）
+  avg: number | null;       // 當日真實成交均價 = 成交金額/成交股數，元/股（台股，TWSE/TPEx）
   close: number | null;     // 當日收盤價，元/股
-  dayBuyCost: number | null; // 當日買進金額 = 增加股數 × 中間價（僅加碼日）
+  dayBuyCost: number | null; // 當日買進金額 = 增加股數 × 成本基準價（僅加碼日）
   avgCost: number | null;    // 累計移動平均持倉成本，元/股
 }
 
@@ -207,8 +209,8 @@ export async function fetchTrajectory(rawQuery: string, fundId = 'ETF23'): Promi
   }
   const trimmed = raw.slice(firstIdx);
 
-  // 6. 抓每日最高/最低/收盤價，算中間價與移動平均持倉成本
-  const { mid: midMap, close: closeMap } = await fetchPriceMaps(stockid, fundId, trimmed[0].date, end);
+  // 6. 抓每日中間價/收盤價（Yahoo）＋台股真實成交均價（TWSE），算移動平均持倉成本
+  const { mid: midMap, close: closeMap, avg: avgMap } = await fetchPriceMaps(stockid, fundId, trimmed[0].date, end);
   let currentPrice: number | null = null;
 
   let runShares = 0;   // 累計持股股數
@@ -217,14 +219,17 @@ export async function fetchTrajectory(rawQuery: string, fundId = 'ETF23'): Promi
     const deltaLots = i === 0 ? p.lots : p.lots - trimmed[i - 1].lots;
     const deltaShares = deltaLots * 1000;
     const mid = midMap.get(p.date) ?? null;
+    const avg = avgMap.get(p.date) ?? null;
     const close = closeMap.get(p.date) ?? null;
+    // 成本基準：台股真實成交均價優先，退中間價（海外股），再退收盤
+    const costBasis = avg ?? mid ?? close;
     if (close !== null) currentPrice = close; // 以最後一個有報價日的收盤價當「目前股價」
 
     let dayBuyCost: number | null = null;
     if (deltaShares > 0) {
-      // 加碼：以當日中間價估算買進成本
-      if (mid !== null) {
-        dayBuyCost = deltaShares * mid;
+      // 加碼：以當日成本基準價估算買進成本
+      if (costBasis !== null) {
+        dayBuyCost = deltaShares * costBasis;
         runCost  += dayBuyCost;
         runShares += deltaShares;
       } else {
@@ -240,7 +245,7 @@ export async function fetchTrajectory(rawQuery: string, fundId = 'ETF23'): Promi
     const avgCost = runShares > 0 ? runCost / runShares : null;
     // CMoney 來源無市值（mvalue=0）→ 以股數×當日收盤估算；復華原有市值則保留。
     const mvalue = p.mvalue || (close !== null ? Math.round(p.qshare * close) : 0);
-    return { ...p, mvalue, deltaLots, mid, close, dayBuyCost, avgCost };
+    return { ...p, mvalue, deltaLots, mid, avg, close, dayBuyCost, avgCost };
   });
 
   const maxLots = series.reduce((m, p) => Math.max(m, p.lots), 0);
@@ -277,26 +282,35 @@ function forwardFill(raw: Map<string, number>, start: string, end: string): Map<
   return filled;
 }
 
-// 抓某檔股票在 [start, end] 區間每日中間價與收盤價，皆回傳 date(YYYY/MM/DD) → 價格（已前向填補）
-async function fetchPriceMaps(stockid: string, fundId: string, start: string, end: string): Promise<{ mid: Map<string, number>; close: Map<string, number> }> {
+// 抓某檔股票在 [start, end] 區間每日價格，回傳 date(YYYY/MM/DD) → 價格。
+//  mid/close：Yahoo（已前向填補，處理假日/缺口）；avg：台股真實成交均價（TWSE，僅交易日，不填補）。
+async function fetchPriceMaps(stockid: string, fundId: string, start: string, end: string): Promise<{ mid: Map<string, number>; close: Map<string, number>; avg: Map<string, number> }> {
   const { ticker, suffix } = stockidToYfTicker(stockid);
   const base = stockid.trim();
   const isTwOnly = fundId === 'ETF23' || !!CMONEY_FUNDS[fundId];
   const yfTicker = isTwOnly && !suffix ? `${base}.TW` : (ticker || base);
   const fallback = isTwOnly && !suffix ? `${base}.TWO` : undefined;
 
+  // 台股（yfTicker 以 .TW/.TWO 結尾）才有 TWSE 真實成交均價可查；海外股 avg 留空，沿用中間價
+  const isTw = /\.TWO?$/.test(yfTicker);
+  const twseCode = yfTicker.replace(/\.TWO?$/, '');
+
   const from = new Date(start.replace(/\//g, '-'));
   const to   = new Date(end.replace(/\//g, '-'));
-  let bars;
-  try {
-    bars = await fetchDailyBars(yfTicker, from, to, fallback);
-  } catch {
-    return { mid: new Map(), close: new Map() };
-  }
+
+  const [bars, avgRaw] = await Promise.all([
+    fetchDailyBars(yfTicker, from, to, fallback).catch(() => []),
+    isTw ? fetchTwseAvgMap(twseCode, start, end).catch(() => new Map<string, number>())
+         : Promise.resolve(new Map<string, number>()),
+  ]);
 
   const midRaw = new Map<string, number>();
   const closeRaw = new Map<string, number>();
   for (const b of bars) { midRaw.set(b.date, b.mid); closeRaw.set(b.date, b.close); }
 
-  return { mid: forwardFill(midRaw, start, end), close: forwardFill(closeRaw, start, end) };
+  return {
+    mid: forwardFill(midRaw, start, end),
+    close: forwardFill(closeRaw, start, end),
+    avg: avgRaw,
+  };
 }
