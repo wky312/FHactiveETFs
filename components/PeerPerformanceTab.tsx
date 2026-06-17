@@ -69,8 +69,8 @@ function exportExcel(
   const headers = ['代號', '名稱', '收盤價', ...customLabel,
     '當日%', '週初至今%', '月初至今%', '年初至今%', '近5日%', '近1月%', '近3月%', '近6月%', '近一年%'];
   const data = rows.map(r => {
-    const customVal = appliedRange ? [r.pctCustom !== null ? parseFloat(r.pctCustom.toFixed(2)) : ''] : [];
-    const n = (v: number | null) => v !== null ? parseFloat(v.toFixed(2)) : '';
+    const n = (v: number | null) => r.anomaly ? '數值異常' : (v !== null ? parseFloat(v.toFixed(2)) : '');
+    const customVal = appliedRange ? [r.anomaly ? '數值異常' : (r.pctCustom !== null ? parseFloat(r.pctCustom.toFixed(2)) : '')] : [];
     return [r.ticker, r.name, r.price ?? '', ...customVal,
       n(r.pct1d), n(r.pctWTD), n(r.pctMTD), n(r.pctYTD),
       n(r.pct5d), n(r.pct1m), n(r.pct3m), n(r.pct6m), n(r.pct1y)];
@@ -168,8 +168,9 @@ export default function PeerPerformanceTab() {
   const avg = useMemo(() => {
     if (!sorted.length) return null;
     const result: Partial<Record<SortKey, number | null>> = {};
+    const valid = sorted.filter(r => !r.anomaly);   // 數值異常者不納入平均
     for (const col of PERF_COLS) {
-      const vals = sorted.map(r => r[col.key] as number | null).filter(v => v !== null) as number[];
+      const vals = valid.map(r => r[col.key] as number | null).filter(v => v !== null) as number[];
       result[col.key] = vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
     }
     return result;
@@ -293,19 +294,29 @@ export default function PeerPerformanceTab() {
                   <td style={{ padding: '8px 10px', fontFamily: MONO, fontSize: '.8rem', color: SUB, fontWeight: 600 }}>{r.ticker}</td>
                   <td style={{ padding: '8px 10px', fontSize: '.83rem', color: TEXT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 100 }}>{r.name}</td>
                   <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', color: TEXT }}>{fmtPrice(r.price)}</td>
-                  {appliedRange && (
-                    <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', fontWeight: 700, color: perfColor(r.pctCustom), background: perfBg(r.pctCustom) }}>
-                      {fmtPct(r.pctCustom)}
+                  {r.anomaly ? (
+                    <td colSpan={(appliedRange ? 1 : 0) + PERF_COLS.length}
+                      title={r.anomalyReason ?? '數值異常'}
+                      style={{ padding: '8px 10px', textAlign: 'center', fontSize: '.8rem', fontWeight: 700, color: RED, background: '#fff0f0', letterSpacing: '.5px' }}>
+                      ⚠ 數值異常
                     </td>
+                  ) : (
+                    <>
+                      {appliedRange && (
+                        <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', fontWeight: 700, color: perfColor(r.pctCustom), background: perfBg(r.pctCustom) }}>
+                          {fmtPct(r.pctCustom)}
+                        </td>
+                      )}
+                      {PERF_COLS.map(c => {
+                        const v = r[c.key] as number | null;
+                        return (
+                          <td key={c.key} style={{ padding: '8px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', fontWeight: 600, color: perfColor(v), background: perfBg(v) }}>
+                            {fmtPct(v)}
+                          </td>
+                        );
+                      })}
+                    </>
                   )}
-                  {PERF_COLS.map(c => {
-                    const v = r[c.key] as number | null;
-                    return (
-                      <td key={c.key} style={{ padding: '8px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', fontWeight: 600, color: perfColor(v), background: perfBg(v) }}>
-                        {fmtPct(v)}
-                      </td>
-                    );
-                  })}
                 </tr>
               ))}
               {/* Average row */}
@@ -314,7 +325,7 @@ export default function PeerPerformanceTab() {
                   <td colSpan={2} style={{ padding: '8px 10px', fontSize: '.78rem', color: SUB, fontWeight: 600 }}>等權平均</td>
                   <td style={{ padding: '8px 10px', textAlign: 'right', fontSize: '.78rem', color: SUB }}>—</td>
                   {appliedRange && (() => {
-                    const vals = sorted.map(r => r.pctCustom).filter((v): v is number => v !== null);
+                    const vals = sorted.filter(r => !r.anomaly).map(r => r.pctCustom).filter((v): v is number => v !== null);
                     const v = vals.length ? vals.reduce((s, x) => s + x, 0) / vals.length : null;
                     return (
                       <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.78rem', fontWeight: 700, color: perfColor(v), background: perfBg(v) }}>
@@ -339,7 +350,8 @@ export default function PeerPerformanceTab() {
 
       {data && (
         <div style={{ marginTop: 10, fontSize: '.72rem', color: SUB, lineHeight: 1.8 }}>
-          資料來源：Yahoo Finance　週初至今 = 上週五收盤至今　月初至今 = 上月底收盤至今　年初至今 = 去年底收盤至今　近N日為交易日
+          資料來源：Yahoo Finance（與 TWSE 即時交叉比對）　週初至今 = 上週五收盤至今　月初至今 = 上月底收盤至今　年初至今 = 去年底收盤至今　近N日為交易日<br />
+          <span style={{ color: RED }}>⚠ 數值異常</span> = 收盤後 Yahoo 仍缺最新交易日報價（或無報價），績效不可信，已自動排除於等權平均
         </div>
       )}
     </div>

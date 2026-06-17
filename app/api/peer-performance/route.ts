@@ -83,6 +83,8 @@ export interface PeerPerfResult extends PeerItem {
   pctCustom: number | null;
   updatedAt: string | null;
   dataDate: string | null;  // YYYY-MM-DD date of the 'cur' price used for all metrics
+  anomaly: boolean;            // Yahoo 報價疑似破值/缺價，績效不可信
+  anomalyReason: string | null;
 }
 
 interface DayRow { date: Date; adjClose: number; close: number }
@@ -150,6 +152,34 @@ async function fetchListingDate(yfTicker: string): Promise<Date | null> {
   }
 }
 
+// ── TWSE 即時報價（MIS）：取各檔「已成交的最新交易日」，作為偵測 Yahoo 破值/缺價的真相來源 ──
+// 一次批量查詢全部上市標的；只有當盤中有實際成交價(z 為數字)時，才把該日 d 視為「已成交交易日」，
+// 這樣放假日(z='-') 不會被誤判成 Yahoo 落後。index(^) 不在 MIS，略過。
+async function fetchTwseLatestTraded(items: PeerItem[]): Promise<Map<string, string>> {
+  const map = new Map<string, string>(); // ticker -> 'YYYY-MM-DD'
+  const codes = items.filter(i => !i.yfTicker.startsWith('^')).map(i => i.ticker);
+  if (!codes.length) return map;
+  try {
+    const ex = codes.map(c => `tse_${c}.tw`).join('|');
+    const res = await fetch(
+      `https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=${encodeURIComponent(ex)}&json=1&delay=0`,
+      { headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://mis.twse.com.tw/stock/index.jsp' } },
+    );
+    const data = await res.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const x of (data?.msgArray ?? []) as any[]) {
+      const z = parseFloat(x.z);              // 當前成交價（'-' → NaN）
+      const d: string = x.d ?? '';            // 交易日 'YYYYMMDD'
+      if (!Number.isNaN(z) && /^\d{8}$/.test(d)) {
+        map.set(x.c, `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`);
+      }
+    }
+  } catch {
+    // TWSE 查詢失敗就不做日期比對，避免誤報異常
+  }
+  return map;
+}
+
 // Taiwan market closes at 13:30 UTC+8 = 05:30 UTC on weekdays
 function taiwanMarketClosed(): boolean {
   const now = new Date();
@@ -171,6 +201,7 @@ async function fetchOne(item: PeerItem, customRange?: CustomRange): Promise<Peer
     pct5d: null, pct1m: null, pct3m: null, pct6m: null, pct1y: null,
     pctCustom: null,
     updatedAt: null, dataDate: null,
+    anomaly: false, anomalyReason: null,
   };
   try {
     const today    = new Date();
@@ -280,6 +311,7 @@ async function fetchOne(item: PeerItem, customRange?: CustomRange): Promise<Peer
         ? new Date(quote.regularMarketTime).toISOString()
         : null,
       dataDate: rows[rows.length - 1].date.toISOString().split('T')[0],
+      anomaly: false, anomalyReason: null,   // 由 route handler 比對 TWSE 後填入
     };
   } catch {
     return base;
@@ -303,9 +335,36 @@ export async function GET(request: NextRequest) {
 
   const BATCH = 4;
   const results: PeerPerfResult[] = [];
-  for (let i = 0; i < group.items.length; i += BATCH) {
-    const batch = await Promise.all(group.items.slice(i, i + BATCH).map(item => fetchOne(item, customRange)));
-    results.push(...batch);
+  // 同時抓 TWSE 即時，作為偵測 Yahoo 破值/缺價的真相來源
+  const [, twseLatest] = await Promise.all([
+    (async () => {
+      for (let i = 0; i < group.items.length; i += BATCH) {
+        const batch = await Promise.all(group.items.slice(i, i + BATCH).map(item => fetchOne(item, customRange)));
+        results.push(...batch);
+      }
+    })(),
+    fetchTwseLatestTraded(group.items),
+  ]);
+
+  // ── 數值異常判定 ──
+  // 1) 完全無報價（price 為 null）
+  // 2) 收盤後，Yahoo 採用的最新日期落後於 TWSE 已成交的最新交易日（代表 Yahoo 缺最新報價、
+  //    findOnOrBefore 拿到舊價計算）。僅在收盤後比對，盤中 Yahoo 日線本就尚未更新，避免誤報。
+  const closed = taiwanMarketClosed();
+  for (const r of results) {
+    if (r.price == null) {
+      r.anomaly = true;
+      r.anomalyReason = '無報價';
+      continue;
+    }
+    if (closed) {
+      const twseDate = twseLatest.get(r.ticker);
+      if (twseDate && r.dataDate && r.dataDate < twseDate) {
+        r.anomaly = true;
+        r.anomalyReason = `Yahoo 缺最新報價（採用 ${r.dataDate}，TWSE 已有 ${twseDate}）`;
+      }
+    }
   }
+
   return NextResponse.json(results, { headers: { 'Cache-Control': 'no-store' } });
 }
