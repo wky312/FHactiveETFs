@@ -38,7 +38,7 @@ const SPECS: Record<Orient, { W: number; H: number; label: string; sizes: DrawSi
   },
   port: {
     W: 1080, H: 1350, label: '直式 4:5（適合手機／IG／限時動態）',
-    sizes: { title: 34, date: 22, axis: 21, report: 27, legend: 22, swatch: 20, dot: 6, line: 3.2 },
+    sizes: { title: 34, date: 22, axis: 21, report: 36, legend: 28, swatch: 24, dot: 7, line: 3.2 },
   },
 };
 
@@ -49,8 +49,15 @@ function todayTW(): string {
   const tw = new Date(Date.now() + 8 * 3600 * 1000);
   return `${tw.getUTCFullYear()}-${String(tw.getUTCMonth() + 1).padStart(2, '0')}-${String(tw.getUTCDate()).padStart(2, '0')}`;
 }
-function yearStart(): string {
-  return `${new Date(Date.now() + 8 * 3600 * 1000).getUTCFullYear()}-01-01`;
+// 預設區間起點＝去年最後一個交易日（以年底收盤為 0% 基準，即 YTD）。
+// 取去年 12/31；若逢週末則回推到最後一個平日（近似最後一個交易日，年底逢週末以外幾乎都有開盤）。
+function prevYearEnd(): string {
+  const y = new Date(Date.now() + 8 * 3600 * 1000).getUTCFullYear() - 1;
+  const d = new Date(Date.UTC(y, 11, 31));
+  const dow = d.getUTCDay();                       // 0=日, 6=六
+  if (dow === 6) d.setUTCDate(d.getUTCDate() - 1); // 週六 → 退到 12/30(五)
+  else if (dow === 0) d.setUTCDate(d.getUTCDate() - 2); // 週日 → 退到 12/29(五)
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`;
 }
 function mmdd(d: string): string { const [, m, dd] = d.split('-'); return `${m}/${dd}`; }
 function fmtPct(v: number): string { return `${v >= 0 ? '+' : ''}${v.toFixed(1)}%`; }
@@ -59,7 +66,7 @@ export default function CumulativeReturnTab() {
   const [group,    setGroup]    = useState('active');
   const [selected, setSelected] = useState<string[]>([]);
   const [colors,   setColors]   = useState<Record<string, string>>({});
-  const [start,    setStart]    = useState(yearStart());
+  const [start,    setStart]    = useState(prevYearEnd());
   const [end,      setEnd]      = useState(todayTW());
   const [data,     setData]     = useState<CumRetResult | null>(null);
   const [loading,  setLoading]  = useState(false);
