@@ -105,12 +105,16 @@ async function detectStartDate(fundId: string, end: string): Promise<string> {
   return earliest.p.replace(/\/15$/, '/01');
 }
 
-export async function fetchTrajectory(rawQuery: string, fundId = 'ETF23'): Promise<TrajectoryResult> {
-  const q = rawQuery.trim();
-  const end = todayTW();
+export interface DayMapResult {
+  dayMap: Map<string, Holding[]>;   // 'YYYY/MM/DD' → 當日持股
+  sortedDates: string[];            // 升冪交易日
+  end: string;                      // 今天（台灣時間 UTC+8）
+}
 
-  // 1+2. 優先讀每日存檔（git 資料庫）→ 毫秒級；只對「最後存檔日之後」的交易日即時補抓。
-  //      無存檔時退回完整即時掃描（fallback）。
+// 建某基金「逐交易日持股」對照表：優先讀每日存檔（git 資料庫）→ 毫秒級；只對「最後存檔日之後」
+// 的交易日即時補抓；無存檔退回完整即時掃描（fallback）。fetchTrajectory 與選股對帳單共用。
+export async function buildDayMap(fundId: string): Promise<DayMapResult> {
+  const end = todayTW();
   const dayMap = new Map<string, Holding[]>();
   const stored = loadStoredHoldings(fundId);
 
@@ -152,6 +156,12 @@ export async function fetchTrajectory(rawQuery: string, fundId = 'ETF23'): Promi
     await scan(await detectStartDate(fundId, end), end); // fallback：完整即時掃描
   }
   const sortedDates = Array.from(dayMap.keys()).sort((a, b) => a.localeCompare(b));
+  return { dayMap, sortedDates, end };
+}
+
+export async function fetchTrajectory(rawQuery: string, fundId = 'ETF23'): Promise<TrajectoryResult> {
+  const q = rawQuery.trim();
+  const { dayMap, sortedDates, end } = await buildDayMap(fundId);
 
   // 3. 解析目標股票代碼
   const isCode = /^\d{4,6}[A-Za-z]?$/.test(q);
@@ -284,7 +294,7 @@ function forwardFill(raw: Map<string, number>, start: string, end: string): Map<
 
 // 抓某檔股票在 [start, end] 區間每日價格，回傳 date(YYYY/MM/DD) → 價格。
 //  mid/close：Yahoo（已前向填補，處理假日/缺口）；avg：台股真實成交均價（TWSE，僅交易日，不填補）。
-async function fetchPriceMaps(stockid: string, fundId: string, start: string, end: string): Promise<{ mid: Map<string, number>; close: Map<string, number>; avg: Map<string, number> }> {
+export async function fetchPriceMaps(stockid: string, fundId: string, start: string, end: string): Promise<{ mid: Map<string, number>; close: Map<string, number>; avg: Map<string, number> }> {
   const { ticker, suffix } = stockidToYfTicker(stockid);
   const base = stockid.trim();
   const isTwOnly = fundId === 'ETF23' || !!CMONEY_FUNDS[fundId];
@@ -313,4 +323,57 @@ async function fetchPriceMaps(stockid: string, fundId: string, start: string, en
     close: forwardFill(closeRaw, start, end),
     avg: avgRaw,
   };
+}
+
+export interface PositionPnlRaw {
+  avgCost: number | null;       // 剩餘部位移動平均成本 元/股（held 才有意義）
+  currentPrice: number | null;  // 最後一個有報價交易日的收盤
+  currentShares: number;        // 目前持股股數（0 = 已出清）
+  grossInvested: number;        // 累計買進成本 NTD（所有加碼日成本基準價 × 股數）
+  realizedPnl: number;          // 已實現損益 NTD（減碼時以當日成本基準價當賣出價沖銷）
+  unrealizedPnl: number;        // 未實現損益 NTD（剩餘股數 ×（現價 − 均價））
+}
+
+// 給定某股「逐交易日張數序列」(已從首次持有日 trim) 與價格 maps，以移動平均成本法算成本、
+// 已實現／未實現損益。算法承襲 fetchTrajectory 主迴圈；選股對帳單(lib/scorecard)共用。
+// 成本/賣出基準：台股真實成交均價(avg) → 中間價(mid，海外股) → 收盤(close)。
+export function computePositionPnl(
+  trimmed: { date: string; lots: number }[],
+  midMap: Map<string, number>,
+  closeMap: Map<string, number>,
+  avgMap: Map<string, number>,
+): PositionPnlRaw {
+  let runShares = 0;
+  let runCost = 0;
+  let currentPrice: number | null = null;
+  let grossInvested = 0;
+  let realizedPnl = 0;
+  trimmed.forEach((p, i) => {
+    const deltaShares = (i === 0 ? p.lots : p.lots - trimmed[i - 1].lots) * 1000;
+    const close = closeMap.get(p.date) ?? null;
+    const costBasis = avgMap.get(p.date) ?? midMap.get(p.date) ?? close;
+    if (close !== null) currentPrice = close;
+    if (deltaShares > 0) {
+      if (costBasis !== null) {
+        runCost += deltaShares * costBasis;
+        runShares += deltaShares;
+        grossInvested += deltaShares * costBasis;
+      } else {
+        runShares += deltaShares;  // 無報價仍計股數（成本略失真）
+      }
+    } else if (deltaShares < 0) {
+      // 減碼：移動平均成本法。賣出價用當日成本基準價（無則取均價＝0 損益），認列已實現損益。
+      const a = runShares > 0 ? runCost / runShares : 0;
+      const sellPrice = costBasis ?? a;
+      const soldShares = Math.min(-deltaShares, runShares);
+      realizedPnl += soldShares * (sellPrice - a);
+      runShares += deltaShares;
+      runCost += deltaShares * a;
+      if (runShares <= 0) { runShares = 0; runCost = 0; }
+    }
+  });
+  const avgCost = runShares > 0 ? runCost / runShares : null;
+  const unrealizedPnl = (runShares > 0 && currentPrice != null && avgCost != null)
+    ? runShares * (currentPrice - avgCost) : 0;
+  return { avgCost, currentPrice, currentShares: runShares, grossInvested, realizedPnl, unrealizedPnl };
 }

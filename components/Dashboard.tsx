@@ -13,6 +13,7 @@ import ScaleTab from './ScaleTab';
 import PeerRedemptionTab from './PeerRedemptionTab';
 import PeerPerformanceTab from './PeerPerformanceTab';
 import StockTrajectoryTab from './StockTrajectoryTab';
+import ScorecardTab from './ScorecardTab';
 import CumulativeReturnTab from './CumulativeReturnTab';
 import AttributionTab from './AttributionTab';
 import { captureAndShare } from '@/lib/captureImage';
@@ -29,7 +30,7 @@ const BORDER = '#E8E3DF';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'attribution';
+type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'attribution';
 interface LoadedData { date: string; holdings: Holding[] }
 interface PerfData { date: string; results: StockPerformance[] }
 
@@ -227,6 +228,7 @@ export default function Dashboard() {
     { id: 'country',     label: '國家配置' },
     { id: 'performance', label: '股價表現' },
     { id: 'trajectory',  label: '個股軌跡' },
+    { id: 'scorecard',   label: '選股對帳單' },
     { id: 'pred0050',    label: '0050 季調預測' },
     { id: 'scale',       label: '規模變化' },
     { id: 'peer',        label: '同業申贖觀測' },
@@ -421,6 +423,12 @@ export default function Dashboard() {
         {activeTab === 'trajectory' && (
           <Card title="個股持股軌跡">
             <StockTrajectoryTab selectedEtf={selectedEtf} />
+          </Card>
+        )}
+
+        {activeTab === 'scorecard' && (
+          <Card title="經理人選股對帳單">
+            <ScorecardTab selectedEtf={selectedEtf} />
           </Card>
         )}
 
