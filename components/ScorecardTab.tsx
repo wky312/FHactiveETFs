@@ -1,5 +1,6 @@
 'use client';
 import { useState, useCallback, useRef } from 'react';
+import MarketOverviewTab from './MarketOverviewTab';
 
 /* 經理人選股對帳單分頁
    台股配色慣例：紅(RED)=上漲/賺、綠(GREEN)=下跌/賠。
@@ -92,6 +93,7 @@ export default function ScorecardTab({ selectedEtf }: Props) {
     : selectedEtf;
 
   const cardRef = useRef<HTMLDivElement>(null);
+  const [mode, setMode] = useState<'single' | 'market'>('single');
 
   const run = useCallback(async () => {
     setLoading(true); setError(''); setData(null);
@@ -143,6 +145,23 @@ export default function ScorecardTab({ selectedEtf }: Props) {
 
   return (
     <div style={{ fontFamily: SANS, color: TEXT }}>
+
+      {/* 模式切換：單檔對帳單 ↔ 全 19 檔總覽 */}
+      <div style={{ display: 'inline-flex', border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden', marginBottom: 16 }}>
+        {([['single', '單檔對帳單'], ['market', '全 19 檔總覽']] as const).map(([k, label]) => (
+          <button key={k} onClick={() => setMode(k)}
+            style={{
+              padding: '8px 18px', border: 'none', cursor: 'pointer', fontFamily: SANS,
+              fontSize: '.85rem', fontWeight: mode === k ? 700 : 500,
+              background: mode === k ? TEXT : '#fff', color: mode === k ? '#fff' : SUB,
+            }}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {mode === 'market' ? <MarketOverviewTab /> : (
+      <>
 
       {/* 控制列 */}
       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 8, flexWrap: 'wrap' }}>
@@ -310,6 +329,8 @@ export default function ScorecardTab({ selectedEtf }: Props) {
             </div>
           </div>
         </>
+      )}
+      </>
       )}
     </div>
   );
