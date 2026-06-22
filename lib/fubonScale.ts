@@ -58,7 +58,19 @@ async function fetchOneDay(stkId: string, dateStr: string): Promise<FubonDay | n
     if (!res.ok) return null;
     const html = await res.text();
 
-    // 每申購基數實際申購總價金 label is prefixed with the trade date, so match without a leading `>`.
+    // 每申購基數實際申購總價金 label is prefixed with the *authoritative* trade date
+    // (e.g. `2026/06/18 每申購基數實際申購總價金`). Fubon's page does NOT validate the
+    // requested `ddate`: querying a non-trading day silently returns the previous
+    // trading day's whole basket with only the displayed `sDate` swapped to the
+    // queried date. That prefix is the only field that still reveals the real date,
+    // so we use it both as the authoritative date and to reject non-trading-day echoes.
+    const tradeDateM = html.match(/(\d{4}\/\d{2}\/\d{2})\s*每申購基數實際申購總價金/);
+    const tradeDate  = tradeDateM ? tradeDateM[1] : null;
+    const reqSlash   = dateStr.replace(/-/g, '/');
+    // Authoritative date ≠ requested day → the queried day was non-trading and Fubon
+    // is replaying the prior trading day → treat as no data (prevents phantom rows).
+    if (tradeDate && tradeDate !== reqSlash) return null;
+
     const actRaw = html.match(/每申購基數實際申購總價金<\/p>\s*<p>([^<]*)<\/p>/);
 
     const qDiff     = parseNum(field(html, '與前日已發行單位差異數'));
@@ -71,7 +83,7 @@ async function fetchOneDay(stkId: string, dateStr: string): Promise<FubonDay | n
     if (cu === 0 || nav === 0) return null;
 
     const sd = html.match(/id="mainContent_subMainContent_sDate"[^>]*value="([^"]*)"/);
-    const date = sd ? sd[1] : dateStr.replace(/-/g, '/');
+    const date = tradeDate ?? (sd ? sd[1] : reqSlash);
 
     return {
       date,
