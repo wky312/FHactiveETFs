@@ -167,10 +167,11 @@ export default function AttributionTab() {
     ? funds.map(f => <option key={f.ticker} value={f.ticker}>{f.ticker} {f.name}</option>)
     : <option value={a}>{a}</option>;
 
-  const topA = res ? [...res.stocks].sort((x, y) => y.ca - x.ca).slice(0, 15) : [];
-  const topB = res ? [...res.stocks].sort((x, y) => y.cb - x.cb).slice(0, 15) : [];
-  const gapA = res ? res.stocks.filter(s => s.gap > 0).sort((x, y) => y.gap - x.gap).slice(0, 15) : [];
-  const gapB = res ? res.stocks.filter(s => s.gap < 0).sort((x, y) => x.gap - y.gap).slice(0, 15) : [];
+  // 全部以「基金 A」為分析對象（他）。差距：領先=gap>0、落後=gap<0；貢獻：最多/最差=ca 高/低。各取 10。
+  const lead    = res ? res.stocks.filter(s => s.gap > 0).sort((x, y) => y.gap - x.gap).slice(0, 10) : [];
+  const lag     = res ? res.stocks.filter(s => s.gap < 0).sort((x, y) => x.gap - y.gap).slice(0, 10) : [];
+  const bestA   = res ? [...res.stocks].sort((x, y) => y.ca - x.ca).slice(0, 10) : [];
+  const worstA  = res ? [...res.stocks].sort((x, y) => x.ca - y.ca).slice(0, 10) : [];
 
   return (
     <div style={{ fontFamily: SANS }}>
@@ -223,25 +224,26 @@ export default function AttributionTab() {
             差距 {res.fundA}−{res.fundB} <b style={{ fontFamily: MONO, color: col(res.gap_geo) }}>{pct(res.gap_geo)}</b>
           </div>
 
-          {/* ① 差距歸因 */}
-          <h2 style={{ fontSize: '1rem', color: TEXT, margin: '20px 0 2px' }}>① 拉開兩檔差距最多的個股</h2>
+          {/* ① 差距歸因（以基金 A 為對象，相對 B） */}
+          <h2 style={{ fontSize: '1rem', color: TEXT, margin: '20px 0 2px' }}>① {res.fundA} 相對 {res.fundB} 的差距：誰拉開、誰拖累</h2>
           <p style={{ fontSize: '.8rem', color: SUB, margin: '0 0 12px', lineHeight: 1.6 }}>
-            差距貢獻 =（{res.fundA}權重 − {res.fundB}權重）× 個股報酬，逐日加總；正值＝把該方往前拉。
-            「區間報酬」為該股 {res.start}→{res.end} 的漲跌幅。
+            差距貢獻 =（{res.fundA}權重 − {res.fundB}權重）× 個股報酬，逐日加總。正值＝讓 {res.fundA} 領先、負值＝讓 {res.fundA} 落後。
+            「區間報酬」為該股 {res.start}→{res.end} 的漲跌幅。（想看 {res.fundB} 的視角，把 A、B 對調即可）
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 380px), 1fr))', gap: 18, marginBottom: 8 }}>
-            <TableCard title={`讓 ${res.fundA} 領先 ${res.fundB} 的個股`} list={gapA} valOf={s => s.gap} clbl="差距貢獻" fa={res.fundA} fb={res.fundB} />
-            <TableCard title={`讓 ${res.fundB} 領先 ${res.fundA} 的個股`} list={gapB} valOf={s => -s.gap} clbl="差距貢獻" fa={res.fundA} fb={res.fundB} />
+            <TableCard title={`讓 ${res.fundA} 領先的個股（前 10）`} list={lead} valOf={s => s.gap} clbl="差距貢獻" fa={res.fundA} fb={res.fundB} />
+            <TableCard title={`讓 ${res.fundA} 落後的個股（前 10）`} list={lag} valOf={s => s.gap} clbl="差距貢獻" fa={res.fundA} fb={res.fundB} />
           </div>
 
-          {/* ② 各基金自身報酬貢獻 */}
-          <h2 style={{ fontSize: '1rem', color: TEXT, margin: '24px 0 2px' }}>② 各基金自己賺最多的個股</h2>
+          {/* ② 基金 A 自身報酬貢獻：最多 / 最差 */}
+          <h2 style={{ fontSize: '1rem', color: TEXT, margin: '24px 0 2px' }}>② {res.fundA} 個股報酬貢獻：最多 / 最差</h2>
           <p style={{ fontSize: '.8rem', color: SUB, margin: '0 0 12px', lineHeight: 1.6 }}>
-            報酬貢獻 = 該基金權重 × 個股報酬，逐日加總（與另一檔無關）。「區間報酬」為該股 {res.start}→{res.end} 的漲跌幅。
+            報酬貢獻 = {res.fundA} 權重 × 個股報酬，逐日加總（與另一檔無關）。正值＝替 {res.fundA} 賺、負值＝拖累。
+            「區間報酬」為該股 {res.start}→{res.end} 的漲跌幅。
           </p>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(min(100%, 380px), 1fr))', gap: 18 }}>
-            <TableCard title={`貢獻 ${res.fundA} 報酬最多的個股`} list={topA} valOf={s => s.ca} clbl="報酬貢獻" fa={res.fundA} fb={res.fundB} />
-            <TableCard title={`貢獻 ${res.fundB} 報酬最多的個股`} list={topB} valOf={s => s.cb} clbl="報酬貢獻" fa={res.fundA} fb={res.fundB} />
+            <TableCard title={`${res.fundA} 報酬貢獻最多的個股（前 10）`} list={bestA} valOf={s => s.ca} clbl="報酬貢獻" fa={res.fundA} fb={res.fundB} />
+            <TableCard title={`${res.fundA} 報酬貢獻最差的個股（前 10）`} list={worstA} valOf={s => s.ca} clbl="報酬貢獻" fa={res.fundA} fb={res.fundB} />
           </div>
           </div>
         </>
