@@ -231,7 +231,7 @@ export default function DailySummaryTab({ baseDate, cmpDate, baseHoldings, cmpHo
     <>
       {/* ── Scale / ETF Price header ── */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
         border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden',
         marginBottom: 14, background: '#FAFAF9',
       }}>
@@ -276,7 +276,7 @@ export default function DailySummaryTab({ baseDate, cmpDate, baseHoldings, cmpHo
 
       {/* ── Change stats ── */}
       <div style={{
-        display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)',
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
         border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden',
         marginBottom: 14, background: '#FAFAF9',
       }}>

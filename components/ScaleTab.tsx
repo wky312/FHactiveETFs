@@ -290,7 +290,7 @@ export default function ScaleTab({ fundId, etfTicker }: { fundId: string; etfTic
       {data && data.length > 0 && (
         <>
           {/* Summary cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden', marginBottom: 20, background: '#FAFAF9' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden', marginBottom: 20, background: '#FAFAF9' }}>
             {[
               { label: '最新基金規模',   value: latestAum   !== null ? fmtAum(latestAum)       : '—', color: TEXT  },
               { label: '期間淨申購合計', value: totalNetSub !== null ? fmtNetSub(totalNetSub)   : '—', color: totalNetSub !== null ? (totalNetSub >= 0 ? RED : GREEN) : TEXT },

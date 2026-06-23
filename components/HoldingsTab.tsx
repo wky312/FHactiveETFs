@@ -40,7 +40,7 @@ interface StatCard { label: string; value: string; sub: string; valueColor?: str
 function StatCards({ cards }: { cards: StatCard[] }) {
   return (
     <div style={{
-      display: 'grid', gridTemplateColumns: `repeat(${cards.length}, 1fr)`,
+      display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
       border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden',
       marginBottom: 16, background: '#FAFAF9',
     }}>

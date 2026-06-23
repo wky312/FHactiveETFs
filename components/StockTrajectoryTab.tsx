@@ -290,7 +290,7 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
               { label: '期間最高持股', value: `${fmtLots(data.maxLots)} 張`, sub: '建倉高峰', color: TEXT },
             ];
             return (
-              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${cards.length},1fr)`, border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden', marginBottom: 20, background: '#FAFAF9' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden', marginBottom: 20, background: '#FAFAF9' }}>
                 {cards.map((c, i, arr) => (
                   <div key={c.label} style={{ padding: '14px 16px', borderRight: i < arr.length - 1 ? `1px solid ${BORDER}` : 'none' }}>
                     <div style={{ fontSize: '.72rem', color: SUB, fontWeight: 500, marginBottom: 4 }}>{c.label}</div>

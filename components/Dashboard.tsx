@@ -14,6 +14,8 @@ import PeerRedemptionTab from './PeerRedemptionTab';
 import PeerPerformanceTab from './PeerPerformanceTab';
 import StockTrajectoryTab from './StockTrajectoryTab';
 import CumulativeReturnTab from './CumulativeReturnTab';
+import AttributionTab from './AttributionTab';
+import { captureAndShare } from '@/lib/captureImage';
 
 /* ── Design tokens ── */
 const RED    = '#C00000';
@@ -27,7 +29,7 @@ const BORDER = '#E8E3DF';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret';
+type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'attribution';
 interface LoadedData { date: string; holdings: Holding[] }
 interface PerfData { date: string; results: StockPerformance[] }
 
@@ -211,32 +213,9 @@ export default function Dashboard() {
   }, []);
 
   const saveImage = useCallback(async (ref: React.RefObject<HTMLDivElement | null>, filename: string) => {
-    const el = ref.current;
-    if (!el) return;
-    try {
-      await document.fonts.ready;
-      const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
-      const jpgName = filename.replace(/\.png$/, '.jpg');
-
-      // 優先用 Web Share API（手機可直接分享到 LINE）
-      if (typeof navigator !== 'undefined' && navigator.canShare) {
-        try {
-          const blob = await new Promise<Blob>((res) => canvas.toBlob(b => res(b!), 'image/jpeg', 0.92));
-          const file = new File([blob], jpgName, { type: 'image/jpeg' });
-          if (navigator.canShare({ files: [file] })) {
-            await navigator.share({ title: '復華主動式ETF 持股資訊', files: [file] });
-            return;
-          }
-        } catch { /* 使用者取消或不支援，改下載 */ }
-      }
-
-      // Fallback：下載 JPG
-      const link = document.createElement('a');
-      link.download = jpgName;
-      link.href = canvas.toDataURL('image/jpeg', 0.92);
-      link.click();
-    } catch (e) { console.error('截圖失敗', e); }
+    if (!ref.current) return;
+    // 共用截圖工具：截圖前自動把寬表格攤平成全寬，避免存圖被切欄位
+    await captureAndShare(ref.current, filename, '復華主動式ETF 持股資訊');
   }, []);
 
   const imgName = (label: string) => `${selectedEtf.ticker}_${label}_${holdDate}.png`;
@@ -253,6 +232,7 @@ export default function Dashboard() {
     { id: 'peer',        label: '同業申贖觀測' },
     { id: 'peerperf',   label: '同業績效觀測' },
     { id: 'cumret',     label: '累積報酬走勢' },
+    { id: 'attribution', label: '績效個股歸因' },
   ];
 
   return (
@@ -471,6 +451,12 @@ export default function Dashboard() {
         {activeTab === 'cumret' && (
           <Card title="累積報酬走勢圖">
             <CumulativeReturnTab />
+          </Card>
+        )}
+
+        {activeTab === 'attribution' && (
+          <Card title="績效個股歸因比較">
+            <AttributionTab />
           </Card>
         )}
       </main>

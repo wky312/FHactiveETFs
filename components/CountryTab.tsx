@@ -113,7 +113,7 @@ export default function CountryTab({ holdings, date, etfTicker }: { holdings: Ho
       {/* Stat cards — full width above charts */}
       <div style={{
         width: '100%',
-        display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)',
+        display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))',
         border: '1px solid #EEE9E4', borderRadius: 8, overflow: 'hidden',
         marginBottom: 4, background: '#FAFAF9',
       }}>
@@ -127,13 +127,13 @@ export default function CountryTab({ holdings, date, etfTicker }: { holdings: Ho
       </div>
 
       {/* Bar chart */}
-      <div style={{ flex: '1 1 420px', minWidth: 320 }}>
+      <div style={{ flex: '1 1 300px', minWidth: 0, maxWidth: '100%' }}>
         <p style={{ margin: '0 0 8px 2px', fontSize: '.78rem', fontWeight: 600, color: SUB, letterSpacing: '.4px' }}>各國佔比</p>
         <PlotlyWrapper traces={barTrace} layout={barLayout} />
       </div>
 
       {/* Donut + summary table */}
-      <div style={{ flex: '0 0 360px', minWidth: 280 }}>
+      <div style={{ flex: '1 1 300px', minWidth: 0, maxWidth: '100%' }}>
         <p style={{ margin: '0 0 4px 2px', fontSize: '.78rem', fontWeight: 600, color: SUB, letterSpacing: '.4px' }}>配置比例</p>
         <PlotlyWrapper traces={donutTrace} layout={donutLayout} />
 

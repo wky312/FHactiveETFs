@@ -47,7 +47,7 @@ function StockTable({
     ));
 
   return (
-    <div style={{ flex: 1, minWidth: 0 }}>
+    <div style={{ flex: '1 1 300px', minWidth: 280 }}>
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         <span style={{ display: 'inline-block', width: 4, height: 18, background: accentColor, borderRadius: 2 }} />
         <span style={{ fontWeight: 700, fontSize: '.95rem', color: TEXT, fontFamily: SANS }}>{title}</span>
@@ -230,7 +230,7 @@ export default function Prediction0050Tab() {
       {data && (
         <>
           {/* Summary cards */}
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden', marginBottom: 20, background: '#FAFAF9' }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(130px, 1fr))', border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden', marginBottom: 20, background: '#FAFAF9' }}>
             {[
               { label: '成分股數',     value: `${data.memberCount} 檔`,        color: TEXT  },
               { label: '市值排名資料', value: `${data.rankedAll.length} 檔`,     color: TEXT  },
