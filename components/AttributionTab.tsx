@@ -46,6 +46,12 @@ const toolBtn: React.CSSProperties = {
   borderRadius: 6, cursor: 'pointer', fontSize: '.8rem', fontWeight: 500, fontFamily: SANS,
 };
 
+const swapBtn: React.CSSProperties = {
+  padding: '8px 11px', background: CARD, color: UP, border: `1px solid ${BORDER}`,
+  borderRadius: 6, cursor: 'pointer', fontSize: '1.05rem', lineHeight: 1, fontFamily: SANS,
+  alignSelf: 'flex-end', marginBottom: 1,
+};
+
 /* 六欄表格：代號 名稱 貢獻 A權重 B權重 區間報酬 */
 const GRID = '64px minmax(72px,1fr) 92px 88px 88px 96px';
 
@@ -186,6 +192,7 @@ export default function AttributionTab() {
         <Field label="基金 A">
           <select value={a} onChange={e => setA(e.target.value)} style={{ ...inputStyle, fontFamily: SANS }}>{opts}</select>
         </Field>
+        <button type="button" onClick={() => { setA(b); setB(a); }} title="對調基金 A、B" style={swapBtn}>⇄</button>
         <Field label="基金 B">
           <select value={b} onChange={e => setB(e.target.value)} style={{ ...inputStyle, fontFamily: SANS }}>{opts}</select>
         </Field>
