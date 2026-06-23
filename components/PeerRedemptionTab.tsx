@@ -53,6 +53,30 @@ function prevWeekday(d: Date) {
   do { r.setDate(r.getDate() - 1); } while (r.getDay() === 0 || r.getDay() === 6);
   return r;
 }
+// Day after a YYYY-MM-DD string, returned as YYYY-MM-DD.
+function nextDay(dash: string): string {
+  const d = new Date(`${dash}T00:00:00`);
+  d.setDate(d.getDate() + 1);
+  return localStr(d).replace(/\//g, '-');
+}
+// Is there at least one weekday (Mon–Fri) within [startDash, endDash]?
+function hasWeekdayInRange(startDash: string, endDash: string): boolean {
+  const d = new Date(`${startDash}T00:00:00`);
+  const end = new Date(`${endDash}T00:00:00`);
+  while (d <= end) {
+    const dow = d.getDay();
+    if (dow !== 0 && dow !== 6) return true;
+    d.setDate(d.getDate() + 1);
+  }
+  return false;
+}
+// Merge persisted DB rows with live gap-fill rows; DB wins on any date collision.
+function mergeRowsPreferDb(dbRows: DayRow[], liveRows: DayRow[]): DayRow[] {
+  const byDate = new Map<string, DayRow>();
+  for (const r of liveRows) byDate.set(r.date, r);
+  for (const r of dbRows)   byDate.set(r.date, r);
+  return Array.from(byDate.values()).sort((a, b) => b.date.localeCompare(a.date));
+}
 
 function fmtSub(v: number | null) {
   if (v === null) return '—';
@@ -138,7 +162,7 @@ export default function PeerRedemptionTab() {
   const [loading,      setLoading]      = useState(false);
   const [error,        setError]        = useState('');
   const [rows,         setRows]         = useState<DayRow[] | null>(null);
-  const [dataSource,   setDataSource]   = useState<'db' | 'live' | null>(null);
+  const [dataSource,   setDataSource]   = useState<'db' | 'live' | 'mixed' | null>(null);
   const [subsSortKey,  setSubsSortKey]  = useState<PeerSortKey>('date');
   const [subsSortAsc,  setSubsSortAsc]  = useState(false);
   const [aumSortKey,   setAumSortKey]   = useState<PeerSortKey>('date');
@@ -170,11 +194,11 @@ export default function PeerRedemptionTab() {
 
   const toApi = (s: string) => s.replace(/-/g, '/');
 
-  const loadLive = useCallback(async () => {
-    const sd = toApi(startDate);
-    const ed = toApi(endDate);
-    const sdDash = startDate;
-    const edDash = endDate;
+  const loadLive = useCallback(async (sdArg: string = startDate, edArg: string = endDate) => {
+    const sd = toApi(sdArg);
+    const ed = toApi(edArg);
+    const sdDash = sdArg;
+    const edDash = edArg;
     const [fhMap, ezMap, capMap, fubonMap] = await Promise.all([
       Promise.all(FHTRUST_ETFS.map(async ({ fundId }) => {
         const r = await fetch(`/api/etf-scale?startDate=${encodeURIComponent(sd)}&endDate=${encodeURIComponent(ed)}&fundId=${encodeURIComponent(fundId)}`);
@@ -206,8 +230,24 @@ export default function PeerRedemptionTab() {
         const r = await fetch(`/api/peer-redemption-db?startDate=${startDate}&endDate=${endDate}`);
         if (r.ok) {
           const json = await r.json();
-          if (json.count > 0) {
-            setRows(json.rows);
+          const dbRows: DayRow[] = json.rows ?? [];
+          if (dbRows.length > 0) {
+            // DB has data, but the most recent trading day(s) in range may not be
+            // persisted yet (today's run, or a day the scheduler skipped). Detect a
+            // tail gap beyond the newest DB date and live-fill just that gap — otherwise
+            // DB-only silently drops today whenever the range also covers an older day.
+            const maxDbDate = dbRows.reduce((m, row) => (row.date > m ? row.date : m), dbRows[0].date);
+            const gapStart = nextDay(maxDbDate);
+            if (gapStart <= endDate && hasWeekdayInRange(gapStart, endDate)) {
+              const liveRows = await loadLive(gapStart, endDate);
+              const fresh = liveRows.filter(lr => lr.date > maxDbDate);
+              if (fresh.length > 0) {
+                setRows(mergeRowsPreferDb(dbRows, fresh));
+                setDataSource('mixed');
+                return;
+              }
+            }
+            setRows(dbRows);
             setDataSource('db');
             return;
           }
@@ -298,8 +338,9 @@ export default function PeerRedemptionTab() {
         )}
         {loading && dataSource === null && <span style={{ fontSize: '.8rem', color: SUB, alignSelf: 'center' }}>查詢資料庫中…</span>}
         {loading && dataSource === 'live' && <span style={{ fontSize: '.8rem', color: SUB, alignSelf: 'center' }}>即時查詢中，約需 10–20 秒…</span>}
-        {dataSource === 'db'   && !loading && <span style={{ padding: '3px 10px', background: '#dcfce7', color: '#166534', borderRadius: 12, fontSize: '.75rem', fontWeight: 600, alignSelf: 'center' }}>資料庫</span>}
-        {dataSource === 'live' && !loading && <span style={{ padding: '3px 10px', background: '#fff7ed', color: '#92400e', borderRadius: 12, fontSize: '.75rem', fontWeight: 600, alignSelf: 'center' }}>即時查詢</span>}
+        {dataSource === 'db'    && !loading && <span style={{ padding: '3px 10px', background: '#dcfce7', color: '#166534', borderRadius: 12, fontSize: '.75rem', fontWeight: 600, alignSelf: 'center' }}>資料庫</span>}
+        {dataSource === 'live'  && !loading && <span style={{ padding: '3px 10px', background: '#fff7ed', color: '#92400e', borderRadius: 12, fontSize: '.75rem', fontWeight: 600, alignSelf: 'center' }}>即時查詢</span>}
+        {dataSource === 'mixed' && !loading && <span style={{ padding: '3px 10px', background: '#eef2ff', color: '#3730a3', borderRadius: 12, fontSize: '.75rem', fontWeight: 600, alignSelf: 'center' }}>資料庫＋即時</span>}
       </div>
 
       {/* Quick range */}

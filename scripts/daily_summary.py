@@ -6,6 +6,7 @@ Runs Mon-Fri at 17:15 TST via GitHub Actions.
 
 import os
 import sys
+import time
 import asyncio
 import requests
 from datetime import datetime, timedelta, date
@@ -37,13 +38,63 @@ def parse_num(v) -> float:
     return float(str(v).replace(',', '').replace('%', '') or 0)
 
 
+def get_with_retry(url, *, headers=None, timeout=20, attempts=3, backoff=2.0):
+    """GET with retry on transient connection errors (e.g. fhtrust's intermittent
+    RemoteDisconnected, which on 2026-06-22 closed every connection and silently
+    skipped the whole run). Raises the last exception if all attempts fail."""
+    last = None
+    for i in range(attempts):
+        try:
+            return requests.get(url, headers=headers, timeout=timeout)
+        except requests.exceptions.RequestException as e:
+            last = e
+            if i < attempts - 1:
+                time.sleep(backoff * (i + 1))
+    raise last
+
+
+# ── TWSE official trading calendar (authoritative cross-check) ────────────────
+# FMTQIK lists ONLY real trading days for a month, so it is the source of truth for
+# "was the market open on date D?". Used to catch any data source that echoes a
+# non-trading day's basket (e.g. Fubon replaying the prior day) before we publish it.
+
+_TWSE_CAL_CACHE: dict[str, set] = {}
+
+def _twse_trading_days(year: int, month: int):
+    """Return set[date] of TWSE trading days in the month, or None if unreachable."""
+    key = f'{year}{month:02d}'
+    if key in _TWSE_CAL_CACHE:
+        return _TWSE_CAL_CACHE[key]
+    try:
+        url = f'https://www.twse.com.tw/rwd/zh/afterTrading/FMTQIK?date={key}01&response=json'
+        r = get_with_retry(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=20)
+        d = r.json()
+        if d.get('stat') != 'OK':
+            return None
+        days = set()
+        for row in d.get('data', []):
+            roc = str(row[0]).split('/')  # 'YYY/MM/DD' (ROC year)
+            days.add(date(int(roc[0]) + 1911, int(roc[1]), int(roc[2])))
+        _TWSE_CAL_CACHE[key] = days
+        return days
+    except Exception as e:
+        print(f'  TWSE calendar fetch error {key}: {e}')
+        return None
+
+
+def is_twse_trading_day(d: date):
+    """True / False per TWSE; None if TWSE unreachable (caller must not hard-block on None)."""
+    days = _twse_trading_days(d.year, d.month)
+    return None if days is None else (d in days)
+
+
 # ── API fetchers ──────────────────────────────────────────────────────────────
 
 def fetch_holdings(date_str: str, fund_id: str):
     """Return {'date': str, 'holdings': [...]} or None."""
     url = f'{FHTRUST_ASSETS}?fundID={fund_id}&qDate={requests.utils.quote(date_str)}'
     try:
-        r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=20)
+        r = get_with_retry(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=20)
         data = r.json()
         fund = (data.get('result') or [None])[0]
         if not fund:
@@ -282,7 +333,17 @@ def fetch_fubon_day(stk_id: str, transaction_date: date) -> dict | None:
         if r.status_code != 200:
             return None
         html = r.text
-        # 每申購基數實際申購總價金 label is prefixed with the date, so match without a leading '>'.
+        # The 每申購基數實際申購總價金 label is prefixed with the *authoritative* trade date
+        # (e.g. "2026/06/18 每申購基數實際申購總價金"). Fubon's page does NOT validate the
+        # requested ddate: querying a non-trading day silently replays the previous
+        # trading day's basket with only the displayed date swapped. That prefix is the
+        # only field that still reveals the real date, so use it to reject the echo.
+        td_m    = re.search(r'(\d{4}/\d{2}/\d{2})\s*每申購基數實際申購總價金', html)
+        trade_date = td_m.group(1) if td_m else None
+        req_slash  = transaction_date.strftime('%Y/%m/%d')
+        if trade_date and trade_date != req_slash:
+            # Authoritative date ≠ requested day → non-trading day echo → no real data.
+            return None
         act_m   = re.search(r'每申購基數實際申購總價金</p>\s*<p>([^<]*)</p>', html)
         q_diff  = _fubon_num(_fubon_field(html, '與前日已發行單位差異數'))
         cu      = _fubon_num(_fubon_field(html, '每申購/買回基數之受益權單位數'))
@@ -631,6 +692,24 @@ def send_pushover(title: str, message: str, image_bytes: bytes):
     print(f'  ✓ Pushover sent: {title}')
 
 
+def send_pushover_text(title: str, message: str, priority: int = 0):
+    """Text-only Pushover (no image) — used to surface a run that produced nothing,
+    so an upstream outage is never again a silent green build."""
+    try:
+        r = requests.post(
+            'https://api.pushover.net/1/messages.json',
+            data={'token': PUSHOVER_TOKEN, 'user': PUSHOVER_USER,
+                  'title': title, 'message': message, 'priority': priority},
+            timeout=30,
+        )
+        if r.json().get('status') != 1:
+            print(f'  failure-alert Pushover error: {r.text}')
+        else:
+            print(f'  ✓ Pushover sent (alert): {title}')
+    except Exception as e:
+        print(f'  failure-alert send error: {e}')
+
+
 # ── Main ──────────────────────────────────────────────────────────────────────
 
 async def process_etf(etf: dict, today: date):
@@ -640,12 +719,12 @@ async def process_etf(etf: dict, today: date):
     base_date, base_data = find_trading_day_with_data(today, fid)
     if not base_data:
         print(f'  No base data found, skipping.')
-        return
+        return False
 
     cmp_date, cmp_data = find_trading_day_with_data(base_date - timedelta(days=1), fid)
     if not cmp_data:
         print(f'  No comparison data found, skipping.')
-        return
+        return False
 
     print(f'  base={base_date}  cmp={cmp_date}')
 
@@ -666,6 +745,7 @@ async def process_etf(etf: dict, today: date):
         message = f'vs {cs}　共 {total} 筆異動',
         image_bytes = img,
     )
+    return True
 
 
 def write_peer_to_supabase(peer_results: list, transaction_date: date):
@@ -701,15 +781,58 @@ def write_peer_to_supabase(peer_results: list, transaction_date: date):
         import traceback; traceback.print_exc()
 
 
+def _peer_has_data(peer_results: list) -> bool:
+    return any(e.get('data') and e['data'].get('netSub') is not None for e in peer_results)
+
+
+def find_peer_base_date(today: date, max_back: int = 8):
+    """Fallback base date for the peer table that does NOT depend on fhtrust.
+
+    The happy path borrows fhtrust's latest holdings date as the peer transaction
+    date, but on 2026-06-22 fhtrust was unreachable and dragged the (independent)
+    peer section down with it. Here we walk back weekdays from yesterday and use the
+    most recent day for which the peer sources themselves return data — so a fhtrust
+    outage no longer suppresses 統一/群益/富邦. Returns (date, peer_results) or (None, None)."""
+    d = today - timedelta(days=1)
+    for _ in range(max_back):
+        # Skip weekends and TWSE-confirmed non-trading days (None = TWSE unreachable,
+        # in which case we don't block — fall through to the per-source date guards).
+        if d.weekday() < 5 and is_twse_trading_day(d) is not False:
+            results = fetch_all_peer_data(d)
+            if _peer_has_data(results):
+                return d, results
+        d -= timedelta(days=1)
+    return None, None
+
+
 async def process_peer_redemption(today: date):
-    """Fetch peer redemption data, write to Supabase, and send Pushover notification."""
+    """Fetch peer redemption data, write to Supabase, and send Pushover notification.
+    Returns True if a notification was sent."""
     print('\n[同業申贖觀測]')
     base_date, _ = find_trading_day_with_data(today, 'ETF23')
-    if not base_date:
-        print('  No base date found, skipping.')
-        return
+    if base_date:
+        peer_results = fetch_all_peer_data(base_date)
+    else:
+        # fhtrust 掛掉時，不要連不需要 fhtrust 的同業申贖一起跳過 → 改用同業資料源自行定位基準日
+        print('  fhtrust 無法定位基準日，改用同業資料源 fallback…')
+        base_date, peer_results = find_peer_base_date(today)
+    if not base_date or not peer_results or not _peer_has_data(peer_results):
+        print('  No base date / no peer data (incl. fallback), skipping.')
+        return False
     print(f'  date={base_date}')
-    peer_results = fetch_all_peer_data(base_date)
+
+    # Authoritative cross-check: if TWSE says base_date was NOT a trading day yet a
+    # source still returned data, it's almost certainly a scraper echoing a closed day
+    # → alert and skip rather than publish bad data. (None = TWSE unreachable → proceed.)
+    if is_twse_trading_day(base_date) is False:
+        print(f'  ⚠ TWSE 確認 {base_date} 非交易日，但資料源仍回傳資料 → 跳過並告警')
+        send_pushover_text(
+            '⚠️ 同業申贖：偵測到非交易日資料',
+            f'{base_date} 經 TWSE 官方行事曆確認為非交易日，但資料源仍回傳申贖資料，'
+            f'已跳過寫入。請檢查對應爬蟲（很可能是某家官網回放前一交易日）。',
+            priority=1,
+        )
+        return False
 
     write_peer_to_supabase(peer_results, base_date)
 
@@ -723,6 +846,7 @@ async def process_peer_redemption(today: date):
         ),
         image_bytes = img,
     )
+    return True
 
 
 async def main():
@@ -732,18 +856,31 @@ async def main():
     today = datetime.now(TZ).date()
     print(f'Date (TST): {today}')
 
+    sent_any = False
+
     for etf in ETFS:
         try:
-            await process_etf(etf, today)
+            sent_any = bool(await process_etf(etf, today)) or sent_any
         except Exception as e:
             print(f'  ERROR: {e}')
             import traceback; traceback.print_exc()
 
     try:
-        await process_peer_redemption(today)
+        sent_any = bool(await process_peer_redemption(today)) or sent_any
     except Exception as e:
         print(f'  Peer redemption ERROR: {e}')
         import traceback; traceback.print_exc()
+
+    if not sent_any:
+        # Every section produced nothing (e.g. all data sources unreachable). Don't let
+        # this be a silent green build — alert, and exit non-zero so the run shows red.
+        send_pushover_text(
+            '⚠️ 每日摘要無資料',
+            f'{today} 排程已執行但未取得任何資料（資料源可能暫時無法連線）。'
+            f'可至 GitHub Actions 手動重新觸發 daily_summary。',
+            priority=1,
+        )
+        sys.exit('No data produced this run — see logs above.')
 
 
 if __name__ == '__main__':

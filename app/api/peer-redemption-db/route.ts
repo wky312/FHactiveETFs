@@ -3,7 +3,7 @@ import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
-const ALL_TICKERS = ['00991A', '00981A', '00403A', '00982A', '00992A'];
+const ALL_TICKERS = ['00991A', '00981A', '00403A', '00982A', '00992A', '00405A'];
 
 function getSupabase() {
   const url = process.env.SUPABASE_URL;
