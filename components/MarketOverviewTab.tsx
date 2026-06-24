@@ -17,9 +17,10 @@ const HIGHLIGHT = '00991A'; // 復華未來50：本站主角，列表中標亮
 
 interface FundRow {
   ticker: string; name: string; issuer: string; holdingDate: string | null;
-  nHoldings: number; nEval: number; nWin: number; nLoss: number;
+  nPicks: number; nWin: number; nLoss: number;
   winRate: number | null; weightedReturn: number | null;
   avgWin: number | null; avgLoss: number | null; payoff: number | null;
+  investedK: number | null;
 }
 interface MarketComparison { startDate: string; endDate: string; funds: FundRow[]; }
 
@@ -139,7 +140,7 @@ export default function MarketOverviewTab() {
         )}
       </div>
       <p style={{ fontSize: '.74rem', color: SUB, margin: '0 0 14px' }}>
-        全 19 檔台股主動式 ETF 在<strong style={{ color: TEXT }}>同一區間</strong>的「現有持股表現」比較：勝率＝期間上漲的持股比例、加權報酬＝依持股權重加權。資料源：全市場 Supabase（每日更新）。
+        全 19 檔台股主動式 ETF 在<strong style={{ color: TEXT }}>同一區間</strong>的「<strong style={{ color: TEXT }}>這段期間進場決策</strong>」比較：只看區間內<strong style={{ color: TEXT }}>實際加碼/新進</strong>的部位，用當日成交均價算「進場成本(VWAP)」，再跟現價比 → 賺/賠。<strong style={{ color: TEXT }}>不是</strong>現有持股的收盤漲跌。資料源：全市場 Supabase（每日更新）。
       </p>
 
       {error && (
@@ -155,7 +156,7 @@ export default function MarketOverviewTab() {
         <div ref={cardRef} style={{ background: '#fff', padding: '4px 2px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
             <span style={{ fontWeight: 700, fontSize: '1rem' }}>主動式ETF 選股勝率總覽</span>
-            <span style={{ fontSize: '.76rem', color: SUB, fontFamily: MONO }}>區間 {data.startDate} ～ {data.endDate}（依加權報酬排序）</span>
+            <span style={{ fontSize: '.76rem', color: SUB, fontFamily: MONO }}>區間 {data.startDate} ～ {data.endDate}（依進場報酬排序）</span>
           </div>
           <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '60vh', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
@@ -164,12 +165,13 @@ export default function MarketOverviewTab() {
                   <th style={{ ...TH, textAlign: 'left' }}>#</th>
                   <th style={{ ...TH, textAlign: 'left' }}>ETF</th>
                   <th style={{ ...TH, textAlign: 'left' }}>發行</th>
-                  <th style={{ ...TH, textAlign: 'right' }}>持股數</th>
-                  <th style={{ ...TH, textAlign: 'right' }}>勝率</th>
-                  <th style={{ ...TH, textAlign: 'right' }}>加權報酬</th>
+                  <th style={{ ...TH, textAlign: 'right' }}>加碼檔數</th>
+                  <th style={{ ...TH, textAlign: 'right' }}>進場勝率</th>
+                  <th style={{ ...TH, textAlign: 'right' }}>進場報酬</th>
                   <th style={{ ...TH, textAlign: 'right' }}>贏家平均</th>
                   <th style={{ ...TH, textAlign: 'right' }}>輸家平均</th>
                   <th style={{ ...TH, textAlign: 'right' }}>賺賠比</th>
+                  <th style={{ ...TH, textAlign: 'right' }}>投入(仟元)</th>
                 </tr>
               </thead>
               <tbody>
@@ -183,12 +185,13 @@ export default function MarketOverviewTab() {
                         <span style={{ color: TEXT, marginLeft: 6 }}>{f.name}</span>
                       </td>
                       <td style={{ ...TD, fontFamily: SANS, color: SUB }}>{f.issuer}</td>
-                      <td style={{ ...TD, textAlign: 'right', color: SUB }}>{f.nEval}</td>
+                      <td style={{ ...TD, textAlign: 'right', color: SUB }}>{f.nPicks}</td>
                       <td style={{ ...TD, textAlign: 'right', fontWeight: 700, color: f.winRate == null ? SUB : f.winRate >= 50 ? RED : GREEN }}>{f.winRate == null ? '—' : `${f.winRate.toFixed(0)}%`}</td>
                       <td style={{ ...TD, textAlign: 'right', fontWeight: 700, color: plColor(f.weightedReturn) }}>{fmtPct(f.weightedReturn)}</td>
                       <td style={{ ...TD, textAlign: 'right', color: plColor(f.avgWin) }}>{fmtPct(f.avgWin)}</td>
                       <td style={{ ...TD, textAlign: 'right', color: plColor(f.avgLoss) }}>{fmtPct(f.avgLoss)}</td>
                       <td style={{ ...TD, textAlign: 'right', color: TEXT }}>{f.payoff == null ? '—' : f.payoff.toFixed(2)}</td>
+                      <td style={{ ...TD, textAlign: 'right', color: SUB }}>{f.investedK == null ? '—' : Math.round(f.investedK).toLocaleString()}</td>
                     </tr>
                   );
                 })}
@@ -196,8 +199,9 @@ export default function MarketOverviewTab() {
             </table>
           </div>
           <div style={{ marginTop: 12, fontSize: '.7rem', color: SUB, lineHeight: 1.8 }}>
-            <b>口徑：</b>每檔取自身最新持股，計算這些持股在 {data.startDate}～{data.endDate} 的收盤漲跌；<b>勝率</b>＝上漲檔數 ÷ 可評估檔數，<b>加權報酬</b>＝依持股權重(prate)加權。量的是「<u>現有持股的期間表現</u>」，非進場成本，期間內才買進者亦以全期間計（公平同區間比較）。報酬未還原息。<br />
-            <b>資料來源：</b>全市場主動式 ETF 每日持股（CMoney）＋ TWSE／TPEx 收盤，存於共用 Supabase。<span style={{ color: GOLD }}>橘線＝復華未來50（本站主角）</span>。
+            <b>口徑（進場成本）：</b>用每日持股快照差分，取 {data.startDate}～{data.endDate} 內每天<b>加碼/新進的股數 × 當日成交均價</b>，加總算「<u>本期進場 VWAP</u>」，再跟現價(最新收盤)比 → 賺/賠。<b>加碼檔數</b>＝本區間有買進的個股數，<b>進場勝率</b>＝其中賺錢的比例，<b>進場報酬</b>＝依「本期投入金額」加權。<br />
+            評的是「<u>這段期間的進場決策</u>」：某股就算整體持倉均價被歷史便宜成本稀釋，只要本期加碼買貴了現價、仍算賠（與「現有持股漲跌」不同）。只進場前就持有、本期沒加碼者不列入。報酬未還原息。<br />
+            <b>資料來源：</b>全市場主動式 ETF 每日持股（CMoney）＋ TWSE／TPEx 收盤/成交均價，存於共用 Supabase。<span style={{ color: GOLD }}>橘線＝復華未來50（本站主角）</span>。
           </div>
         </div>
       )}

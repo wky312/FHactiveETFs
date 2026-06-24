@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { computeMarketComparison } from '@/lib/marketScorecard';
 
-// 讀共用 Supabase（19 檔持股＋股價），算同區間總覽；資料量小，數秒內。
-export const maxDuration = 60;
+// 讀共用 Supabase（19 檔每日持股快照＋股價），差分算「本期進場 VWAP」總覽。
+// YTD 區間需分頁抓較多列，放寬執行時間上限。結果有 10 分鐘快取。
+export const maxDuration = 300;
 
 export async function GET(request: NextRequest) {
   const from = request.nextUrl.searchParams.get('from');
