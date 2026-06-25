@@ -1,5 +1,5 @@
 'use client';
-import { useState, useCallback, useRef, forwardRef } from 'react';
+import { useState, useCallback, useRef, useEffect, forwardRef } from 'react';
 import { Holding } from '@/lib/types';
 import { StockPerformance } from '@/lib/yahooFinance';
 import { ETF_LIST, EtfConfig, DEFAULT_ETF } from '@/lib/etfList';
@@ -31,6 +31,32 @@ const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
 type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'attribution';
+
+/* 頂部導覽分組（13 個分頁收進 4 個下拉選單；不改各分頁邏輯，只改呈現） */
+const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
+  { label: '持股分析', items: [
+    { id: 'summary',  label: '當日摘要' },
+    { id: 'holdings', label: '當天持股清單' },
+    { id: 'compare',  label: '持股比較' },
+    { id: 'country',  label: '國家配置' },
+    { id: 'scale',    label: '規模變化' },
+  ] },
+  { label: '個股與績效', items: [
+    { id: 'performance', label: '股價表現' },
+    { id: 'trajectory',  label: '個股軌跡' },
+    { id: 'cumret',      label: '累積報酬走勢' },
+    { id: 'attribution', label: '績效個股歸因' },
+  ] },
+  { label: '選股與預測', items: [
+    { id: 'scorecard', label: '選股對帳單' },
+    { id: 'pred0050',  label: '0050 季調預測' },
+  ] },
+  { label: '同業觀測', items: [
+    { id: 'peer',     label: '同業申贖觀測' },
+    { id: 'peerperf', label: '同業績效觀測' },
+  ] },
+];
+
 interface LoadedData { date: string; holdings: Holding[] }
 interface PerfData { date: string; results: StockPerformance[] }
 
@@ -149,6 +175,24 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('summary');
   const [selectedEtf, setSelectedEtf] = useState<EtfConfig>(DEFAULT_ETF);
 
+  // 導覽下拉：開啟中的分組 index、hover 中的項目 key；外部點擊或 Esc 關閉
+  const [openGroup, setOpenGroup] = useState<number | null>(null);
+  const [hoverKey, setHoverKey] = useState<string | null>(null);
+  const navRef = useRef<HTMLElement>(null);
+  useEffect(() => {
+    if (openGroup === null) return;
+    const onDocClick = (e: MouseEvent) => {
+      if (navRef.current && !navRef.current.contains(e.target as Node)) setOpenGroup(null);
+    };
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setOpenGroup(null); };
+    document.addEventListener('mousedown', onDocClick);
+    document.addEventListener('keydown', onKey);
+    return () => {
+      document.removeEventListener('mousedown', onDocClick);
+      document.removeEventListener('keydown', onKey);
+    };
+  }, [openGroup]);
+
   const [holdDate,    setHoldDate]    = useState(defaultDate());
   const [holdData,    setHoldData]    = useState<LoadedData | null>(null);
   const [holdLoading, setHoldLoading] = useState(false);
@@ -221,22 +265,6 @@ export default function Dashboard() {
 
   const imgName = (label: string) => `${selectedEtf.ticker}_${label}_${holdDate}.png`;
 
-  const TABS: { id: Tab; label: string }[] = [
-    { id: 'summary',     label: '當日摘要' },
-    { id: 'holdings',    label: '當天持股清單' },
-    { id: 'compare',     label: '持股比較' },
-    { id: 'country',     label: '國家配置' },
-    { id: 'performance', label: '股價表現' },
-    { id: 'trajectory',  label: '個股軌跡' },
-    { id: 'scorecard',   label: '選股對帳單' },
-    { id: 'pred0050',    label: '0050 季調預測' },
-    { id: 'scale',       label: '規模變化' },
-    { id: 'peer',        label: '同業申贖觀測' },
-    { id: 'peerperf',   label: '同業績效觀測' },
-    { id: 'cumret',     label: '累積報酬走勢' },
-    { id: 'attribution', label: '績效個股歸因' },
-  ];
-
   return (
     <div style={{ minHeight: '100vh', background: BG, fontFamily: SANS }}>
 
@@ -274,24 +302,63 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* ── Navigation ── */}
-      <nav style={{ background: CARD, borderBottom: `1px solid ${BORDER}`, padding: '0 24px', display: 'flex', overflowX: 'auto' }}>
-        {TABS.map(t => (
-          <button
-            key={t.id}
-            onClick={() => setActiveTab(t.id)}
-            style={{
-              padding: '13px 22px', border: 'none', background: 'transparent', cursor: 'pointer',
-              fontSize: '.9rem', fontWeight: activeTab === t.id ? 600 : 400,
-              color: activeTab === t.id ? RED : SUB,
-              borderBottom: `2.5px solid ${activeTab === t.id ? RED : 'transparent'}`,
-              marginBottom: -1, transition: 'all .15s', fontFamily: SANS,
-              flexShrink: 0, whiteSpace: 'nowrap',
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
+      {/* ── Navigation：4 個功能分組下拉選單 ── */}
+      <nav ref={navRef} style={{ background: CARD, borderBottom: `1px solid ${BORDER}`, padding: '0 24px', display: 'flex', flexWrap: 'wrap', position: 'relative' }}>
+        {NAV_GROUPS.map((g, gi) => {
+          const groupActive = g.items.some(it => it.id === activeTab);
+          const open = openGroup === gi;
+          const alignRight = gi >= 2;   // 右側分組往左展開，避免窄螢幕溢出
+          return (
+            <div key={g.label} style={{ position: 'relative' }}>
+              <button
+                onClick={() => setOpenGroup(open ? null : gi)}
+                aria-haspopup="true" aria-expanded={open}
+                style={{
+                  padding: '13px 22px', border: 'none', background: 'transparent', cursor: 'pointer',
+                  fontSize: '.9rem', fontWeight: groupActive ? 600 : 400,
+                  color: groupActive ? RED : SUB,
+                  borderBottom: `2.5px solid ${groupActive ? RED : 'transparent'}`,
+                  marginBottom: -1, transition: 'all .15s', fontFamily: SANS,
+                  whiteSpace: 'nowrap', display: 'inline-flex', alignItems: 'center', gap: 6,
+                }}
+              >
+                {g.label}
+                <span style={{ fontSize: '.7rem', transition: 'transform .15s', transform: open ? 'rotate(180deg)' : 'none' }}>▾</span>
+              </button>
+              {open && (
+                <div role="menu" style={{
+                  position: 'absolute', top: '100%', ...(alignRight ? { right: 0 } : { left: 0 }),
+                  minWidth: 180, maxWidth: 'calc(100vw - 32px)',
+                  background: CARD, border: `1px solid ${BORDER}`, borderRadius: 8,
+                  boxShadow: '0 1px 6px rgba(0,0,0,.07)', padding: 6, zIndex: 200,
+                }}>
+                  {g.items.map(it => {
+                    const sel = activeTab === it.id;
+                    const key = `${gi}-${it.id}`;
+                    const hov = hoverKey === key;
+                    return (
+                      <button
+                        key={it.id} role="menuitem"
+                        onClick={() => { setActiveTab(it.id); setOpenGroup(null); }}
+                        onMouseEnter={() => setHoverKey(key)} onMouseLeave={() => setHoverKey(null)}
+                        style={{
+                          display: 'block', width: '100%', textAlign: 'left',
+                          padding: '9px 14px', border: 'none', borderRadius: 6, cursor: 'pointer',
+                          fontSize: '.88rem', fontFamily: SANS, whiteSpace: 'nowrap',
+                          fontWeight: sel ? 600 : 400,
+                          color: sel ? RED : TEXT,
+                          background: sel ? BG : hov ? HEADER : 'transparent',
+                        }}
+                      >
+                        {it.label}
+                      </button>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          );
+        })}
       </nav>
 
       {/* ── Content ── */}
