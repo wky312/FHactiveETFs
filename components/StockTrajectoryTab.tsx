@@ -113,12 +113,20 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
   const [data,    setData]    = useState<TrajectoryResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
-  // 此分頁可獨立選基金：沿用全域所選復華 ETF，或改查統一 00981A（資料源 = CMoney/pocket）。
-  const [fundOverride, setFundOverride] = useState<'' | '00981A'>('');
-  const fund = fundOverride === '00981A'
-    ? { fundId: '00981A', ticker: '00981A', name: '主動統一台股增長' }
-    : selectedEtf;
-  const isCmoney = fund.fundId === '00981A';
+  // 此分頁可獨立選基金：沿用全域所選復華 ETF，或改查其他投信 ETF（資料源 = CMoney/pocket；
+  // 復華 00998A 走 fhtrust）。海外檔持股為外國股，軌跡以 Yahoo 中間價當成本基準。
+  const OVERRIDE_FUNDS: { fundId: string; ticker: string; name: string }[] = [
+    { fundId: '00981A', ticker: '00981A', name: '統一台股增長' },
+    { fundId: '00983A', ticker: '00983A', name: '中信ARK創新（海外）' },
+    { fundId: '00986A', ticker: '00986A', name: '台新全球龍頭（海外）' },
+    { fundId: '00988A', ticker: '00988A', name: '統一全球創新（海外）' },
+    { fundId: '00990A', ticker: '00990A', name: '元大AI新經濟（海外）' },
+    { fundId: 'ETF24',  ticker: '00998A', name: '復華全球金融（海外）' },
+    { fundId: '00402A', ticker: '00402A', name: '安聯美國科技（海外）' },
+  ];
+  const [fundOverride, setFundOverride] = useState('');
+  const fund = OVERRIDE_FUNDS.find(f => f.fundId === fundOverride) ?? selectedEtf;
+  const isCmoney = fundOverride !== '' && fundOverride !== 'ETF24';
 
   const search = useCallback(async () => {
     if (!query.trim()) { setError('請輸入股票代碼或名稱'); return; }
@@ -210,10 +218,12 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
           </label>
           <select
             value={fundOverride}
-            onChange={e => { setFundOverride(e.target.value as '' | '00981A'); setData(null); setError(''); }}
+            onChange={e => { setFundOverride(e.target.value); setData(null); setError(''); }}
             style={{ padding: '7px 12px', border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: '.87rem', color: TEXT, background: '#fff', fontFamily: SANS }}>
             <option value="">{selectedEtf.ticker}（復華）</option>
-            <option value="00981A">00981A 統一台股增長</option>
+            {OVERRIDE_FUNDS.map(f => (
+              <option key={f.fundId} value={f.fundId}>{f.ticker} {f.name}</option>
+            ))}
           </select>
         </div>
         <div>

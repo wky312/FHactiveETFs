@@ -23,7 +23,23 @@ FUND_IDS = ['ETF23', 'ETF24']
 
 # CMoney（pocket.tw 代理）來源：投信官網只給最新一天，CMoney 保留逐日歷史。
 # fundId → CMoney AssignID（對齊 lib/cmoneyHoldings.ts 的 CMONEY_FUNDS）
-CMONEY_FUNDS = {'00981A': '00981A'}  # 主動統一台股增長
+CMONEY_FUNDS = {
+    '00981A': '00981A',  # 主動統一台股增長（台股）
+    # 海外主動式ETF（持股為外國股；復華 00998A 走 fhtrust=ETF24 不在此）
+    '00983A': '00983A',  # 主動中信ARK創新
+    '00986A': '00986A',  # 主動台新全球龍頭
+    '00988A': '00988A',  # 主動統一全球創新
+    '00990A': '00990A',  # 主動元大AI新經濟
+    '00402A': '00402A',  # 主動安聯美國科技
+}
+
+
+def _is_cash_row(sid: str, name: str) -> bool:
+    """CMoney 持股夾帶的現金/操作列（C_NTD / DA_NTD / CASH …）非真實個股，排除。"""
+    import re
+    if re.search(r'_(NTD|USD|TWD|HKD|JPY|EUR|RMB|CNY)\d*$', sid, re.I):
+        return True
+    return bool(re.search(r'^(CASH|現金)$|AFTER DEDUCTING', name.strip(), re.I))
 CMONEY_API = 'https://www.pocket.tw/api/cm/MobileService/ashx/GetDtnoData.ashx'
 CMONEY_DTNO = '59449513'  # M722：日期/標的代號/標的名稱/權重(%)/持有數/單位
 
@@ -163,7 +179,8 @@ def fetch_cmoney_days(assign_id: str, dt_range: int = 400):
         ymd = str(row[0])
         date_key = f'{ymd[0:4]}/{ymd[4:6]}/{ymd[6:8]}'
         sid = str(row[1] or '').strip()
-        if not sid:
+        name = str(row[2] or '').strip()
+        if not sid or _is_cash_row(sid, name):
             continue
         days.setdefault(date_key, []).append({
             'c': sid,
@@ -171,7 +188,7 @@ def fetch_cmoney_days(assign_id: str, dt_range: int = 400):
             'm': 0,                            # CMoney 無市值
             'p': round(parse_num(row[3]), 4),  # 權重(%)
         })
-        names[sid] = str(row[2] or '').strip()
+        names[sid] = name
     return days, names
 
 

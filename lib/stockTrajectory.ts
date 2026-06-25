@@ -164,18 +164,23 @@ export async function fetchTrajectory(rawQuery: string, fundId = 'ETF23'): Promi
   const { dayMap, sortedDates, end } = await buildDayMap(fundId);
 
   // 3. 解析目標股票代碼
-  const isCode = /^\d{4,6}[A-Za-z]?$/.test(q);
+  const isCode = /^\d{4,6}[A-Za-z]?$/.test(q);  // 台股代碼（4-6 碼 +可選一英文）
+  const qU = q.toUpperCase();
   let stockid = '';
   let stockname = '';
   if (isCode) {
-    stockid = q.toUpperCase();
+    stockid = qU;
   } else {
-    // 用基金實際持有過的名稱比對（縮寫差異靠雙向 includes 容錯），取出現次數最多者
+    // 用基金實際持有過的名稱或代碼比對，取出現次數最多者。海外股代碼為彭博式（如「NVDA US」），
+    // 故也比對代碼的第一段（NVDA）讓使用者能直接打外國 ticker。
     const freq = new Map<string, { name: string; n: number }>();
     for (const holdings of dayMap.values()) {
       for (const h of holdings) {
         if (!h.stockid) continue;
-        if (h.stockname.includes(q) || q.includes(h.stockname)) {
+        const codeBase = h.stockid.split(/\s+/)[0].toUpperCase();
+        const nameHit = h.stockname.includes(q) || q.includes(h.stockname);
+        const codeHit = codeBase === qU || h.stockid.toUpperCase() === qU;
+        if (nameHit || codeHit) {
           const e = freq.get(h.stockid) ?? { name: h.stockname, n: 0 };
           e.n += 1;
           freq.set(h.stockid, e);

@@ -10,7 +10,20 @@ const DTNO_HOLDINGS = '59449513'; // M722：['日期','標的代號','標的名�
 // fundId → CMoney AssignID（多為股票代號本身）
 export const CMONEY_FUNDS: Record<string, string> = {
   '00981A': '00981A', // 主動統一台股增長（成立 2025/05，CMoney 自 2025/05/26 起有逐日持股）
+  // 海外主動式ETF：持股為外國股（彭博式代碼，如 NVDA US），軌跡引擎以 exchangeMap 轉 Yahoo
+  // ticker、成本用 Yahoo 中間價。復華 00998A 走 fhtrust(ETF24) 不在此。
+  '00983A': '00983A', // 主動中信ARK創新
+  '00986A': '00986A', // 主動台新全球龍頭
+  '00988A': '00988A', // 主動統一全球創新
+  '00990A': '00990A', // 主動元大AI新經濟
+  '00402A': '00402A', // 主動安聯美國科技
 };
+
+// CMoney 持股清單夾帶的現金/操作列（非真實個股），代碼如 C_NTD / DA_NTD，需排除。
+function isCashRow(stockid: string, stockname: string): boolean {
+  if (/_(NTD|USD|TWD|HKD|JPY|EUR|RMB|CNY)\d*$/i.test(stockid)) return true;
+  return /^(CASH|現金)$|AFTER DEDUCTING/i.test(stockname.trim());
+}
 
 function parseNum(v: unknown): number {
   return parseFloat(String(v).replace(/,/g, '')) || 0;
@@ -35,10 +48,11 @@ export async function fetchCmoneyHoldings(assignId: string, dtRange = 400): Prom
     for (const r of rows) {
       const date   = ymdToSlash(String(r[0]));
       const stockid = String(r[1] ?? '').trim();
-      if (!stockid) continue;
+      const stockname = String(r[2] ?? '').trim();
+      if (!stockid || isCashRow(stockid, stockname)) continue;
       const holding: Holding = {
         stockid,
-        stockname: String(r[2] ?? '').trim(),
+        stockname,
         qshare: parseNum(r[4]),               // 持有數（股）
         mvalue: 0,                            // CMoney 不提供市值；軌跡端以股數×收盤估算
         prate_addaccint: parseNum(r[3]),      // 權重(%)
