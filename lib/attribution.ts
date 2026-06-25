@@ -45,12 +45,12 @@ async function pageAll<T>(
 
 export interface FundOption { ticker: string; name: string; }
 
-/** 可比較的台股主動式股票 ETF（給下拉選單）。 */
+/** 可比較標的（給下拉選單）：台股主動式股票 ETF ＋ 被動指數對標（0050 等 type='index'）。 */
 export async function listFunds(): Promise<FundOption[]> {
   const db = getDb();
   const { data, error } = await db
     .from('etf').select('ticker,name')
-    .eq('market', 'tw').eq('type', 'equity').order('ticker');
+    .eq('market', 'tw').in('type', ['equity', 'index']).order('ticker');
   if (error) throw new Error(`讀取基金清單失敗：${error.message}`);
   return (data ?? []).map((r: { ticker: string; name: string }) => ({ ticker: r.ticker, name: r.name }));
 }

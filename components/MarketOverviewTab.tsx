@@ -1,5 +1,6 @@
 'use client';
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
+import MarketQuadrant from './MarketQuadrant';
 
 /* 全 19 檔主動式 ETF「同區間」選股總覽（資料源：共用 Supabase）。
    台股配色：紅(RED)=漲、綠(GREEN)=跌。 */
@@ -23,6 +24,20 @@ interface FundRow {
   investedK: number | null;
 }
 interface MarketComparison { startDate: string; endDate: string; funds: FundRow[]; }
+
+type SortKey = 'ticker' | 'issuer' | 'nPicks' | 'winRate' | 'weightedReturn' | 'avgWin' | 'avgLoss' | 'payoff' | 'investedK';
+const COLUMNS: { key: SortKey | null; label: string; align: 'left' | 'right'; num: boolean }[] = [
+  { key: null,             label: '#',         align: 'left',  num: false },
+  { key: 'ticker',         label: 'ETF',       align: 'left',  num: false },
+  { key: 'issuer',         label: '發行',      align: 'left',  num: false },
+  { key: 'nPicks',         label: '加碼檔數',  align: 'right', num: true },
+  { key: 'winRate',        label: '進場勝率',  align: 'right', num: true },
+  { key: 'weightedReturn', label: '進場報酬',  align: 'right', num: true },
+  { key: 'avgWin',         label: '贏家平均',  align: 'right', num: true },
+  { key: 'avgLoss',        label: '輸家平均',  align: 'right', num: true },
+  { key: 'payoff',         label: '賺賠比',    align: 'right', num: true },
+  { key: 'investedK',      label: '投入(仟元)', align: 'right', num: true },
+];
 
 const TH: React.CSSProperties = {
   padding: '8px 10px', fontWeight: 600, fontSize: '.72rem',
@@ -65,7 +80,36 @@ export default function MarketOverviewTab() {
   const [error,   setError]   = useState('');
   const [preset,  setPreset]  = useState('ytd');
   const [customFrom, setCustomFrom] = useState(monthsAgo(3));
+  const [sortKey, setSortKey] = useState<SortKey | null>(null);   // null = 不排序(伺服器原序：依進場報酬)
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('desc');
+  const [view, setView] = useState<'table' | 'quadrant'>('table');
   const cardRef = useRef<HTMLDivElement>(null);
+
+  // 同一欄重複點：第1次→預設方向、第2次→反向、第3次→取消排序
+  const onSort = useCallback((k: SortKey, num: boolean) => {
+    const first = num ? 'desc' : 'asc';            // 數值欄高→低，文字欄 A→Z
+    const second = num ? 'asc' : 'desc';
+    if (sortKey !== k) { setSortKey(k); setSortDir(first); return; }
+    if (sortDir === first) { setSortDir(second); return; }
+    setSortKey(null);                              // 取消排序
+  }, [sortKey, sortDir]);
+
+  const sortedFunds = useMemo(() => {
+    if (!data) return [];
+    if (!sortKey) return data.funds;               // 取消排序 → 維持伺服器原序
+    const arr = [...data.funds];
+    arr.sort((a, b) => {
+      const va = a[sortKey], vb = b[sortKey];
+      if (va == null && vb == null) return 0;
+      if (va == null) return 1;                    // 無資料一律墊底
+      if (vb == null) return -1;
+      const cmp = typeof va === 'string'
+        ? String(va).localeCompare(String(vb))
+        : (va as number) - (vb as number);
+      return sortDir === 'asc' ? cmp : -cmp;
+    });
+    return arr;
+  }, [data, sortKey, sortDir]);
 
   const run = useCallback(async (from: string) => {
     setLoading(true); setError(''); setData(null);
@@ -133,6 +177,17 @@ export default function MarketOverviewTab() {
           </button>
         </span>
         {data && !loading && (
+          <span style={{ display: 'inline-flex', border: `1px solid ${BORDER}`, borderRadius: 999, overflow: 'hidden', marginLeft: 'auto' }}>
+            {([['table', '表格'], ['quadrant', '四象限圖']] as const).map(([k, label]) => (
+              <button key={k} onClick={() => setView(k)}
+                style={{ padding: '7px 14px', border: 'none', cursor: 'pointer', fontFamily: SANS, fontSize: '.8rem',
+                  fontWeight: view === k ? 700 : 500, background: view === k ? TEXT : '#fff', color: view === k ? '#fff' : SUB }}>
+                {label}
+              </button>
+            ))}
+          </span>
+        )}
+        {data && !loading && view === 'table' && (
           <button onClick={saveImage}
             style={{ padding: '7px 14px', background: '#fff', color: SUB, border: `1px solid ${BORDER}`, borderRadius: 6, cursor: 'pointer', fontSize: '.8rem', fontWeight: 500, fontFamily: SANS }}>
             儲存 / 分享圖
@@ -152,30 +207,36 @@ export default function MarketOverviewTab() {
         <p style={{ color: SUB, textAlign: 'center', padding: '32px 0', fontSize: '.88rem' }}>結算 19 檔中…</p>
       )}
 
-      {data && !loading && (
+      {data && !loading && view === 'quadrant' && (
+        <MarketQuadrant funds={data.funds} startDate={data.startDate} endDate={data.endDate} />
+      )}
+
+      {data && !loading && view === 'table' && (
         <div ref={cardRef} style={{ background: '#fff', padding: '4px 2px' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 12, flexWrap: 'wrap', gap: 8 }}>
             <span style={{ fontWeight: 700, fontSize: '1rem' }}>主動式ETF 選股勝率總覽</span>
-            <span style={{ fontSize: '.76rem', color: SUB, fontFamily: MONO }}>區間 {data.startDate} ～ {data.endDate}（依進場報酬排序）</span>
+            <span style={{ fontSize: '.76rem', color: SUB, fontFamily: MONO }}>區間 {data.startDate} ～ {data.endDate}（點欄位標題可排序）</span>
           </div>
           <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '60vh', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
               <thead>
                 <tr>
-                  <th style={{ ...TH, textAlign: 'left' }}>#</th>
-                  <th style={{ ...TH, textAlign: 'left' }}>ETF</th>
-                  <th style={{ ...TH, textAlign: 'left' }}>發行</th>
-                  <th style={{ ...TH, textAlign: 'right' }}>加碼檔數</th>
-                  <th style={{ ...TH, textAlign: 'right' }}>進場勝率</th>
-                  <th style={{ ...TH, textAlign: 'right' }}>進場報酬</th>
-                  <th style={{ ...TH, textAlign: 'right' }}>贏家平均</th>
-                  <th style={{ ...TH, textAlign: 'right' }}>輸家平均</th>
-                  <th style={{ ...TH, textAlign: 'right' }}>賺賠比</th>
-                  <th style={{ ...TH, textAlign: 'right' }}>投入(仟元)</th>
+                  {COLUMNS.map(c => {
+                    const active = c.key != null && c.key === sortKey;
+                    const arrow = !c.key ? '' : active ? (sortDir === 'asc' ? '▲' : '▼') : '↕';
+                    return (
+                      <th key={c.label}
+                        onClick={c.key ? () => onSort(c.key!, c.num) : undefined}
+                        style={{ ...TH, textAlign: c.align, cursor: c.key ? 'pointer' : 'default', userSelect: 'none' }}>
+                        {c.label}
+                        {arrow && <span style={{ marginLeft: 3, fontSize: '.6rem', opacity: active ? 1 : 0.4 }}>{arrow}</span>}
+                      </th>
+                    );
+                  })}
                 </tr>
               </thead>
               <tbody>
-                {data.funds.map((f, i) => {
+                {sortedFunds.map((f, i) => {
                   const hi = f.ticker === HIGHLIGHT;
                   return (
                     <tr key={f.ticker} style={{ background: hi ? '#FFF7F2' : i % 2 === 0 ? '#fff' : '#FAFAF9', borderBottom: `1px solid ${BORDER}`, borderLeft: hi ? `3px solid ${GOLD}` : '3px solid transparent' }}>
