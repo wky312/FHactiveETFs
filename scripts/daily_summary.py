@@ -157,12 +157,20 @@ def fetch_etf_price(yf_ticker: str) -> dict | None:
 # ── Peer ETF data fetchers ────────────────────────────────────────────────────
 
 PEER_ETFS = [
-    {'ticker': '00991A', 'name': '復華991', 'source': 'fhtrust',  'key': 'ETF23'},
-    {'ticker': '00981A', 'name': '統一981', 'source': 'ezmoney',  'key': '49YTW'},
-    {'ticker': '00403A', 'name': '統一403', 'source': 'ezmoney',  'key': '63YTW'},
-    {'ticker': '00982A', 'name': '群益982', 'source': 'capital',  'key': '399'},
-    {'ticker': '00992A', 'name': '群益992', 'source': 'capital',  'key': '500'},
-    {'ticker': '00405A', 'name': '富邦405', 'source': 'fubon',    'key': '00405A'},
+    # 台股主動式ETF
+    {'ticker': '00991A', 'name': '復華991', 'source': 'fhtrust',  'key': 'ETF23',  'group': 'tw_active'},
+    {'ticker': '00981A', 'name': '統一981', 'source': 'ezmoney',  'key': '49YTW',  'group': 'tw_active'},
+    {'ticker': '00403A', 'name': '統一403', 'source': 'ezmoney',  'key': '63YTW',  'group': 'tw_active'},
+    {'ticker': '00982A', 'name': '群益982', 'source': 'capital',  'key': '399',    'group': 'tw_active'},
+    {'ticker': '00992A', 'name': '群益992', 'source': 'capital',  'key': '500',    'group': 'tw_active'},
+    {'ticker': '00405A', 'name': '富邦405', 'source': 'fubon',    'key': '00405A', 'group': 'tw_active'},
+    # 海外主動式ETF（step 3：逐家官方申贖來源；復華無官方來源 → CMoney 推算）
+    {'ticker': '00983A', 'name': '中信ARK創新',  'source': 'ctbc',    'key': 'E0034',  'group': 'overseas'},
+    {'ticker': '00986A', 'name': '台新全球龍頭', 'source': 'tsit',    'key': '00986A', 'group': 'overseas'},
+    {'ticker': '00988A', 'name': '統一全球創新', 'source': 'ezmoney', 'key': '61YTW',  'group': 'overseas'},
+    {'ticker': '00990A', 'name': '元大AI新經濟', 'source': 'yuanta',  'key': '00990A', 'group': 'overseas'},
+    {'ticker': '00998A', 'name': '復華全球金融', 'source': 'cmoney',  'key': '00998A', 'group': 'overseas'},
+    {'ticker': '00402A', 'name': '安聯美國科技', 'source': 'allianz', 'key': 'E0003',  'group': 'overseas'},
 ]
 
 EZMONEY_HOST = 'www.ezmoney.com.tw'
@@ -358,6 +366,181 @@ def fetch_fubon_day(stk_id: str, transaction_date: date) -> dict | None:
         return None
 
 
+# ── 海外主動式ETF 申贖 fetchers（step 3：逐家官方來源；TS 對應 lib/*Scale.ts）─────────
+
+def _pcf_num(v) -> float:
+    """PCF 數字字串：去千分位、括號/負號視為負。"""
+    if v is None:
+        return 0.0
+    import re
+    s = str(v)
+    neg = '(' in s or '−' in s or '-' in s
+    cleaned = re.sub(r'[^0-9.]', '', s)
+    n = float(cleaned) if cleaned else 0.0
+    return -n if neg else n
+
+
+def _get_lax(url, headers=None, timeout=20):
+    """GET 容忍 tsit / yuantaetfs / pocket.tw 那種缺 Subject Key Identifier 的（無害）TLS 憑證——
+    Python 3.14 / 新版 runner 的嚴格 OpenSSL 3.x 會擋，curl/Node 接受。先驗證、SSLError 才對這些
+    唯讀公開頁退回 verify=False（與 fetch_fubon_day 同策略，見 [[project_00998a_web]]）。"""
+    headers = headers or {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
+    try:
+        return requests.get(url, headers=headers, timeout=timeout)
+    except requests.exceptions.SSLError:
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        return requests.get(url, headers=headers, timeout=timeout, verify=False)
+
+
+def fetch_tsit_day(ticker: str, transaction_date: date) -> dict | None:
+    """台新投信 00986A：GET HTML（<th>label</th><td>value</td>）；DataDate = 交易日。"""
+    try:
+        import re
+        url = (f'https://www.tsit.com.tw/ETF/Home/Pcf/{ticker}'
+               f'?FundType=&DataDate={transaction_date.isoformat()}')
+        r = _get_lax(url, timeout=20)
+        if r.status_code != 200:
+            return None
+        html = r.text
+        def field(label):
+            m = re.search(rf'<th>{re.escape(label)}[^<]*</th>\s*<td>([^<]*)</td>', html)
+            return m.group(1).strip() if m else None
+        diff = _pcf_num(field('與前日已發行單位差異數'))
+        nav  = _pcf_num(field('基金淨資產價值'))
+        pnav = _pcf_num(field('每受益權單位淨資產價值'))
+        if nav == 0 or pnav == 0:
+            return None
+        return {'netSub': (diff * pnav) / 1e8, 'aum': nav / 1e8}
+    except Exception as e:
+        print(f'  tsit {ticker} {transaction_date}: {e}')
+        return None
+
+
+def fetch_ctbc_day(fid: str, transaction_date: date) -> dict | None:
+    """中信投信 00983A：先取 token → POST Buyback；StartDate = 公告日(=交易日)。"""
+    try:
+        import urllib.parse
+        base = 'https://www.ctbcinvestments.com.tw/API'
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+            'Content-Type': 'application/json; charset=utf-8',
+            'Referer': 'https://www.ctbcinvestments.com.tw/Etf/Buyback',
+        }
+        tr = requests.post(f'{base}/home/AuthToken?token=www.ctbcinvestments.com',
+                           json={'token': 'www.ctbcinvestments.com'}, headers=headers, timeout=20)
+        token = tr.json().get('Data', {}).get('token')
+        if not token:
+            return None
+        et = urllib.parse.quote(token, safe='')
+        r = requests.post(f'{base}/etf/Buyback?token={et}',
+                          json={'FID': fid, 'StartDate': transaction_date.isoformat()},
+                          headers=headers, timeout=20)
+        if r.status_code != 200:
+            return None
+        rows = r.json().get('Data', {}).get('Data') or []
+        if not rows:
+            return None
+        row = rows[0]
+        diff = _pcf_num(row.get('與前日已發行單位差異數'))
+        nav  = _pcf_num(row.get('基金淨資產價值'))
+        pnav = _pcf_num(row.get('每受益權單位淨資產價值'))
+        if nav == 0 or pnav == 0:
+            return None
+        return {'netSub': (diff * pnav) / 1e8, 'aum': nav / 1e8}
+    except Exception as e:
+        print(f'  ctbc {fid} {transaction_date}: {e}')
+        return None
+
+
+def fetch_allianz_day(fund_no: str, transaction_date: date) -> dict | None:
+    """安聯投信 00402A：XSRF 兩步（Session 自動帶 cookie）→ POST GetFundTradeInfo。"""
+    try:
+        base = 'https://etf.allianzgi.com.tw/webapi/api'
+        s = requests.Session()
+        s.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+        s.get(f'{base}/AntiForgery/GetAntiForgeryToken', timeout=20)
+        token = s.cookies.get('X-XSRF-TOKEN')
+        if not token:
+            return None
+        r = s.post(f'{base}/Fund/GetFundTradeInfo',
+                   json={'FundNo': fund_no, 'Date': transaction_date.isoformat()},
+                   headers={'X-XSRF-TOKEN': token, 'Content-Type': 'application/json'}, timeout=20)
+        if r.status_code != 200:
+            return None
+        j = r.json()
+        if j.get('StatusCode') != 0:
+            return None
+        e = j.get('Entries') or {}
+        nav = parse_num(e.get('CAnceNav', 0) or 0)
+        if nav == 0:
+            return None
+        diff = parse_num(e.get('CAnceIssuesDiff', 0) or 0)
+        totalav = parse_num(e.get('CAnceTotalAv', 0) or 0)
+        return {'netSub': (diff * nav) / 1e8, 'aum': totalav / 1e8}
+    except Exception as e:
+        print(f'  allianz {fund_no} {transaction_date}: {e}')
+        return None
+
+
+def fetch_yuanta_day(ticker: str, transaction_date: date) -> dict | None:
+    """元大投信 00990A：查公告日(交易日+1..+5)，以回傳 trandate==交易日 對齊。"""
+    try:
+        target = transaction_date.strftime('%Y%m%d')
+        for offset in range(1, 6):
+            ann = transaction_date + timedelta(days=offset)
+            if ann.weekday() >= 5:
+                continue
+            url = ('https://etfapi.yuantaetfs.com/ectranslation/api/bridge'
+                   f'?APIType=ETFAPI&CompanyName=YUANTAFUNDS&FuncId=PCF/Daily'
+                   f'&ticker={ticker}&date={ann.strftime("%Y%m%d")}')
+            r = _get_lax(url, timeout=20)
+            if r.status_code != 200:
+                continue
+            pcf = (r.json() or {}).get('PCF')
+            if not pcf or str(pcf.get('trandate')) != target:
+                continue
+            nav = parse_num(pcf.get('nav', 0) or 0)
+            if nav == 0:
+                return None
+            return {'netSub': (parse_num(pcf.get('issuesdiff', 0) or 0) * nav) / 1e8,
+                    'aum': parse_num(pcf.get('totalav', 0) or 0) / 1e8}
+        return None
+    except Exception as e:
+        print(f'  yuanta {ticker} {transaction_date}: {e}')
+        return None
+
+
+def fetch_cmoney_day(assign_id: str, transaction_date: date) -> dict | None:
+    """復華 00998A 無官方申贖 → CMoney 規模/淨值序列推算 netSub = Δunits × nav。"""
+    try:
+        import urllib.parse
+        api = 'https://www.pocket.tw/api/cm/MobileService/ashx/GetDtnoData.ashx'
+        def series(dtno, major):
+            mj = f';MajorTable={major}' if major else ''
+            ps = f'AssignID={assign_id};DTRange=500;MTPeriod=0;DTMode=0;DTOrder=1{mj}'
+            url = f'{api}?action=getdtnodata&DtNo={dtno}&ParamStr={urllib.parse.quote(ps)}&FilterNo=0'
+            r = _get_lax(url, timeout=20)
+            return (r.json() or {}).get('Data', []) if r.status_code == 200 else []
+        aum_by = {str(x[0]): parse_num(x[7]) for x in series('60465380', '')}
+        nav_by = {str(x[0]): parse_num(x[2]) for x in series('61498322', 'M708')}
+        dates = sorted(d for d in aum_by if d in nav_by and nav_by[d] > 0)
+        target = transaction_date.strftime('%Y%m%d')
+        if target not in dates:
+            return None
+        idx = dates.index(target)
+        if idx == 0:
+            return None
+        nav = nav_by[target]
+        units_t = aum_by[target] * 1e8 / nav
+        prev = dates[idx - 1]
+        units_p = aum_by[prev] * 1e8 / nav_by[prev]
+        return {'netSub': ((units_t - units_p) * nav) / 1e8, 'aum': aum_by[target]}
+    except Exception as e:
+        print(f'  cmoney {assign_id} {transaction_date}: {e}')
+        return None
+
+
 def fetch_all_peer_data(transaction_date: date) -> list:
     """Fetch net subscription data for all peer ETFs on the given date."""
     # Build shared ezmoney session once for all ezmoney ETFs
@@ -378,6 +561,16 @@ def fetch_all_peer_data(transaction_date: date) -> list:
             data = fetch_capital_day(etf['key'], transaction_date)
         elif etf['source'] == 'fubon':
             data = fetch_fubon_day(etf['key'], transaction_date)
+        elif etf['source'] == 'tsit':
+            data = fetch_tsit_day(etf['key'], transaction_date)
+        elif etf['source'] == 'ctbc':
+            data = fetch_ctbc_day(etf['key'], transaction_date)
+        elif etf['source'] == 'allianz':
+            data = fetch_allianz_day(etf['key'], transaction_date)
+        elif etf['source'] == 'yuanta':
+            data = fetch_yuanta_day(etf['key'], transaction_date)
+        elif etf['source'] == 'cmoney':
+            data = fetch_cmoney_day(etf['key'], transaction_date)
         elif etf['source'] == 'fhtrust':
             # For fhtrust, netSub comes from PCF DIFF_UNIT calculation
             # Use fhtrust PCF API (same as etf-scale)
@@ -407,7 +600,10 @@ def fetch_all_peer_data(transaction_date: date) -> list:
 
 def build_peer_html(peer_results: list, transaction_date: date) -> str:
     rows_html = ''
+    # 每日報告維持原本只列台股主動式ETF；海外群組只寫進 DB 給網頁分頁用，不混進這封報告。
     for etf in peer_results:
+        if etf.get('group', 'tw_active') != 'tw_active':
+            continue
         d = etf['data']
         if d and d['netSub'] is not None:
             ns = d['netSub']
@@ -762,6 +958,7 @@ def write_peer_to_supabase(peer_results: list, transaction_date: date):
                 'ticker':  etf['ticker'],
                 'net_sub': round(float(etf['data']['netSub']), 6),
                 'aum':     round(float(etf['data']['aum']),    6),
+                'group':   etf.get('group', 'tw_active'),
             }
             for etf in peer_results
             if etf.get('data')

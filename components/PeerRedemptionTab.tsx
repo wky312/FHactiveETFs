@@ -1,10 +1,9 @@
 'use client';
 import { useState, useCallback, useRef, useMemo } from 'react';
 import * as XLSX from 'xlsx';
-import { ScaleDay } from '@/lib/fhtrustScale';
-import { EzmoneyDay } from '@/lib/ezmoneyScale';
-import { CapitalDay } from '@/lib/capitalScale';
-import { FubonDay } from '@/lib/fubonScale';
+
+// 各申贖來源的回傳列形狀一致，統一用這個型別。
+interface ScaleDay { date: string; netSub: number; aum: number }
 
 const RED    = '#C00000';
 const GREEN  = '#1A6B45';
@@ -14,26 +13,42 @@ const BORDER = '#EEE9E4';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-// Configured ETFs
-const FHTRUST_ETFS = [
-  { ticker: '00991A', name: '復華',    fundId: 'ETF23' },
-];
-const EZMONEY_ETFS = [
-  { ticker: '00981A', name: '統一981', fundCode: '49YTW' },
-  { ticker: '00403A', name: '統一403', fundCode: '63YTW' },
-];
-const CAPITAL_ETFS = [
-  { ticker: '00982A', name: '群益982', fundId: '399' },
-  { ticker: '00992A', name: '群益992', fundId: '500' },
-];
-const FUBON_ETFS = [
-  { ticker: '00405A', name: '富邦405', stkId: '00405A' },
-];
-const ALL_TICKERS = [
-  ...FHTRUST_ETFS.map(e => e.ticker),
-  ...EZMONEY_ETFS.map(e => e.ticker),
-  ...CAPITAL_ETFS.map(e => e.ticker),
-  ...FUBON_ETFS.map(e => e.ticker),
+// 申贖資料來源：每檔 ETF 對應一個投信爬蟲與其 key（fundId / fundCode / stkId）。
+// source 為 undefined 代表該家投信申贖爬蟲尚未接通 → 該欄一律顯示「—」。
+type RedemptionSource = 'fhtrust' | 'ezmoney' | 'capital' | 'fubon' | 'tsit' | 'ctbc' | 'allianz' | 'yuanta' | 'cmoney';
+interface RedemptionEtf {
+  ticker: string;
+  name: string;
+  source?: RedemptionSource;
+  key?: string;
+}
+interface RedemptionGroup { id: string; label: string; etfs: RedemptionEtf[] }
+
+const REDEMPTION_GROUPS: RedemptionGroup[] = [
+  {
+    id: 'tw_active',
+    label: '台股主動式ETF',
+    etfs: [
+      { ticker: '00991A', name: '復華',    source: 'fhtrust', key: 'ETF23' },
+      { ticker: '00981A', name: '統一981', source: 'ezmoney', key: '49YTW' },
+      { ticker: '00403A', name: '統一403', source: 'ezmoney', key: '63YTW' },
+      { ticker: '00982A', name: '群益982', source: 'capital', key: '399' },
+      { ticker: '00992A', name: '群益992', source: 'capital', key: '500' },
+      { ticker: '00405A', name: '富邦405', source: 'fubon',   key: '00405A' },
+    ],
+  },
+  {
+    id: 'overseas',
+    label: '海外主動式ETF',
+    etfs: [
+      { ticker: '00983A', name: '中信ARK創新',  source: 'ctbc',    key: 'E0034'  },  // 中信投信 FID
+      { ticker: '00986A', name: '台新全球龍頭', source: 'tsit',    key: '00986A' },  // 台新投信（HTML）
+      { ticker: '00988A', name: '統一全球創新', source: 'ezmoney', key: '61YTW'  },  // 統一 ezmoney
+      { ticker: '00990A', name: '元大AI新經濟', source: 'yuanta',  key: '00990A' },  // 元大投信
+      { ticker: '00998A', name: '復華全球金融', source: 'cmoney',  key: '00998A' },  // 復華無官方申贖 → CMoney 推算
+      { ticker: '00402A', name: '安聯美國科技', source: 'allianz', key: 'E0003'  },  // 安聯投信 FundNo
+    ],
+  },
 ];
 
 type PeerSortKey = 'date' | string;
@@ -101,35 +116,16 @@ interface DayRow {
 
 const norm = (d: string) => d.replace(/\//g, '-'); // → YYYY-MM-DD
 
-function mergeDays(
-  fhData: Map<string, ScaleDay[]>,
-  ezData: Map<string, EzmoneyDay[]>,
-  capData: Map<string, CapitalDay[]>,
-  fubonData: Map<string, FubonDay[]>,
-): DayRow[] {
+// 把各來源回傳的 ScaleDay 陣列（依 ticker 分組）合併成依日期排列的 DayRow[]。
+function mergeDays(perTicker: Map<string, ScaleDay[]>, tickers: string[]): DayRow[] {
   const dateSet = new Set<string>();
-  fhData.forEach(days    => days.forEach(d => dateSet.add(norm(d.date))));
-  ezData.forEach(days    => days.forEach(d => dateSet.add(norm(d.date))));
-  capData.forEach(days   => days.forEach(d => dateSet.add(norm(d.date))));
-  fubonData.forEach(days => days.forEach(d => dateSet.add(norm(d.date))));
+  perTicker.forEach(days => days.forEach(d => dateSet.add(norm(d.date))));
 
   const rows: DayRow[] = [];
   for (const date of Array.from(dateSet).sort()) {
     const data: DayRow['data'] = {};
-    for (const { ticker, fundId } of FHTRUST_ETFS) {
-      const d = (fhData.get(fundId) ?? []).find(x => norm(x.date) === date);
-      data[ticker] = d ? { netSub: d.netSub, aum: d.aum } : null;
-    }
-    for (const { ticker, fundCode } of EZMONEY_ETFS) {
-      const d = (ezData.get(fundCode) ?? []).find(x => norm(x.date) === date);
-      data[ticker] = d ? { netSub: d.netSub, aum: d.aum } : null;
-    }
-    for (const { ticker, fundId } of CAPITAL_ETFS) {
-      const d = (capData.get(fundId) ?? []).find(x => norm(x.date) === date);
-      data[ticker] = d ? { netSub: d.netSub, aum: d.aum } : null;
-    }
-    for (const { ticker, stkId } of FUBON_ETFS) {
-      const d = (fubonData.get(stkId) ?? []).find(x => norm(x.date) === date);
+    for (const ticker of tickers) {
+      const d = (perTicker.get(ticker) ?? []).find(x => norm(x.date) === date);
       data[ticker] = d ? { netSub: d.netSub, aum: d.aum } : null;
     }
     rows.push({ date, data });
@@ -137,11 +133,11 @@ function mergeDays(
   return rows.reverse();
 }
 
-function exportExcel(rows: DayRow[], startDate: string, endDate: string) {
-  const headers = ['日期', ...ALL_TICKERS];
-  const subsData = rows.map(r => [r.date, ...ALL_TICKERS.map(t => r.data[t] != null ? parseFloat((r.data[t]!.netSub).toFixed(2)) : '')]);
-  const aumData  = rows.map(r => [r.date, ...ALL_TICKERS.map(t => r.data[t] != null ? parseFloat((r.data[t]!.aum).toFixed(2))    : '')]);
-  const colWidths = [{ wch: 12 }, ...ALL_TICKERS.map(() => ({ wch: 12 }))];
+function exportExcel(rows: DayRow[], tickers: string[], groupLabel: string, startDate: string, endDate: string) {
+  const headers = ['日期', ...tickers];
+  const subsData = rows.map(r => [r.date, ...tickers.map(t => r.data[t] != null ? parseFloat((r.data[t]!.netSub).toFixed(2)) : '')]);
+  const aumData  = rows.map(r => [r.date, ...tickers.map(t => r.data[t] != null ? parseFloat((r.data[t]!.aum).toFixed(2))    : '')]);
+  const colWidths = [{ wch: 12 }, ...tickers.map(() => ({ wch: 12 }))];
   const subsWs = XLSX.utils.aoa_to_sheet([headers, ...subsData]);
   subsWs['!cols'] = colWidths;
   const aumWs  = XLSX.utils.aoa_to_sheet([headers, ...aumData]);
@@ -149,7 +145,7 @@ function exportExcel(rows: DayRow[], startDate: string, endDate: string) {
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, subsWs, '淨申贖(億)');
   XLSX.utils.book_append_sheet(wb, aumWs,  '基金規模(億)');
-  XLSX.writeFile(wb, `同業申贖觀測_${startDate}_${endDate}.xlsx`);
+  XLSX.writeFile(wb, `同業申贖觀測_${groupLabel}_${startDate}_${endDate}.xlsx`);
 }
 
 export default function PeerRedemptionTab() {
@@ -157,6 +153,7 @@ export default function PeerRedemptionTab() {
   const defEnd   = localStr(prevWeekday(today));
   const defStart = localStr(new Date(new Date(defEnd.replace(/\//g,'-')).setDate(new Date(defEnd.replace(/\//g,'-')).getDate() - 13)));
 
+  const [group,        setGroup]        = useState('tw_active');
   const [startDate,    setStartDate]    = useState(defStart.replace(/\//g, '-'));
   const [endDate,      setEndDate]      = useState(defEnd.replace(/\//g, '-'));
   const [loading,      setLoading]      = useState(false);
@@ -169,6 +166,20 @@ export default function PeerRedemptionTab() {
   const [aumSortAsc,   setAumSortAsc]   = useState(false);
   const subsRef = useRef<HTMLDivElement>(null);
   const aumRef  = useRef<HTMLDivElement>(null);
+
+  const currentGroup = useMemo(() => REDEMPTION_GROUPS.find(g => g.id === group) ?? REDEMPTION_GROUPS[0], [group]);
+  const groupEtfs    = currentGroup.etfs;
+  const allTickers   = useMemo(() => groupEtfs.map(e => e.ticker), [groupEtfs]);
+
+  // 切換群組：清空上一組的結果與排序，避免殘留欄位。
+  const switchGroup = (id: string) => {
+    if (id === group) return;
+    setGroup(id);
+    setRows(null);
+    setDataSource(null);
+    setSubsSortKey('date');
+    setAumSortKey('date');
+  };
 
   const saveImage = useCallback(async (ref: React.RefObject<HTMLDivElement | null>, filename: string) => {
     const el = ref.current;
@@ -195,30 +206,35 @@ export default function PeerRedemptionTab() {
   const toApi = (s: string) => s.replace(/-/g, '/');
 
   const loadLive = useCallback(async (sdArg: string = startDate, edArg: string = endDate) => {
-    const sd = toApi(sdArg);
+    const sd = toApi(sdArg);      // 斜線格式 YYYY/MM/DD（fhtrust、ezmoney）
     const ed = toApi(edArg);
-    const sdDash = sdArg;
+    const sdDash = sdArg;         // 連字號格式 YYYY-MM-DD（capital、fubon）
     const edDash = edArg;
-    const [fhMap, ezMap, capMap, fubonMap] = await Promise.all([
-      Promise.all(FHTRUST_ETFS.map(async ({ fundId }) => {
-        const r = await fetch(`/api/etf-scale?startDate=${encodeURIComponent(sd)}&endDate=${encodeURIComponent(ed)}&fundId=${encodeURIComponent(fundId)}`);
-        return { fundId, data: r.ok ? (await r.json() as ScaleDay[]) : [] };
-      })).then(arr => new Map(arr.map(({ fundId, data }) => [fundId, data]))),
-      Promise.all(EZMONEY_ETFS.map(async ({ fundCode }) => {
-        const r = await fetch(`/api/ezmoney-scale?fundCode=${encodeURIComponent(fundCode)}&startDate=${encodeURIComponent(sd)}&endDate=${encodeURIComponent(ed)}`);
-        return { fundCode, data: r.ok ? (await r.json() as EzmoneyDay[]) : [] };
-      })).then(arr => new Map(arr.map(({ fundCode, data }) => [fundCode, data]))),
-      Promise.all(CAPITAL_ETFS.map(async ({ fundId }) => {
-        const r = await fetch(`/api/capital-scale?fundId=${encodeURIComponent(fundId)}&startDate=${encodeURIComponent(sdDash)}&endDate=${encodeURIComponent(edDash)}`);
-        return { fundId, data: r.ok ? (await r.json() as CapitalDay[]) : [] };
-      })).then(arr => new Map(arr.map(({ fundId, data }) => [fundId, data]))),
-      Promise.all(FUBON_ETFS.map(async ({ stkId }) => {
-        const r = await fetch(`/api/fubon-scale?stkId=${encodeURIComponent(stkId)}&startDate=${encodeURIComponent(sdDash)}&endDate=${encodeURIComponent(edDash)}`);
-        return { stkId, data: r.ok ? (await r.json() as FubonDay[]) : [] };
-      })).then(arr => new Map(arr.map(({ stkId, data }) => [stkId, data]))),
-    ]);
-    return mergeDays(fhMap, ezMap, capMap, fubonMap);
-  }, [startDate, endDate]);
+    const enc = encodeURIComponent;
+
+    // 只打有接通爬蟲的 ETF；未接通者該欄維持「—」。
+    const scrapeable = groupEtfs.filter(e => e.source && e.key);
+    const results = await Promise.all(scrapeable.map(async (e) => {
+      let url = '';
+      switch (e.source) {
+        case 'fhtrust': url = `/api/etf-scale?startDate=${enc(sd)}&endDate=${enc(ed)}&fundId=${enc(e.key!)}`; break;
+        case 'ezmoney': url = `/api/ezmoney-scale?fundCode=${enc(e.key!)}&startDate=${enc(sd)}&endDate=${enc(ed)}`; break;
+        case 'capital': url = `/api/capital-scale?fundId=${enc(e.key!)}&startDate=${enc(sdDash)}&endDate=${enc(edDash)}`; break;
+        case 'fubon':   url = `/api/fubon-scale?stkId=${enc(e.key!)}&startDate=${enc(sdDash)}&endDate=${enc(edDash)}`; break;
+        // 海外群組（皆用 key 參數 + dash 日期）
+        case 'tsit':    url = `/api/tsit-scale?key=${enc(e.key!)}&startDate=${enc(sdDash)}&endDate=${enc(edDash)}`; break;
+        case 'ctbc':    url = `/api/ctbc-scale?key=${enc(e.key!)}&startDate=${enc(sdDash)}&endDate=${enc(edDash)}`; break;
+        case 'allianz': url = `/api/allianz-scale?key=${enc(e.key!)}&startDate=${enc(sdDash)}&endDate=${enc(edDash)}`; break;
+        case 'yuanta':  url = `/api/yuanta-scale?key=${enc(e.key!)}&startDate=${enc(sdDash)}&endDate=${enc(edDash)}`; break;
+        case 'cmoney':  url = `/api/cmoney-scale?key=${enc(e.key!)}&startDate=${enc(sdDash)}&endDate=${enc(edDash)}`; break;
+      }
+      const r = await fetch(url);
+      return { ticker: e.ticker, data: r.ok ? (await r.json() as ScaleDay[]) : [] };
+    }));
+
+    const perTicker = new Map(results.map(({ ticker, data }) => [ticker, data]));
+    return mergeDays(perTicker, allTickers);
+  }, [startDate, endDate, groupEtfs, allTickers]);
 
   const load = useCallback(async (forceLive = false) => {
     setLoading(true);
@@ -227,7 +243,7 @@ export default function PeerRedemptionTab() {
     setDataSource(null);
     try {
       if (!forceLive) {
-        const r = await fetch(`/api/peer-redemption-db?startDate=${startDate}&endDate=${endDate}`);
+        const r = await fetch(`/api/peer-redemption-db?group=${encodeURIComponent(group)}&startDate=${startDate}&endDate=${endDate}`);
         if (r.ok) {
           const json = await r.json();
           const dbRows: DayRow[] = json.rows ?? [];
@@ -262,7 +278,7 @@ export default function PeerRedemptionTab() {
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate, loadLive]);
+  }, [startDate, endDate, group, loadLive]);
 
   // Quick range
   const setRange = (days: number) => {
@@ -314,6 +330,24 @@ export default function PeerRedemptionTab() {
 
   return (
     <div style={{ fontFamily: SANS, color: TEXT }}>
+
+      {/* Group selector */}
+      <div style={{ display: 'flex', gap: 6, marginBottom: 14, flexWrap: 'wrap' }}>
+        {REDEMPTION_GROUPS.map(g => {
+          const on = g.id === group;
+          return (
+            <button key={g.id} onClick={() => switchGroup(g.id)} disabled={loading}
+              style={{
+                padding: '6px 16px', borderRadius: 20, cursor: loading ? 'not-allowed' : 'pointer',
+                fontSize: '.82rem', fontWeight: 600,
+                border: on ? `1px solid ${RED}` : `1px solid ${BORDER}`,
+                background: on ? RED : '#fff', color: on ? '#fff' : SUB,
+              }}>
+              {g.label}
+            </button>
+          );
+        })}
+      </div>
 
       {/* Controls */}
       <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 10, flexWrap: 'wrap' }}>
@@ -372,7 +406,7 @@ export default function PeerRedemptionTab() {
           {/* Export button */}
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 12 }}>
             <button
-              onClick={() => exportExcel(rows, startDate, endDate)}
+              onClick={() => exportExcel(rows, allTickers, currentGroup.label, startDate, endDate)}
               style={{ padding: '6px 16px', background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 6, cursor: 'pointer', fontSize: '.8rem', color: SUB, fontFamily: SANS, fontWeight: 500 }}
             >
               ↓ 匯出 Excel（兩張工作表）
@@ -383,7 +417,7 @@ export default function PeerRedemptionTab() {
           <div ref={subsRef} style={{ background: '#fff', marginBottom: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <span style={{ fontSize: '.78rem', color: SUB }}>單位：億元　正值 = 淨申購（紅）　負值 = 淨贖回（綠）</span>
-            <button onClick={() => saveImage(subsRef, `同業淨申贖_${endDate}.png`)}
+            <button onClick={() => saveImage(subsRef, `同業淨申贖_${currentGroup.label}_${endDate}.png`)}
               style={{ padding: '4px 12px', background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 6, cursor: 'pointer', fontSize: '.78rem', color: SUB }}>
               儲存 / 分享
             </button>
@@ -393,7 +427,7 @@ export default function PeerRedemptionTab() {
               <thead>
                 <tr>
                   <th onClick={() => toggleSubsSort('date')} style={{ ...TH, textAlign: 'left', minWidth: 100 }}>{subsLabel('date', '日期')}</th>
-                  {ALL_TICKERS.map(t => (
+                  {allTickers.map(t => (
                     <th key={t} onClick={() => toggleSubsSort(t)} style={{ ...TH, textAlign: 'right', minWidth: 100 }}>
                       {subsSortKey === t ? subsLabel(t, t) : t}<br />
                       <span style={{ fontWeight: 400, fontSize: '.7rem', opacity: .8 }}>淨申贖(億)</span>
@@ -405,7 +439,7 @@ export default function PeerRedemptionTab() {
                 {sortedSubsRows.map((row, ri) => (
                   <tr key={row.date} style={{ background: ri % 2 === 0 ? '#fff' : '#FAFAF9', borderBottom: `1px solid ${BORDER}` }}>
                     <td style={{ padding: '7px 12px', fontFamily: MONO, fontSize: '.8rem', color: TEXT }}>{row.date}</td>
-                    {ALL_TICKERS.map(t => {
+                    {allTickers.map(t => {
                       const d = row.data[t];
                       return (
                         <td key={t} style={{ padding: '7px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', fontWeight: 600, color: subColor(d?.netSub ?? null) }}>
@@ -424,7 +458,7 @@ export default function PeerRedemptionTab() {
           <div ref={aumRef} style={{ background: '#fff' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
             <span style={{ fontSize: '.78rem', color: SUB }}>基金規模</span>
-            <button onClick={() => saveImage(aumRef, `同業基金規模_${endDate}.png`)}
+            <button onClick={() => saveImage(aumRef, `同業基金規模_${currentGroup.label}_${endDate}.png`)}
               style={{ padding: '4px 12px', background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 6, cursor: 'pointer', fontSize: '.78rem', color: SUB }}>
               儲存 / 分享
             </button>
@@ -434,7 +468,7 @@ export default function PeerRedemptionTab() {
               <thead>
                 <tr>
                   <th onClick={() => toggleAumSort('date')} style={{ ...TH, textAlign: 'left', minWidth: 100 }}>{aumLabel('date', '日期')}</th>
-                  {ALL_TICKERS.map(t => (
+                  {allTickers.map(t => (
                     <th key={t} onClick={() => toggleAumSort(t)} style={{ ...TH, textAlign: 'right', minWidth: 100 }}>
                       {aumSortKey === t ? aumLabel(t, t) : t}<br />
                       <span style={{ fontWeight: 400, fontSize: '.7rem', opacity: .8 }}>規模</span>
@@ -446,7 +480,7 @@ export default function PeerRedemptionTab() {
                 {sortedAumRows.map((row, ri) => (
                   <tr key={row.date} style={{ background: ri % 2 === 0 ? '#fff' : '#FAFAF9', borderBottom: `1px solid ${BORDER}` }}>
                     <td style={{ padding: '7px 12px', fontFamily: MONO, fontSize: '.8rem', color: TEXT }}>{row.date}</td>
-                    {ALL_TICKERS.map(t => {
+                    {allTickers.map(t => {
                       const d = row.data[t];
                       return (
                         <td key={t} style={{ padding: '7px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', color: SUB }}>

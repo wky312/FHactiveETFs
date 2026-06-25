@@ -3,8 +3,6 @@ import { createClient } from '@supabase/supabase-js';
 
 export const dynamic = 'force-dynamic';
 
-const ALL_TICKERS = ['00991A', '00981A', '00403A', '00982A', '00992A', '00405A'];
-
 function getSupabase() {
   const url = process.env.SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_KEY;
@@ -15,6 +13,7 @@ function getSupabase() {
 export async function GET(request: NextRequest) {
   const startDate = request.nextUrl.searchParams.get('startDate'); // YYYY-MM-DD
   const endDate   = request.nextUrl.searchParams.get('endDate');
+  const group     = request.nextUrl.searchParams.get('group') ?? 'tw_active';
 
   if (!startDate || !endDate) {
     return NextResponse.json({ error: 'Missing startDate or endDate' }, { status: 400 });
@@ -25,6 +24,7 @@ export async function GET(request: NextRequest) {
     const { data, error } = await supabase
       .from('peer_redemption')
       .select('date, ticker, net_sub, aum')
+      .eq('group', group)
       .gte('date', startDate)
       .lte('date', endDate)
       .order('date', { ascending: false });
@@ -32,15 +32,13 @@ export async function GET(request: NextRequest) {
     if (error) throw new Error(error.message);
 
     // Transform flat rows → DayRow[]  { date, data: { ticker: {netSub, aum} } }
+    // Columns are driven by the client's group definition, so we only emit the
+    // tickers that actually have data; the frontend renders '—' for the rest.
     const dayMap = new Map<string, Record<string, { netSub: number; aum: number } | null>>();
 
     for (const row of (data ?? [])) {
       const d = (row.date as string).slice(0, 10); // ensure YYYY-MM-DD
-      if (!dayMap.has(d)) {
-        const entry: Record<string, { netSub: number; aum: number } | null> = {};
-        for (const t of ALL_TICKERS) entry[t] = null;
-        dayMap.set(d, entry);
-      }
+      if (!dayMap.has(d)) dayMap.set(d, {});
       dayMap.get(d)![row.ticker] = { netSub: row.net_sub, aum: row.aum };
     }
 

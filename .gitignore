@@ -45,3 +45,4 @@ dev.log
 
 # Python bytecode cache
 __pycache__/
+.env*.local

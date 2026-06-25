@@ -54,7 +54,9 @@ def get_complete_dates(start: date, end: date) -> set:
             .lte('date', str(end))
             .execute()
         )
-        expected = {e['ticker'] for e in PEER_ETFS}
+        # 只把「有接通爬蟲」的 ticker 算進完成度；尚未接通申贖來源的 ETF
+        # 永遠不會有資料，否則該日永遠標不成完成、被無限重抓。
+        expected = {e['ticker'] for e in PEER_ETFS if e.get('source')}
         counts = defaultdict(set)
         for row in result.data:
             counts[row['date']].add(row['ticker'])

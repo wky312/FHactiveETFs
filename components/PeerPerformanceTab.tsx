@@ -4,8 +4,9 @@ import * as XLSX from 'xlsx';
 import type { PeerPerfResult } from '@/app/api/peer-performance/route';
 
 const GROUPS = [
-  { id: 'active', label: '台股主動式ETF' },
-  { id: 'tw50',   label: '台股50' },
+  { id: 'active',   label: '台股主動式ETF' },
+  { id: 'overseas', label: '海外主動式ETF' },
+  { id: 'tw50',     label: '台股50' },
 ];
 
 const TEXT   = '#1C1C1E';
@@ -79,7 +80,7 @@ function exportExcel(
   ws['!cols'] = [{ wch: 10 }, { wch: 22 }, { wch: 8 }, ...headers.slice(3).map(() => ({ wch: 14 }))];
   const wb = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wb, ws, '同業績效');
-  const groupLabel = group === 'active' ? '主動ETF' : '台股50';
+  const groupLabel = GROUPS.find(g => g.id === group)?.label ?? group;
   XLSX.writeFile(wb, `同業績效觀測_${groupLabel}_${dataDate || new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 

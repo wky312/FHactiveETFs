@@ -14,8 +14,9 @@ const MONO = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
 const GROUPS = [
-  { id: 'active', label: '台股主動式ETF' },
-  { id: 'tw50',   label: '台股50' },
+  { id: 'active',   label: '台股主動式ETF' },
+  { id: 'overseas', label: '海外主動式ETF' },
+  { id: 'tw50',     label: '台股50' },
 ];
 
 // 預設線條配色（高辨識度）

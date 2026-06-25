@@ -33,6 +33,17 @@ export const PEER_GROUPS: Record<string, { label: string; items: PeerItem[] }> =
       { ticker: '^TWOII', yfTicker: '^TWOII',    name: '台灣OTC指數' },
     ],
   },
+  overseas: {
+    label: '海外主動式ETF',
+    items: [
+      { ticker: '00983A', yfTicker: '00983A.TW', name: '主動中信ARK創新' },
+      { ticker: '00986A', yfTicker: '00986A.TW', name: '主動台新全球龍頭' },
+      { ticker: '00988A', yfTicker: '00988A.TW', name: '主動統一全球創新' },
+      { ticker: '00990A', yfTicker: '00990A.TW', name: '主動元大AI新經濟' },
+      { ticker: '00998A', yfTicker: '00998A.TWO', name: '主動復華全球金融' },
+      { ticker: '00402A', yfTicker: '00402A.TW', name: '主動安聯美國科技' },
+    ],
+  },
   tw50: {
     label: '台股50',
     items: [
