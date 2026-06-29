@@ -21,6 +21,7 @@ interface StockAttr {
 interface AttrResult {
   fundA: string; fundB: string; start: string; end: string; days: number; totalReturn: boolean;
   retA_geo: number; retB_geo: number; gap_geo: number; check: number; stocks: StockAttr[];
+  warning?: string; requestedEnd?: string;
 }
 
 const pct = (x: number) => `${x >= 0 ? '+' : ''}${(x * 100).toFixed(2)}%`;
@@ -99,16 +100,20 @@ function TableCard({ title, list, valOf, clbl, fa, fb }:
 }
 
 export default function AttributionTab() {
+  // 進站時若網址帶了 a/b/start/end/total（分享連結），用它當初值，方便別人打開即見同一份比較。
+  const sp0 = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
   const [funds, setFunds] = useState<FundOption[]>([]);
-  const [a, setA] = useState('00981A');
-  const [b, setB] = useState('00991A');
-  const [start, setStart] = useState('2026-03-31');
-  const [end, setEnd] = useState('');
-  const [total, setTotal] = useState(true);
+  const [a, setA] = useState(sp0?.get('a') || '00981A');
+  const [b, setB] = useState(sp0?.get('b') || '00991A');
+  const [start, setStart] = useState(sp0?.get('start') || '2026-03-31');
+  const [end, setEnd] = useState(sp0?.get('end') || '');
+  const [total, setTotal] = useState(sp0 ? sp0.get('total') !== '0' : true);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
   const [res, setRes] = useState<AttrResult | null>(null);
+  const [copied, setCopied] = useState(false);
   const resultRef = useRef<HTMLDivElement>(null);
+  const autoRan = useRef(false);
 
   useEffect(() => {
     fetch('/api/attribution?funds=1')
@@ -126,6 +131,12 @@ export default function AttributionTab() {
 
   const run = useCallback(async () => {
     setLoading(true); setErr(''); setRes(null);
+    // 把目前條件同步進網址，這樣分享網址就會帶著這份比較（而不是只有首頁）。
+    const sp = new URLSearchParams(window.location.search);
+    sp.set('tab', 'attribution'); sp.set('a', a); sp.set('b', b); sp.set('start', start);
+    if (end) sp.set('end', end); else sp.delete('end');
+    sp.set('total', total ? '1' : '0');
+    window.history.replaceState(null, '', `${window.location.pathname}?${sp.toString()}`);
     try {
       const q = new URLSearchParams({ a, b, start, end, total: total ? '1' : '0' });
       const r = await fetch(`/api/attribution?${q}`, { cache: 'no-store' });
@@ -136,6 +147,21 @@ export default function AttributionTab() {
       setErr(e instanceof Error ? e.message : '查詢失敗');
     } finally { setLoading(false); }
   }, [a, b, start, end, total]);
+
+  // 分享連結進站 → 自動跑一次比較。
+  useEffect(() => {
+    if (autoRan.current) return;
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.get('a') && sp.get('b') && sp.get('start')) { autoRan.current = true; run(); }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  const copyLink = useCallback(async () => {
+    try {
+      await navigator.clipboard.writeText(window.location.href);
+      setCopied(true); setTimeout(() => setCopied(false), 1800);
+    } catch { /* 剪貼簿不可用時略過 */ }
+  }, []);
 
   /* 儲存成表格（Excel）：摘要 + 全個股歸因明細 */
   const exportXlsx = useCallback(() => {
@@ -217,11 +243,18 @@ export default function AttributionTab() {
         <>
           {/* 工具列：儲存表格 / 分享圖片 */}
           <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end', marginBottom: 12, flexWrap: 'wrap' }}>
+            <button onClick={copyLink} style={toolBtn}>{copied ? '✓ 連結已複製' : '複製分享連結'}</button>
             <button onClick={exportXlsx} style={toolBtn}>儲存成表格（Excel）</button>
             <button onClick={shareImage} style={toolBtn}>分享 / 儲存圖片</button>
           </div>
 
           <div ref={resultRef} style={{ background: '#FFFFFF', padding: 2 }}>
+          {res.warning && (
+            <div style={{ background: '#FFF8E6', border: '1px solid #F2D98A', borderRadius: 8,
+              padding: '10px 14px', color: '#8A6A1A', fontSize: '.84rem', marginBottom: 14, lineHeight: 1.6 }}>
+              ⚠ {res.warning}
+            </div>
+          )}
           {/* 摘要 */}
           <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10,
             padding: '14px 18px', marginBottom: 18, fontSize: '.88rem', lineHeight: 1.9, color: TEXT }}>

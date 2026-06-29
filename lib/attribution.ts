@@ -72,6 +72,8 @@ export interface AttrResult {
   retB_geo: number; retB_arith: number;
   gap_geo: number; gap_arith: number;
   check: number; stocks: StockAttr[];
+  warning?: string;            // 區間尾端缺報價、已自動截短時的提醒
+  requestedEnd?: string;       // 使用者要求的結束日（可能晚於有報價的最後一日）
 }
 
 type Hold = { ticker: string; date: string; stockid: string; stockname: string; prate: number | string };
@@ -143,15 +145,17 @@ export async function compute(
   let lastA = new Map(weight[A].get(dates[0]) ?? []);
   let lastB = new Map(weight[B].get(dates[0]) ?? []);
   let prev = dates[0];
+  let lastPriced = '';   // 最後一個「真的有報價、能算出報酬」的交易日
 
   for (let i = 1; i < dates.length; i++) {
     const d = dates[i];
-    let dayA = 0, dayB = 0;
+    let dayA = 0, dayB = 0, priced = false;
     const universe = new Set([...lastA.keys(), ...lastB.keys()]);
     for (const sid of universe) {
       const pm = price.get(sid);
       const p0 = pm?.get(prev), p1 = pm?.get(d);
       if (p0 == null || p1 == null || p0 === 0) continue;
+      priced = true;
       const r = (p1 + (div.get(`${sid}|${d}`) ?? 0)) / p0 - 1;
       const wa = lastA.get(sid) ?? 0;
       const wb = lastB.get(sid) ?? 0;
@@ -161,10 +165,23 @@ export async function compute(
       add(contribB, sid, wb * r);
     }
     retA += dayA; retB += dayB; compA *= 1 + dayA; compB *= 1 + dayB;
+    if (priced) lastPriced = d;
     if (weight[A].has(d)) lastA = new Map(weight[A].get(d)!);
     if (weight[B].has(d)) lastB = new Map(weight[B].get(d)!);
     prev = d;
   }
+
+  const requestedEnd = dates[dates.length - 1];
+  // 整段區間都沒有可用報價 → 明白報錯，而不是回一堆 0 讓人以為壞掉。
+  if (!lastPriced) {
+    return { error: `此區間（${dates[0]} → ${requestedEnd}）查無個股報價，無法計算。`
+      + `最近交易日的價格可能尚未更新，請改用較早的結束日或稍後再試。` };
+  }
+  // 尾端有交易日缺報價 → 自動截短到最後有報價日，並附上提醒（避免「以為算到 6/26、其實只到 6/24」）。
+  const warning = lastPriced !== requestedEnd
+    ? `價格資料僅更新至 ${lastPriced}，${requestedEnd} 之前部分交易日尚無報價；`
+      + `結果已自動截短至 ${lastPriced}。`
+    : undefined;
 
   const avgWeight = (fund: string, sid: string): number => {
     const days = weight[fund];
@@ -195,11 +212,11 @@ export async function compute(
   for (const v of gap.values()) check += v;
 
   return {
-    fundA: A, fundB: B, start: dates[0], end: dates[dates.length - 1],
-    days: dates.length, totalReturn,
+    fundA: A, fundB: B, start: dates[0], end: lastPriced,
+    days: dates.indexOf(lastPriced) + 1, totalReturn,
     retA_geo: compA - 1, retA_arith: retA,
     retB_geo: compB - 1, retB_arith: retB,
     gap_geo: (compA - 1) - (compB - 1), gap_arith: retA - retB,
-    check, stocks,
+    check, stocks, warning, requestedEnd,
   };
 }

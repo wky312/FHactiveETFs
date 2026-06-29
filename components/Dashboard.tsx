@@ -171,9 +171,25 @@ const Card = forwardRef<HTMLDivElement, { title: string; children: React.ReactNo
 Card.displayName = 'Card';
 
 /* ── Main Dashboard ── */
+const ALL_TABS = NAV_GROUPS.flatMap(g => g.items.map(it => it.id));
+
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('summary');
   const [selectedEtf, setSelectedEtf] = useState<EtfConfig>(DEFAULT_ETF);
+
+  // 深連結：進站時依網址 ?tab= 還原分頁，切換時寫回網址，方便把特定分頁分享給別人。
+  useEffect(() => {
+    const t = new URLSearchParams(window.location.search).get('tab') as Tab | null;
+    if (t && ALL_TABS.includes(t)) setActiveTab(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+  useEffect(() => {
+    const sp = new URLSearchParams(window.location.search);
+    if (sp.get('tab') !== activeTab) {
+      sp.set('tab', activeTab);
+      window.history.replaceState(null, '', `${window.location.pathname}?${sp.toString()}`);
+    }
+  }, [activeTab]);
 
   // 導覽下拉：開啟中的分組 index、hover 中的項目 key；外部點擊或 Esc 關閉
   const [openGroup, setOpenGroup] = useState<number | null>(null);
