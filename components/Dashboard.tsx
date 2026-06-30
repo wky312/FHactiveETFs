@@ -18,6 +18,7 @@ import CumulativeReturnTab from './CumulativeReturnTab';
 import AttributionTab from './AttributionTab';
 import RiskTab from './RiskTab';
 import TurnoverTab from './TurnoverTab';
+import ConsensusTab from './ConsensusTab';
 import { captureAndShare } from '@/lib/captureImage';
 
 /* ── Design tokens ── */
@@ -32,7 +33,7 @@ const BORDER = '#E8E3DF';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'attribution' | 'risk' | 'turnover';
+type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'attribution' | 'risk' | 'turnover' | 'consensus';
 
 /* 頂部導覽分組（13 個分頁收進 4 個下拉選單；不改各分頁邏輯，只改呈現） */
 const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
@@ -56,9 +57,10 @@ const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
     { id: 'pred0050',        label: '0050 季調預測' },
   ] },
   { label: '同業觀測', items: [
-    { id: 'peer',     label: '同業申贖觀測' },
-    { id: 'peerperf', label: '同業績效觀測' },
-    { id: 'turnover', label: '經理人換手率' },
+    { id: 'peer',      label: '同業申贖觀測' },
+    { id: 'peerperf',  label: '同業績效觀測' },
+    { id: 'turnover',  label: '經理人換手率' },
+    { id: 'consensus', label: '共識持股' },
   ] },
 ];
 
@@ -556,6 +558,12 @@ export default function Dashboard() {
         {activeTab === 'turnover' && (
           <Card title="經理人換手率">
             <TurnoverTab />
+          </Card>
+        )}
+
+        {activeTab === 'consensus' && (
+          <Card title="共識持股 / 獨家壓注">
+            <ConsensusTab />
           </Card>
         )}
 
