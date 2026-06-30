@@ -16,6 +16,7 @@ import StockTrajectoryTab from './StockTrajectoryTab';
 import ScorecardTab from './ScorecardTab';
 import CumulativeReturnTab from './CumulativeReturnTab';
 import AttributionTab from './AttributionTab';
+import RiskTab from './RiskTab';
 import { captureAndShare } from '@/lib/captureImage';
 
 /* ── Design tokens ── */
@@ -30,7 +31,7 @@ const BORDER = '#E8E3DF';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'attribution';
+type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'attribution' | 'risk';
 
 /* 頂部導覽分組（13 個分頁收進 4 個下拉選單；不改各分頁邏輯，只改呈現） */
 const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
@@ -45,6 +46,7 @@ const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
     { id: 'performance', label: '股價表現' },
     { id: 'trajectory',  label: '個股軌跡' },
     { id: 'cumret',      label: '累積報酬走勢' },
+    { id: 'risk',        label: '風險指標' },
     { id: 'attribution', label: '績效個股歸因' },
   ] },
   { label: '選股與預測', items: [
@@ -552,6 +554,12 @@ export default function Dashboard() {
         {activeTab === 'cumret' && (
           <Card title="累積報酬走勢圖">
             <CumulativeReturnTab />
+          </Card>
+        )}
+
+        {activeTab === 'risk' && (
+          <Card title="風險與風險調整後報酬">
+            <RiskTab />
           </Card>
         )}
 
