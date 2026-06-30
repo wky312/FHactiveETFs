@@ -22,7 +22,7 @@ function addDays(dateStr: string, n: number): string {
   return `${y}/${mo}/${day}`;
 }
 
-async function fetchPcfForDate(targetDate: string, fundId: string): Promise<{ aum: number } | null> {
+async function fetchPcfForDate(targetDate: string, fundId: string): Promise<{ aum: number; navPerUnit: number | null } | null> {
   const results = await Promise.all([0, 1, 2, 3, 4].map(async (offset) => {
     const pcfDate = addDays(targetDate, offset);
     try {
@@ -33,7 +33,9 @@ async function fetchPcfForDate(targetDate: string, fundId: string): Promise<{ au
       const d = json?.result?.[0] ?? json;
       if (!d?.actBuyValDate) return null;
       if (String(d.actBuyValDate) !== targetDate) return null;
-      return { aum: parseNum(d.nav) / 1e8 };
+      // pnav＝每受益單位淨值（折溢價基準）
+      const pnav = parseNum(d.pnav);
+      return { aum: parseNum(d.nav) / 1e8, navPerUnit: pnav > 0 ? pnav : null };
     } catch { return null; }
   }));
   return results.find(r => r !== null) ?? null;
@@ -75,8 +77,8 @@ export async function GET(request: NextRequest) {
   ]);
 
   return NextResponse.json({
-    curr: currPcf ? { aum: currPcf.aum } : null,
-    prev: prevPcf ? { aum: prevPcf.aum } : null,
+    curr: currPcf ? { aum: currPcf.aum, navPerUnit: currPcf.navPerUnit } : null,
+    prev: prevPcf ? { aum: prevPcf.aum, navPerUnit: prevPcf.navPerUnit } : null,
     etfPrice,
   });
 }

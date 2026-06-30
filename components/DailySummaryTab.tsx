@@ -117,7 +117,7 @@ function buildRows(curr: Holding[], prev: Holding[]): Row[] {
   );
 }
 
-interface PcfSnapshot { aum: number }
+interface PcfSnapshot { aum: number; navPerUnit: number | null }
 interface EtfPrice { price: number | null; prevClose: number | null; priceAsOf: string | null }
 interface Props {
   baseDate: string; cmpDate: string;
@@ -213,6 +213,11 @@ export default function DailySummaryTab({ baseDate, cmpDate, baseHoldings, cmpHo
   const priceChangePct = priceChange !== null && etfPrice.prevClose
     ? priceChange / etfPrice.prevClose * 100 : null;
 
+  // 折溢價＝(市價 − 單位淨值) / 單位淨值。溢價(+)＝買貴於淨值、折價(−)＝買便宜於淨值
+  const navPerUnit = curr?.navPerUnit ?? null;
+  const premiumPct = etfPrice.price !== null && navPerUnit
+    ? (etfPrice.price - navPerUnit) / navPerUnit * 100 : null;
+
   const priceAsOfLabel = (() => {
     if (!etfPrice.priceAsOf) return '';
     const d = new Date(new Date(etfPrice.priceAsOf).getTime() + 8 * 3600 * 1000);
@@ -262,10 +267,17 @@ export default function DailySummaryTab({ baseDate, cmpDate, baseHoldings, cmpHo
               : null,
             color: priceChange === null ? SUB : priceChange > 0 ? UP : priceChange < 0 ? DOWN : SUB,
           },
-        ].map((c, i) => (
+          {
+            label: `折溢價${navPerUnit ? ` (淨值 ${fmtPrice(navPerUnit)})` : ''}`,
+            value: pcfLoading ? '—'
+              : premiumPct !== null ? `${premiumPct > 0 ? '+' : premiumPct < 0 ? '−' : ''}${Math.abs(premiumPct).toFixed(2)}%` : '—',
+            sub: premiumPct === null ? null : premiumPct > 0.05 ? '溢價' : premiumPct < -0.05 ? '折價' : '貼近淨值',
+            color: premiumPct === null ? SUB : premiumPct > 0 ? UP : premiumPct < 0 ? DOWN : SUB,
+          },
+        ].map((c, i, arr) => (
           <div key={c.label} style={{
             padding: '14px 18px',
-            borderRight: i < 3 ? `1px solid ${BORDER}` : 'none',
+            borderRight: i < arr.length - 1 ? `1px solid ${BORDER}` : 'none',
           }}>
             <div style={{ fontSize: '.72rem', color: SUB, fontWeight: 500, marginBottom: 5, fontFamily: SANS }}>{c.label}</div>
             <div style={{ fontSize: '1.4rem', fontWeight: 700, color: c.color, fontFamily: MONO, lineHeight: 1.1 }}>{c.value}</div>
