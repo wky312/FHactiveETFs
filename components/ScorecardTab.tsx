@@ -79,9 +79,10 @@ function plColor(n: number | null): string {
 
 interface Props {
   selectedEtf: { fundId: string; ticker: string; name: string };
+  initialMode?: 'single' | 'market';
 }
 
-export default function ScorecardTab({ selectedEtf }: Props) {
+export default function ScorecardTab({ selectedEtf, initialMode = 'single' }: Props) {
   const [data,    setData]    = useState<Scorecard | null>(null);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
@@ -93,7 +94,7 @@ export default function ScorecardTab({ selectedEtf }: Props) {
     : selectedEtf;
 
   const cardRef = useRef<HTMLDivElement>(null);
-  const [mode, setMode] = useState<'single' | 'market'>('single');
+  const [mode, setMode] = useState<'single' | 'market'>(initialMode);
 
   const run = useCallback(async () => {
     setLoading(true); setError(''); setData(null);

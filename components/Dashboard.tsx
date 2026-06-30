@@ -30,7 +30,7 @@ const BORDER = '#E8E3DF';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'attribution';
+type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'attribution';
 
 /* 頂部導覽分組（13 個分頁收進 4 個下拉選單；不改各分頁邏輯，只改呈現） */
 const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
@@ -48,8 +48,9 @@ const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
     { id: 'attribution', label: '績效個股歸因' },
   ] },
   { label: '選股與預測', items: [
-    { id: 'scorecard', label: '選股對帳單' },
-    { id: 'pred0050',  label: '0050 季調預測' },
+    { id: 'scorecard',       label: '選股對帳單' },
+    { id: 'marketscorecard', label: '全市場總覽（19檔）' },
+    { id: 'pred0050',        label: '0050 季調預測' },
   ] },
   { label: '同業觀測', items: [
     { id: 'peer',     label: '同業申贖觀測' },
@@ -515,6 +516,12 @@ export default function Dashboard() {
         {activeTab === 'scorecard' && (
           <Card title="經理人選股對帳單">
             <ScorecardTab selectedEtf={selectedEtf} />
+          </Card>
+        )}
+
+        {activeTab === 'marketscorecard' && (
+          <Card title="全市場主動式ETF總覽（19 檔）">
+            <ScorecardTab selectedEtf={selectedEtf} initialMode="market" />
           </Card>
         )}
 
