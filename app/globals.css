@@ -59,3 +59,37 @@ button:hover:not(:disabled) { filter: brightness(0.93); }
   font-weight: 600;
   white-space: nowrap;
 }
+
+/* sticky 頁首：用 min-height 而非固定高度，窄螢幕才不會擠壓重疊 */
+.site-header {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: var(--bg-header);
+  border-bottom: 3px solid var(--brand-red);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 28px;
+  min-height: 64px;
+}
+.site-title {
+  margin: 0;
+  font-size: 1.22rem;
+  font-weight: 700;
+  letter-spacing: .3px;
+  color: var(--text-main);
+  line-height: 1.25;
+  font-family: var(--sans);
+}
+.site-sub {
+  margin: 2px 0 0;
+  font-size: .76rem;
+  color: var(--text-sub);
+}
+@media (max-width: 520px) {
+  .site-header { padding: 8px 16px; min-height: 56px; gap: 8px; }
+  .site-title { font-size: 1rem; }
+  .site-sub   { font-size: .68rem; }
+}

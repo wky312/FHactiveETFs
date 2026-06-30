@@ -294,22 +294,16 @@ export default function Dashboard() {
     <div style={{ minHeight: '100vh', background: BG, fontFamily: SANS }}>
 
       {/* ── Sticky Header ── */}
-      <header style={{
-        position: 'sticky', top: 0, zIndex: 100,
-        background: HEADER, borderBottom: `3px solid ${RED}`,
-        height: 64,
-        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
-        padding: '0 28px',
-      }}>
-        <div>
-          <h1 style={{ margin: 0, fontSize: '1.22rem', fontWeight: 700, letterSpacing: '.3px', color: TEXT, lineHeight: 1.25, fontFamily: SANS }}>
+      <header className="site-header">
+        <div style={{ minWidth: 0 }}>
+          <h1 className="site-title">
             <span style={{ color: RED }}>復華</span>主動式ETF 持股資訊
           </h1>
-          <p style={{ margin: 0, fontSize: '.76rem', color: SUB, marginTop: 2 }}>
+          <p className="site-sub">
             {selectedEtf.ticker}&nbsp;{selectedEtf.name}
           </p>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
           <span style={{ fontSize: '.78rem', color: SUB, fontWeight: 500 }}>基金</span>
           <select
             value={selectedEtf.ticker}
