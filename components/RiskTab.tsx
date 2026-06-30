@@ -27,6 +27,7 @@ const BENCHMARKS = [
 
 interface RiskRow {
   ticker: string; name: string; nDays: number;
+  firstDate: string | null; lastDate: string | null;
   totalReturn: number | null; annReturn: number | null; annVol: number | null;
   mdd: number | null; beta: number | null; sharpe: number | null; ir: number | null; corr: number | null;
 }
@@ -64,6 +65,8 @@ function prevYearEnd(): string {
 function pct(v: number | null, d = 1): string { return v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(d)}%`; }
 function num(v: number | null, d = 2): string { return v == null ? '—' : v.toFixed(d); }
 function retColor(v: number | null): string { return v == null ? SUB : v > 0 ? RED : v < 0 ? GREEN : TEXT; }
+function daysAfter(a: string, b: string): number { return (new Date(b).getTime() - new Date(a).getTime()) / 86400000; }
+function mmdd(d: string | null): string { return d ? d.slice(5) : '—'; }
 
 const TH: React.CSSProperties = {
   padding: '9px 10px', fontWeight: 600, fontSize: '.73rem', letterSpacing: '.3px',
@@ -89,6 +92,7 @@ export default function RiskTab() {
   const [error,     setError]     = useState('');
   const [sortKey,   setSortKey]   = useState<SortKey>('sharpe');
   const [sortAsc,   setSortAsc]   = useState(false);
+  const [excludeIncomplete, setExcludeIncomplete] = useState(true);   // 預設排除掛牌未滿區間，較公平
 
   const items = PEER_GROUPS[group].items.filter(i => i.ticker !== '^TWOII');
 
@@ -114,13 +118,26 @@ export default function RiskTab() {
     }
   }, [selected, benchmark, start, end, group]);
 
+  // 掛牌未滿區間：首個有資料日比同批最早者晚超過 7 天 → 視為涵蓋不足，不宜與全程基金直接比較
+  const incompleteInfo = useMemo(() => {
+    const set = new Set<string>();
+    if (!data) return { set, minFirst: null as string | null };
+    const firsts = data.rows.map(r => r.firstDate).filter((d): d is string => !!d);
+    if (!firsts.length) return { set, minFirst: null };
+    const minFirst = firsts.reduce((m, d) => (d < m ? d : m), firsts[0]);
+    for (const r of data.rows) if (r.firstDate && daysAfter(minFirst, r.firstDate) > 7) set.add(r.ticker);
+    return { set, minFirst };
+  }, [data]);
+
   const sorted = useMemo(() => {
     if (!data) return [];
-    return [...data.rows].sort((a, b) => {
+    let xs = data.rows;
+    if (excludeIncomplete) xs = xs.filter(r => !incompleteInfo.set.has(r.ticker));
+    return [...xs].sort((a, b) => {
       const av = a[sortKey] ?? -Infinity, bv = b[sortKey] ?? -Infinity;
       return sortAsc ? av - bv : bv - av;
     });
-  }, [data, sortKey, sortAsc]);
+  }, [data, sortKey, sortAsc, excludeIncomplete, incompleteInfo]);
 
   const toggleSort = (k: SortKey) => {
     if (k === sortKey) setSortAsc(p => !p);
@@ -129,9 +146,9 @@ export default function RiskTab() {
 
   const exportExcel = () => {
     if (!data) return;
-    const headers = ['代碼', '名稱', '交易日', '區間總報酬%', '年化報酬%', '年化波動%', '最大回撤%', 'Beta', '夏普', '資訊比率', '相關係數'];
+    const headers = ['代碼', '名稱', '起算日', '交易日', '區間總報酬%', '年化報酬%', '年化波動%', '最大回撤%', 'Beta', '夏普', '資訊比率', '相關係數'];
     const rows = sorted.map(r => [
-      r.ticker, r.name, r.nDays,
+      r.ticker, r.name, r.firstDate ?? '', r.nDays,
       r.totalReturn?.toFixed(2) ?? '', r.annReturn?.toFixed(2) ?? '', r.annVol?.toFixed(2) ?? '',
       r.mdd?.toFixed(2) ?? '', r.beta?.toFixed(3) ?? '', r.sharpe?.toFixed(3) ?? '', r.ir?.toFixed(3) ?? '', r.corr?.toFixed(3) ?? '',
     ]);
@@ -208,12 +225,27 @@ export default function RiskTab() {
 
       {data && data.rows.length > 0 && (
         <>
+          {/* 掛牌覆蓋控制：排除在區間初期尚未掛牌的基金，避免短樣本與全程基金不公平比較 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 10, flexWrap: 'wrap' }}>
+            <label style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: '.8rem', color: TEXT, cursor: 'pointer' }}>
+              <input type="checkbox" checked={excludeIncomplete} onChange={e => setExcludeIncomplete(e.target.checked)} style={{ cursor: 'pointer' }} />
+              排除掛牌未滿區間的基金
+            </label>
+            {incompleteInfo.set.size > 0 && (
+              <span style={{ fontSize: '.76rem', color: '#92620A', background: '#FFF6E5', border: '1px solid #F2D98A', borderRadius: 12, padding: '3px 10px' }}>
+                {excludeIncomplete
+                  ? `已排除 ${incompleteInfo.set.size} 檔（掛牌晚於區間起點）`
+                  : `${incompleteInfo.set.size} 檔掛牌晚於區間起點，⚠ 標示`}
+              </span>
+            )}
+          </div>
           <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '62vh', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 880 }}>
               <thead>
                 <tr>
                   <th style={{ ...TH, textAlign: 'left', cursor: 'default' }}>代碼</th>
                   <th style={{ ...TH, textAlign: 'left', cursor: 'default' }}>名稱</th>
+                  <th style={{ ...TH, textAlign: 'center', cursor: 'default' }}>起算日</th>
                   {COLS.map(c => (
                     <th key={c.key} onClick={() => toggleSort(c.key)}
                       style={{ ...TH, textAlign: 'right', background: sortKey === c.key ? '#333' : '#1C1C1E' }}>
@@ -227,6 +259,9 @@ export default function RiskTab() {
                   <tr key={r.ticker} style={{ background: i % 2 === 0 ? '#fff' : '#FAFAF9', borderBottom: `1px solid ${BORDER}` }}>
                     <td style={{ padding: '7px 10px', fontFamily: MONO, fontSize: '.8rem', color: TEXT, fontWeight: 600 }}>{r.ticker}</td>
                     <td style={{ padding: '7px 10px', fontSize: '.82rem', color: TEXT, whiteSpace: 'nowrap' }}>{r.name}</td>
+                    <td style={{ padding: '7px 10px', textAlign: 'center', fontFamily: MONO, fontSize: '.76rem', color: incompleteInfo.set.has(r.ticker) ? '#92620A' : SUB, whiteSpace: 'nowrap' }}>
+                      {incompleteInfo.set.has(r.ticker) ? '⚠ ' : ''}{mmdd(r.firstDate)}
+                    </td>
                     <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', fontWeight: 700, color: retColor(r.totalReturn) }}>{pct(r.totalReturn)}</td>
                     <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', fontWeight: 600, color: retColor(r.annReturn) }}>{pct(r.annReturn)}</td>
                     <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: TEXT }}>{pct(r.annVol)}</td>
@@ -245,6 +280,7 @@ export default function RiskTab() {
             區間 <b>{data.start} ～ {data.end}</b>，基準＝<b>{data.benchmark.name}（{data.benchmark.ticker}）</b>，無風險利率＝{(data.rf * 100).toFixed(1)}%。以 Yahoo 還原收盤（含息）日報酬計算，僅取基金與基準皆有交易的共同日。<br />
             <b>年化波動</b>＝日報酬標準差×√252　<b>最大回撤(MDD)</b>＝期間相對前高的最大跌幅　<b>Beta</b>＝相對基準的系統性風險（&gt;1 比基準更敏感）<br />
             <b>夏普</b>＝(年化報酬−無風險利率)÷年化波動，越高代表每單位總風險的報酬越好　<b>資訊比率(IR)</b>＝相對基準的主動報酬÷追蹤誤差，&gt;0 代表risk-adjusted 贏過基準、是「真 alpha」的指標　<b>相關係數</b>＝與基準的連動程度<br />
+            <b>起算日</b>＝該基金在區間內首個有資料日；若晚於區間起點(同批最早者+7天)代表<u>掛牌未滿整個區間</u>，會以 ⚠ 標示，預設排除以免短樣本與全程基金不公平比較（可取消勾選納回）。<br />
             注意：年化數字在區間 &lt; 1 年時為外推估計，樣本期間越短越不穩定，僅供相對比較。
           </div>
         </>

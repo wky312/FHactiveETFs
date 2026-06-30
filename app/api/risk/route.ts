@@ -15,6 +15,8 @@ export interface RiskRow {
   ticker: string;
   name: string;
   nDays: number;            // 計算用之交易日數
+  firstDate: string | null; // 區間內首個有資料日（掛牌/上市覆蓋判斷用）
+  lastDate: string | null;  // 區間內最後一個有資料日
   totalReturn: number | null;   // 區間總報酬 %
   annReturn: number | null;     // 年化報酬 %
   annVol: number | null;        // 年化波動度 %
@@ -67,7 +69,7 @@ function computeRisk(
   const dates = Array.from(fundMap.keys())
     .filter(k => k >= startStr && k <= endStr && benchMap.has(k))
     .sort();
-  const empty = { nDays: 0, totalReturn: null, annReturn: null, annVol: null, mdd: null, beta: null, sharpe: null, ir: null, corr: null };
+  const empty = { nDays: 0, firstDate: dates[0] ?? null, lastDate: dates[dates.length - 1] ?? null, totalReturn: null, annReturn: null, annVol: null, mdd: null, beta: null, sharpe: null, ir: null, corr: null };
   if (dates.length < 3) return empty;
 
   const fp = dates.map(d => fundMap.get(d)!);
@@ -119,6 +121,8 @@ function computeRisk(
 
   return {
     nDays: dates.length,
+    firstDate: dates[0],
+    lastDate: dates[dates.length - 1],
     totalReturn,
     annReturn,
     annVol,
