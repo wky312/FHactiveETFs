@@ -87,9 +87,10 @@ function exportExcel(
 }
 
 export default function PerformanceTab({
-  results, date, etfTicker, fundId,
+  results, benchmarks, date, etfTicker, fundId,
 }: {
   results: StockPerformance[];
+  benchmarks?: StockPerformance[];
   date: string;
   etfTicker: string;
   fundId: string;
@@ -118,6 +119,10 @@ export default function PerformanceTab({
       const map = new Map<string, number | null>();
       for (const item of (json.results as StockPerformance[])) {
         map.set(item.stockid, item.pctCustom);
+      }
+      // 基準列的自訂區間值一併併入，與個股共用同一張 map
+      for (const b of ((json.benchmarks as StockPerformance[] | undefined) ?? [])) {
+        map.set(b.stockid, b.pctCustom);
       }
       setCustomMap(map);
     } catch (e) {
@@ -294,6 +299,36 @@ export default function PerformanceTab({
             </tr>
           </thead>
           <tbody>
+            {/* 基準列：0050(含息) 與 加權指數，置頂供相對強弱對照 */}
+            {(benchmarks ?? []).map(b => {
+              const cv = customMap.get(b.stockid) ?? null;
+              return (
+                <tr key={`bench-${b.stockid}`} style={{ background: '#FFF8E6', borderBottom: `1px solid #F2D98A` }}>
+                  <td style={{ padding: '8px 12px', textAlign: 'center', fontSize: '.78rem', fontFamily: MONO, color: SUB }}>{b.stockid}</td>
+                  <td style={{ padding: '8px 12px', fontSize: '.84rem', color: TEXT, fontWeight: 700 }}>
+                    {b.stockname}
+                    <span style={{ marginLeft: 6, fontSize: '.62rem', fontWeight: 700, color: '#92620A', background: '#F5E2A8', padding: '1px 6px', borderRadius: 4 }}>基準</span>
+                  </td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: SUB }}>—</td>
+                  <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: SUB }}>
+                    {b.currentPrice !== null ? b.currentPrice.toFixed(2) : '—'}
+                  </td>
+                  {appliedRange && (
+                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', fontWeight: 700, color: perfColor(cv), background: perfBg(cv) }}>
+                      {customLoading ? '…' : fmtPct(cv)}
+                    </td>
+                  )}
+                  {PERF_COLS.map(c => {
+                    const v = b[c.key];
+                    return (
+                      <td key={c.key} style={{ padding: '8px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', fontWeight: 700, color: perfColor(v), background: perfBg(v) }}>
+                        {fmtPct(v)}
+                      </td>
+                    );
+                  })}
+                </tr>
+              );
+            })}
             {sorted.map((r, i) => (
               <tr key={`${r.stockid}-${i}`} style={{
                 background: i % 2 === 0 ? '#fff' : '#FAFAF9',

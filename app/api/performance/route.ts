@@ -49,8 +49,14 @@ export async function GET(request: NextRequest) {
       return fetchStockPerformance(h.stockid, h.stockname, h.prate_addaccint, yfTicker, fallback, customStart, customEnd);
     });
 
+    // 基準：0050(含息) 與 加權指數 ^TWII，供使用者一眼看出個股/整體相對強弱
+    const benchmarks: StockPerformance[] = await Promise.all([
+      { stockid: '0050',  stockname: '元大台灣50', yf: '0050.TW' },
+      { stockid: '^TWII', stockname: '加權指數',   yf: '^TWII'   },
+    ].map(b => fetchStockPerformance(b.stockid, b.stockname, 0, b.yf, undefined, customStart, customEnd)));
+
     return NextResponse.json(
-      { date: holdDate, results },
+      { date: holdDate, results, benchmarks },
       { headers: { 'Cache-Control': 'no-store' } }
     );
   } catch (err) {

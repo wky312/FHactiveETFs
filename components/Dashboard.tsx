@@ -58,7 +58,7 @@ const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
 ];
 
 interface LoadedData { date: string; holdings: Holding[] }
-interface PerfData { date: string; results: StockPerformance[] }
+interface PerfData { date: string; results: StockPerformance[]; benchmarks?: StockPerformance[] }
 
 function localStr(d: Date): string {
   const y = d.getFullYear();
@@ -500,7 +500,7 @@ export default function Dashboard() {
             </div>
             <ErrorMsg msg={perfError} onReset={() => { setPerfError(''); setPerfData(null); }} />
             {perfData
-              ? <PerformanceTab results={perfData.results} date={perfData.date} etfTicker={selectedEtf.ticker} fundId={selectedEtf.fundId} />
+              ? <PerformanceTab results={perfData.results} benchmarks={perfData.benchmarks} date={perfData.date} etfTicker={selectedEtf.ticker} fundId={selectedEtf.fundId} />
               : !perfLoading && <EmptyHint text="請選擇日期並點擊「載入」" />
             }
           </Card>
