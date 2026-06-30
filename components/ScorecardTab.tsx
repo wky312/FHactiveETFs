@@ -259,7 +259,14 @@ export default function ScorecardTab({ selectedEtf }: Props) {
                   : { label: '整體資金加權報酬', value: fmtPct(agg.weightedReturn), sub: `累計損益 ${fmtMoney(agg.totalPnl)}`, color: plColor(agg.weightedReturn) },
                 { label: '賺賠比', value: agg.payoff == null ? '—' : `${agg.payoff.toFixed(2)}`,
                   sub: '贏家平均 ÷ 輸家平均', color: TEXT },
-                { label: '贏家平均 / 輸家平均', value: `${fmtPct(agg.avgWin)} / ${fmtPct(agg.avgLoss)}`,
+                { label: '贏家平均 / 輸家平均',
+                  value: (
+                    <>
+                      <span style={{ color: plColor(agg.avgWin) }}>{fmtPct(agg.avgWin)}</span>
+                      <span style={{ color: SUB }}> / </span>
+                      <span style={{ color: plColor(agg.avgLoss) }}>{fmtPct(agg.avgLoss)}</span>
+                    </>
+                  ),
                   sub: `${scope === 'current' ? '持股' : '曾持有'} ${agg.n} 檔`, color: TEXT },
               ];
               return (

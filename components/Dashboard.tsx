@@ -266,6 +266,15 @@ export default function Dashboard() {
     finally     { setPerfLoading(false); }
   }, [perfDate, selectedEtf]);
 
+  // 進站自動載入最近交易日的「當日摘要」資料，讓落地頁直接有內容（只跑一次；失敗則靜默，使用者仍可手動載入）
+  const autoLoadedRef = useRef(false);
+  useEffect(() => {
+    if (autoLoadedRef.current) return;
+    autoLoadedRef.current = true;
+    loadCompare();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   const handleEtfChange = useCallback((ticker: string) => {
     const etf = ETF_LIST.find(e => e.ticker === ticker) ?? DEFAULT_ETF;
     setSelectedEtf(etf);
