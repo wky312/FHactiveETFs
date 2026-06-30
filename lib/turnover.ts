@@ -16,6 +16,7 @@ export interface TurnoverRow {
   name: string;
   issuer: string;
   holdingDate: string | null;   // 採用的最新持股日
+  firstDate: string | null;     // 區間內首個持股快照日（掛牌覆蓋判斷用）
   nSnapshots: number;           // 區間內快照數
   spanDays: number;             // 首末快照日曆天
   avgAumE: number | null;       // 平均AUM（億）
@@ -126,8 +127,10 @@ export async function computeTurnover(fromReq: string, toReq?: string): Promise<
 
   const rows = await mapLimit(etfList, FUND_CONCURRENCY, async (e): Promise<TurnoverRow> => {
     const { byDate, dates, ids, baselineDate } = await fundSnapshots(e.ticker, startDate, endDate);
+    const firstInWindow = dates.find(d => d >= startDate) ?? null;
     const empty: TurnoverRow = {
       ticker: e.ticker, name: e.name, issuer: e.issuer, holdingDate: dates.length ? dates[dates.length - 1] : null,
+      firstDate: firstInWindow,
       nSnapshots: 0, spanDays: 0, avgAumE: null, buyValueE: null, sellValueE: null, turnoverPeriod: null, turnoverAnnual: null,
     };
     if (dates.length < 2) return empty;
@@ -173,6 +176,7 @@ export async function computeTurnover(fromReq: string, toReq?: string): Promise<
 
     return {
       ticker: e.ticker, name: e.name, issuer: e.issuer, holdingDate: dates[dates.length - 1],
+      firstDate: firstInWindow,
       nSnapshots: iterDates.length, spanDays,
       avgAumE: avgAum != null ? avgAum / 1e8 : null,
       buyValueE: buyVal / 1e8, sellValueE: sellVal / 1e8,
