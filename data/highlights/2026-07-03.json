@@ -1,6 +1,6 @@
 {
   "date": "2026-07-03",
-  "scanned_at": "2026-07-06T00:14:23+08:00",
+  "scanned_at": "2026-07-06T00:15:58+08:00",
   "config_snapshot": {
     "r1": {
       "min_daily_pct": 3.0,
@@ -55,53 +55,15 @@
   },
   "sources": {
     "own_holdings": "ok",
-    "attr_supabase": "fail",
+    "attr_supabase": "ok",
     "twse_mis": "ok",
     "yahoo": "ok",
     "site_peer_performance": "ok",
     "site_cumulative_return": "ok",
     "peer_redemption": "ok"
   },
-  "skipped_rules": [
-    "R2"
-  ],
+  "skipped_rules": [],
   "candidates": [
-    {
-      "id": "R3-8046-20260623-t30",
-      "rule": "R3",
-      "score": 61.27,
-      "selected": true,
-      "fact": "6/23 加碼的 南亞電路 至今 +30.6%",
-      "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 6/23 加碼南亞電路，至今上漲 30.6%，展現主動管理的判斷力。",
-      "data": {
-        "stockid": "8046",
-        "event_date": "2026-06-23",
-        "direction": "add",
-        "qty_change_pct": 13.8,
-        "weight_pct": 2.234,
-        "return_since_pct": 30.64,
-        "tier": 30
-      }
-    },
-    {
-      "id": "R3-2327-20260610-t15",
-      "rule": "R3",
-      "score": 57.02,
-      "selected": true,
-      "fact": "6/10 加碼的 國巨股份 至今 +28.5%",
-      "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 6/10 加碼國巨股份，至今上漲 28.5%，展現主動管理的判斷力。",
-      "data": {
-        "stockid": "2327",
-        "event_date": "2026-06-10",
-        "direction": "add",
-        "qty_change_pct": 11.9,
-        "weight_pct": 8.692,
-        "return_since_pct": 28.51,
-        "tier": 15
-      }
-    },
     {
       "id": "R1-2383-2026-07-03",
       "rule": "R1",
@@ -114,43 +76,25 @@
         "stockid": "2383",
         "pct_change": 7.52,
         "weight_pct": 7.0,
-        "is_heaviest_among_universe": null,
-        "universe_size": null
+        "is_heaviest_among_universe": false,
+        "universe_size": 20
       }
     },
     {
-      "id": "R3-2303-20260617-t15",
+      "id": "R3-8046-20260624-t15",
       "rule": "R3",
-      "score": 43.57,
+      "score": 48.69,
       "selected": true,
-      "fact": "6/17 加碼的 聯華電子 至今 +21.8%",
+      "fact": "6/24 加碼的 南亞電路 至今 +24.3%",
       "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 6/17 加碼聯華電子，至今上漲 21.8%，展現主動管理的判斷力。",
+      "draft": "經理人 6/24 加碼南亞電路，至今上漲 24.3%，展現主動管理的判斷力。",
       "data": {
-        "stockid": "2303",
-        "event_date": "2026-06-17",
+        "stockid": "8046",
+        "event_date": "2026-06-24",
         "direction": "add",
-        "qty_change_pct": 100.0,
-        "weight_pct": 1.902,
-        "return_since_pct": 21.79,
-        "tier": 15
-      }
-    },
-    {
-      "id": "R3-2059-20260612-t15",
-      "rule": "R3",
-      "score": 31.55,
-      "selected": true,
-      "fact": "6/12 加碼的 川湖科技 至今 +15.8%",
-      "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 6/12 加碼川湖科技，至今上漲 15.8%，展現主動管理的判斷力。",
-      "data": {
-        "stockid": "2059",
-        "event_date": "2026-06-12",
-        "direction": "add",
-        "qty_change_pct": 10.6,
-        "weight_pct": 3.035,
-        "return_since_pct": 15.77,
+        "qty_change_pct": 15.2,
+        "weight_pct": 2.684,
+        "return_since_pct": 24.34,
         "tier": 15
       }
     },
@@ -158,7 +102,7 @@
       "id": "R3-3189-20260623-t8",
       "rule": "R3",
       "score": 29.55,
-      "selected": false,
+      "selected": true,
       "fact": "6/23 加碼的 景碩科技 至今 +14.8%",
       "angle": "操作驗證：加碼點位精準",
       "draft": "經理人 6/23 加碼景碩科技，至今上漲 14.8%，展現主動管理的判斷力。",
@@ -176,7 +120,7 @@
       "id": "R1-6274-2026-07-03",
       "rule": "R1",
       "score": 27.29,
-      "selected": false,
+      "selected": true,
       "fact": "台燿科技今日 +5.92%，00991A 持股 4.61%",
       "angle": "重倉命中：主動選股的含金量",
       "draft": "台燿科技大漲 5.92%，00991A 以 4.61% 持股重倉布局，經理人重押命中。",
@@ -184,15 +128,15 @@
         "stockid": "6274",
         "pct_change": 5.92,
         "weight_pct": 4.61,
-        "is_heaviest_among_universe": null,
-        "universe_size": null
+        "is_heaviest_among_universe": false,
+        "universe_size": 20
       }
     },
     {
       "id": "R3-4958-20260612-t8",
       "rule": "R3",
       "score": 22.1,
-      "selected": false,
+      "selected": true,
       "fact": "6/12 加碼的 臻鼎-KY 至今 +11.1%",
       "angle": "操作驗證：加碼點位精準",
       "draft": "經理人 6/12 加碼臻鼎-KY，至今上漲 11.1%，展現主動管理的判斷力。",
@@ -223,12 +167,10 @@
     }
   ],
   "push": {
-    "attempted": true,
-    "sent": true,
-    "reason": null,
-    "message_chars": 514,
-    "line_status": 200,
-    "candidate_count": 9,
+    "attempted": false,
+    "sent": false,
+    "reason": "idempotent_rerun",
+    "candidate_count": 6,
     "selected_count": 5
   }
 }
