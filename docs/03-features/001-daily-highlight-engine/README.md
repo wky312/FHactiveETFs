@@ -1,6 +1,6 @@
 # 001-daily-highlight-engine — 每日行銷亮點引擎
 
-> 狀態: 已實作，上線中（Phase 4）
+> 狀態: ✅ 已上線（2026-07-06；首推驗收通過）
 > 來源: [Concept Brief 2026-07-05](../../00-concepts/2026-07-05-marketing-highlight-engine-and-fund-flow.md)
 
 收盤後自動掃描 00991A 相關數據，依規則產出「今日行銷亮點」，**只推播 LINE（個人 push）、不上網站**。歷史結果存 repo JSON。

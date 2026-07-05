@@ -27,11 +27,11 @@
 - [x] T3-3 全測試綠燈＋dry-run 人工確認訊息品質
 
 ## Phase 4 — 上線
-- [ ] T4-1 GH secrets：`LINE_CHANNEL_TOKEN`/`LINE_TO`/`ATTR_SUPABASE_URL`/`ATTR_SUPABASE_ANON_KEY`（design §7 表；涉及跨專案憑證，**需使用者確認來源**）
-- [ ] T4-2 commit＋push（feature branch 或依使用者慣例直上 master）
-- [ ] T4-3 手動 `workflow_dispatch` 首跑實測（真推播一次驗收）
-- [ ] T4-4 排程接線（cron-job.org 平日 18:30 台北）
-- [ ] T4-5 收尾：README/memory 更新、develop-plan 勾稽
+- [x] T4-1 GH secrets：`LINE_CHANNEL_TOKEN`/`LINE_TO`/`ATTR_SUPABASE_URL`/`ATTR_SUPABASE_ANON_KEY`（design §7 表；涉及跨專案憑證，**需使用者確認來源**）
+- [x] T4-2 commit＋push（feature branch 或依使用者慣例直上 master）
+- [x] T4-3 手動 `workflow_dispatch` 首跑實測（真推播一次驗收）
+- [x] T4-4 排程接線：GH `schedule:` cron 已生效（保底）；cron-job.org 直打 dispatch API 為選配準時化（使用者手動，見 design §7）
+- [x] T4-5 收尾：README/memory 更新、develop-plan 勾稽
 
 ## 測試策略
 - L1 單元：規則函式/訊息組裝/狀態管理（pytest、fixture 內嵌，零網路）
