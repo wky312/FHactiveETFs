@@ -1,0 +1,27 @@
+{
+  "updated_at": "2026-07-06T00:14:23+08:00",
+  "pushed_dates": [
+    "2026-07-03"
+  ],
+  "r3_events": {
+    "8046|2026/06/23": {
+      "direction": "add",
+      "tier_pushed": 30
+    },
+    "2327|2026/06/10": {
+      "direction": "add",
+      "tier_pushed": 15
+    },
+    "2303|2026/06/17": {
+      "direction": "add",
+      "tier_pushed": 15
+    },
+    "2059|2026/06/12": {
+      "direction": "add",
+      "tier_pushed": 15
+    }
+  },
+  "r4_rank": {},
+  "r4_new_high": {},
+  "r5_aum_milestones": []
+}

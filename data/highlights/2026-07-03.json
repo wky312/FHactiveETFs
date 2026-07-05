@@ -1,0 +1,234 @@
+{
+  "date": "2026-07-03",
+  "scanned_at": "2026-07-06T00:14:23+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": "0050"
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "tw_active"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "ok",
+    "attr_supabase": "fail",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [
+    "R2"
+  ],
+  "candidates": [
+    {
+      "id": "R3-8046-20260623-t30",
+      "rule": "R3",
+      "score": 61.27,
+      "selected": true,
+      "fact": "6/23 加碼的 南亞電路 至今 +30.6%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 6/23 加碼南亞電路，至今上漲 30.6%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "8046",
+        "event_date": "2026-06-23",
+        "direction": "add",
+        "qty_change_pct": 13.8,
+        "weight_pct": 2.234,
+        "return_since_pct": 30.64,
+        "tier": 30
+      }
+    },
+    {
+      "id": "R3-2327-20260610-t15",
+      "rule": "R3",
+      "score": 57.02,
+      "selected": true,
+      "fact": "6/10 加碼的 國巨股份 至今 +28.5%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 6/10 加碼國巨股份，至今上漲 28.5%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "2327",
+        "event_date": "2026-06-10",
+        "direction": "add",
+        "qty_change_pct": 11.9,
+        "weight_pct": 8.692,
+        "return_since_pct": 28.51,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R1-2383-2026-07-03",
+      "rule": "R1",
+      "score": 52.64,
+      "selected": true,
+      "fact": "台光電子今日 +7.52%，00991A 持股 7.0%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "台光電子大漲 7.52%，00991A 以 7.0% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "2383",
+        "pct_change": 7.52,
+        "weight_pct": 7.0,
+        "is_heaviest_among_universe": null,
+        "universe_size": null
+      }
+    },
+    {
+      "id": "R3-2303-20260617-t15",
+      "rule": "R3",
+      "score": 43.57,
+      "selected": true,
+      "fact": "6/17 加碼的 聯華電子 至今 +21.8%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 6/17 加碼聯華電子，至今上漲 21.8%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "2303",
+        "event_date": "2026-06-17",
+        "direction": "add",
+        "qty_change_pct": 100.0,
+        "weight_pct": 1.902,
+        "return_since_pct": 21.79,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-2059-20260612-t15",
+      "rule": "R3",
+      "score": 31.55,
+      "selected": true,
+      "fact": "6/12 加碼的 川湖科技 至今 +15.8%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 6/12 加碼川湖科技，至今上漲 15.8%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "2059",
+        "event_date": "2026-06-12",
+        "direction": "add",
+        "qty_change_pct": 10.6,
+        "weight_pct": 3.035,
+        "return_since_pct": 15.77,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-3189-20260623-t8",
+      "rule": "R3",
+      "score": 29.55,
+      "selected": false,
+      "fact": "6/23 加碼的 景碩科技 至今 +14.8%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 6/23 加碼景碩科技，至今上漲 14.8%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "3189",
+        "event_date": "2026-06-23",
+        "direction": "add",
+        "qty_change_pct": 26.3,
+        "weight_pct": 2.599,
+        "return_since_pct": 14.78,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R1-6274-2026-07-03",
+      "rule": "R1",
+      "score": 27.29,
+      "selected": false,
+      "fact": "台燿科技今日 +5.92%，00991A 持股 4.61%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "台燿科技大漲 5.92%，00991A 以 4.61% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "6274",
+        "pct_change": 5.92,
+        "weight_pct": 4.61,
+        "is_heaviest_among_universe": null,
+        "universe_size": null
+      }
+    },
+    {
+      "id": "R3-4958-20260612-t8",
+      "rule": "R3",
+      "score": 22.1,
+      "selected": false,
+      "fact": "6/12 加碼的 臻鼎-KY 至今 +11.1%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 6/12 加碼臻鼎-KY，至今上漲 11.1%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "4958",
+        "event_date": "2026-06-12",
+        "direction": "add",
+        "qty_change_pct": 100.0,
+        "weight_pct": 1.865,
+        "return_since_pct": 11.05,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R4-rank-ytd2-2026-07-03",
+      "rule": "R4",
+      "score": 20.0,
+      "selected": false,
+      "fact": "00991A YTD 報酬在同業觀測群排名第 2（8 檔）",
+      "angle": "績效里程碑：排名領先",
+      "draft": "00991A YTD 績效衝上同業觀測群第 2 名，主動管理實力發酵。",
+      "data": {
+        "kind": "ytd",
+        "rank": 2,
+        "universe_size": 8,
+        "pct": 97.9942693409742
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 514,
+    "line_status": 200,
+    "candidate_count": 9,
+    "selected_count": 5
+  }
+}
