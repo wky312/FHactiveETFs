@@ -230,10 +230,16 @@ def test_r5_streak_triggers():
     assert len(got) == 1 and '連續 5' in got[0].fact
 
 
-def test_r5_stale_data_no_trigger():
+def test_r5_yesterday_data_still_triggers_once():
+    # 14:00 掃描時申贖只到前一交易日：容遲評估，但同一資料日只觸發一次
     rows = redemption(5, today_iso='2026-07-02')
     ctx = make_ctx(redemption=rows)
-    assert rule_r5(ctx, CFG, DedupState()) == []
+    got = rule_r5(ctx, CFG, DedupState())
+    assert any('streak' in c.id for c in got)
+    assert all(c.state_patch.get('r5_last_data_date') == '2026-07-02'
+               for c in got if 'streak' in c.id)
+    state = DedupState(r5_last_data_date='2026-07-02')
+    assert rule_r5(ctx, CFG, state) == []
 
 
 def test_r5_single_day_first():

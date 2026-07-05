@@ -46,9 +46,9 @@ data/highlights/_state.json              # 去重/里程碑狀態（workflow com
 
 ```mermaid
 flowchart TB
-    subgraph Trigger["觸發（18:30 台北，平日）"]
-        CJ[cron-job.org job #2] -->|POST Bearer CRON_TRIGGER_SECRET<br/>body: workflow=highlight_scan.yml| TR[api/cron/trigger 擴充後]
-        TR -->|workflow_dispatch| WF[highlight_scan.yml]
+    subgraph Trigger["觸發（14:00 台北名目，平日）"]
+        SCH[GH schedule cron 0 6 * * 1-5 保底] --> WF[highlight_scan.yml]
+        CJ[cron-job.org 選配準時化] -->|直打 GitHub dispatch API| WF
     end
     subgraph Job["GitHub Actions"]
         WF --> G0{is_twse_trading_day?}
@@ -220,7 +220,8 @@ main():
   "r4_rank": { "mtd": { "period": "2026-07", "last_rank": 2 },
                "ytd": { "period": "2026", "last_rank": 5 } },
   "r4_new_high": { "last_high_date": "2026-06-28" },
-  "r5_aum_milestones": [50, 100]
+  "r5_aum_milestones": [50, 100],
+  "r5_last_data_date": "2026-07-03"
 }
 ```
 
@@ -243,14 +244,14 @@ main():
 | R4 連勝 0050 | 兩檔逐日報酬 | 由 `cumulative-return?tickers=00991A,0050` 的 pct 序列推導日報酬後逐日比較（review S3） | 口徑與站上完全一致，免 yfinance |
 | R4 MTD/YTD 排名 | 全群期間報酬 | **呼叫站上** `/api/peer-performance?group=active`，濾 `^\d{5}A$`（去 0050/指數），**略過 `pctMTD/pctYTD=null` 或 `anomaly=true` 的列**（review S3），排序取名次 | ⚠️ 排名母體＝site `active` group（peerGroups.ts，17 檔、可能落後），與 R1/R2 的動態 20 檔不同——文案寫「同業觀測群」（review S8） |
 | R4 累積新高 | 上市以來含息序列 | 同上 cumulative-return 回應，對 00991A pct 做 running-max | **startDate/endDate 皆必填缺一回 400**（review M1）；route 以首個有資料日為 0% 基準 |
-| R5 全部 | 淨申購/AUM 序列 | PostgREST 本專案 `peer_redemption`（streak/里程碑：`ticker=eq.00991A`；單日第一：當日全 6 檔） | 文案「觀測同業中」 |
+| R5 全部 | 淨申購/AUM 序列 | PostgREST 本專案 `peer_redemption`（streak/里程碑：`ticker=eq.00991A`；單日第一：最新資料日全 6 檔） | 文案「觀測同業中」；**14:00 掃描時資料只到前一交易日**（daily_summary 17:15 才寫入）→ 以 `state.r5_last_data_date` 按資料日去重，每個資料日恰評估/推播一次 |
 
 **交易日曆**：各「N 交易日」窗口優先用資料序列自身日期鍵（`days` keys、yfinance 實際交易日），輔以 `is_twse_trading_day` 交叉檢查，不另建行事曆模組。
 
 ## 7. Workflow — `.github/workflows/highlight_scan.yml`
 
 **觸發（v1 上線修訂）**：workflow 同時掛兩種 trigger——
-1. **`schedule:` cron `30 10 * * 1-5`**（18:30 台北名目時間；GH cron 實際延遲 2–4h → 約 20:30–22:30 送達，FR-01 的 ±60 分鐘雖超標但仍屬「當晚可用」，作為零外部依賴的保底）。
+1. **`schedule:` cron `0 6 * * 1-5`**（14:00 台北名目時間——台股 13:30 收盤＋報價延遲 15 分；GH cron 實際延遲 2–4h → 約 16:00–18:00 送達，作為零外部依賴的保底）。
 2. **`workflow_dispatch`**（input `force`）：手動重跑＋供 cron-job.org **直打 GitHub dispatch API** 接管準時性——URL `https://api.github.com/repos/wky312/00998a-web/actions/workflows/highlight_scan.yml/dispatches`、POST body `{"ref":"master"}`、Bearer＝GitHub PAT（**etf-daily-line README 已有完整先例**，該專案正是因 GH cron 不準才改此模式）。
 
 → **v1 不改 `app/api/cron/trigger/route.ts`、不需 Vercel 部署**（原白名單擴充方案降級為未來選項）。cron-job.org job 建立後，兩種觸發並存也安全：AC-009 冪等使重複執行不重推。

@@ -54,6 +54,7 @@ class DedupState:
     r4_rank: dict = field(default_factory=dict)       # {"mtd": {period, last_rank}, "ytd": {...}}
     r4_new_high: dict = field(default_factory=dict)   # {"last_high_date": "YYYY-MM-DD"}
     r5_aum_milestones: list = field(default_factory=list)
+    r5_last_data_date: str = ''   # R5 已推播過的最新資料日（申贖入庫比掃描晚一天，按資料日去重）
 
 
 def load_state(path=None) -> DedupState:
@@ -69,6 +70,7 @@ def load_state(path=None) -> DedupState:
             r4_rank=raw.get('r4_rank', {}),
             r4_new_high=raw.get('r4_new_high', {}),
             r5_aum_milestones=raw.get('r5_aum_milestones', []),
+            r5_last_data_date=raw.get('r5_last_data_date', ''),
         )
     except Exception:
         return DedupState()
@@ -85,6 +87,7 @@ def save_state(state: DedupState, path=None):
             'r4_rank': state.r4_rank,
             'r4_new_high': state.r4_new_high,
             'r5_aum_milestones': state.r5_aum_milestones,
+            'r5_last_data_date': state.r5_last_data_date,
         }, f, ensure_ascii=False, indent=2)
 
 
@@ -614,13 +617,13 @@ def rule_r5(ctx, cfg, state: DedupState):
     out = []
     if not ctx.redemption:
         return out
-    today_iso = ctx.today.isoformat()
     mine = [r for r in ctx.redemption if r['ticker'] == FUND_TICKER]
     if not mine:
         return out
     latest_date = mine[-1]['date']
-    if latest_date != today_iso:
-        return out  # 今日申贖尚未入庫：昨日事件昨天已掃過，不重報
+    if latest_date <= state.r5_last_data_date:
+        return out  # 該資料日已推播過（申贖 17:15 才入庫，14:00 掃描吃前一交易日，按資料日去重）
+    marker = {'r5_last_data_date': latest_date}
 
     streak = 0
     for r in reversed(mine):
@@ -630,12 +633,13 @@ def rule_r5(ctx, cfg, state: DedupState):
             break
     if streak in c5['streak_days']:
         out.append(Candidate(
-            id=f'R5-streak{streak}-{today_iso}', rule='R5',
+            id=f'R5-streak{streak}-{latest_date}', rule='R5',
             score=round(streak * sc['r5_streak_multiplier'], 2),
             fact=f'00991A 連續 {streak} 個交易日淨申購',
             angle='資金用腳投票：買盤持續',
             draft=f'00991A 連續 {streak} 個交易日獲淨申購，資金持續進場。',
-            data={'streak_days': streak}))
+            data={'streak_days': streak, 'data_date': latest_date},
+            state_patch=dict(marker)))
 
     unit = c5['aum_milestone_billion_twd']
     today_aum = mine[-1]['aum'] or 0
@@ -646,29 +650,31 @@ def rule_r5(ctx, cfg, state: DedupState):
     if today_tier > baseline and today_tier > 0:
         milestone = today_tier * unit
         out.append(Candidate(
-            id=f'R5-aum{milestone}-{today_iso}', rule='R5',
+            id=f'R5-aum{milestone}-{latest_date}', rule='R5',
             score=sc['r5_milestone_score'],
             fact=f'00991A 規模首度突破 {milestone} 億元（{round(today_aum, 1)} 億）',
             angle='規模里程碑',
             draft=f'00991A 基金規模正式站上 {milestone} 億元大關。',
-            data={'aum_billion': round(today_aum, 2), 'milestone': milestone},
-            state_patch={'r5_aum_milestones': today_tier}))
+            data={'aum_billion': round(today_aum, 2), 'milestone': milestone,
+                  'data_date': latest_date},
+            state_patch={'r5_aum_milestones': today_tier, **marker}))
 
-    today_rows = [r for r in ctx.redemption if r['date'] == today_iso]
-    if len(today_rows) >= 2:
-        best = max(today_rows, key=lambda r: r['net_sub'] or 0)
+    day_rows = [r for r in ctx.redemption if r['date'] == latest_date]
+    if len(day_rows) >= 2:
+        best = max(day_rows, key=lambda r: r['net_sub'] or 0)
         my_net = mine[-1]['net_sub'] or 0
         if (best['ticker'] == FUND_TICKER
                 and my_net >= c5['single_day_min_billion_twd']):
             out.append(Candidate(
-                id=f'R5-top1-{today_iso}', rule='R5',
+                id=f'R5-top1-{latest_date}', rule='R5',
                 score=sc['r5_single_day_first_score'],
                 fact=f'00991A 單日淨申購 {round(my_net, 1)} 億元，'
-                     f'觀測同業（{len(today_rows)} 檔）中第一',
+                     f'觀測同業（{len(day_rows)} 檔）中第一',
                 angle='資金流向：同業吸金王',
-                draft=f'今日觀測同業中，00991A 以 {round(my_net, 1)} 億元淨申購居冠。',
+                draft=f'觀測同業中，00991A 以 {round(my_net, 1)} 億元淨申購居冠。',
                 data={'net_sub_billion': round(my_net, 2),
-                      'peer_count': len(today_rows)}))
+                      'peer_count': len(day_rows), 'data_date': latest_date},
+                state_patch=dict(marker)))
     return out
 
 
@@ -793,6 +799,9 @@ def apply_state_patches(state: DedupState, selected):
             tier = p['r5_aum_milestones']
             if tier not in state.r5_aum_milestones:
                 state.r5_aum_milestones.append(tier)
+        if 'r5_last_data_date' in p:
+            state.r5_last_data_date = max(state.r5_last_data_date,
+                                          p['r5_last_data_date'])
 
 
 # ── Main ──────────────────────────────────────────────────────────────────────

@@ -2,8 +2,9 @@ name: Daily Highlight Scan
 
 on:
   schedule:
-    - cron: '30 10 * * 1-5'   # 平日 18:30 台北名目時間（GH cron 實際延遲 2-4h，屬可接受保底；
-                              # 準時性可由 cron-job.org 直打 workflow_dispatch API 接管，兩者並存安全：腳本冪等）
+    - cron: '0 6 * * 1-5'   # 平日 14:00 台北名目時間（台股 13:30 收盤＋報價延遲 15 分，14:00 已足夠；
+                            # GH cron 實際延遲 2-4h → 約 16:00-18:00 送達；準時性可由 cron-job.org
+                            # 直打 workflow_dispatch API 接管，兩者並存安全：腳本冪等）
   workflow_dispatch:
     inputs:
       force:
