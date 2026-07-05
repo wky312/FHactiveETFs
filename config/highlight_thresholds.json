@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "r1": { "min_daily_pct": 3.0, "top_n_holdings": 10 },
+  "r2": { "overweight_multiple": 2.0, "overweight_min_weight_pct": 1.0,
+          "min_daily_pct": 5.0, "new_high_lookback_days": 60,
+          "exclusive_score_multiplier": 1.5 },
+  "r3": { "lookback_trading_days": 20, "min_qty_change_pct": 10.0,
+          "min_weight_pct": 0.5, "tiers_pct": [8, 15, 30] },
+  "r4": { "streak_days": [3, 5, 10], "rank_top_n": 3,
+          "new_high_cooldown_trading_days": 5, "benchmark_ticker": "0050" },
+  "r5": { "streak_days": [5, 10, 20], "aum_milestone_billion_twd": 50,
+          "single_day_min_billion_twd": 1.0, "peer_group": "tw_active" },
+  "message": { "max_items": 5, "max_chars": 4500,
+               "footer": "⚠️ 內部參考素材，對外使用前需經法遵檢視" },
+  "scoring": { "r3_multiplier": 2.0, "r4_streak_multiplier": 3.0,
+               "r4_rank_multiplier": 10.0, "r4_new_high_score": 15.0,
+               "r5_streak_multiplier": 2.0, "r5_milestone_score": 12.0,
+               "r5_single_day_first_score": 10.0 }
+}
