@@ -1,8 +1,9 @@
 {
-  "updated_at": "2026-07-06T18:27:50+08:00",
+  "updated_at": "2026-07-07T17:46:27+08:00",
   "pushed_dates": [
     "2026-07-03",
-    "2026-07-06"
+    "2026-07-06",
+    "2026-07-07"
   ],
   "r3_events": {
     "8046|2026/06/23": {
@@ -27,13 +28,21 @@
     },
     "2368|2026/06/22": {
       "direction": "trim",
-      "tier_pushed": 8
+      "tier_pushed": 15
     },
     "6805|2026/06/15": {
       "direction": "trim",
       "tier_pushed": 8
     },
     "2360|2026/06/09": {
+      "direction": "trim",
+      "tier_pushed": 15
+    },
+    "8210|2026/06/22": {
+      "direction": "trim",
+      "tier_pushed": 8
+    },
+    "2308|2026/06/18": {
       "direction": "trim",
       "tier_pushed": 8
     }
@@ -46,5 +55,5 @@
   },
   "r4_new_high": {},
   "r5_aum_milestones": [],
-  "r5_last_data_date": ""
+  "r5_last_data_date": "2026-07-07"
 }
