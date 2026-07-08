@@ -123,6 +123,52 @@ async function fetchTwseLatestTraded(items: PeerItem[]): Promise<Map<string, str
   return map;
 }
 
+// ── TWSE 指數即時（MIS）：加權/櫃買指數的真相來源 ──
+// Yahoo 的 ^TWII/^TWOII 有兩個坑：即時報價常是殭屍值（^TWOII 曾回 269.45、時間戳停在 2024），
+// 且日 K 會停更數日（曾停在 7/3、之後 close 皆 null）。這會讓程式退回用過時的最後一根 K 棒當現價，
+// 使指數績效嚴重失真（例：櫃買 MTD 假顯示 +4.3%，實際 −2%）。故指數改用 MIS 的 t00/o00 即時值為準。
+const INDEX_MIS_CH: Record<string, string> = {
+  '^TWII':  'tse_t00.tw',   // 發行量加權股價指數（TAIEX）
+  '^TWOII': 'otc_o00.tw',   // 櫃買指數（TPEx / OTC）
+};
+
+interface IdxQuote { date: string; value: number; prevClose: number | null }
+
+async function fetchTwseIndices(items: PeerItem[]): Promise<Map<string, IdxQuote>> {
+  const map = new Map<string, IdxQuote>(); // yfTicker -> {date,value,prevClose}
+  const idxItems = items.filter(i => INDEX_MIS_CH[i.yfTicker]);
+  if (!idxItems.length) return map;
+  // MIS 回傳的 x.ch 去掉 tse_/otc_ 前綴（如 't00.tw'），用來對回 yfTicker
+  const chToYf = new Map<string, string>();
+  for (const i of idxItems) chToYf.set(INDEX_MIS_CH[i.yfTicker].replace(/^(tse|otc)_/, ''), i.yfTicker);
+  try {
+    const ex = idxItems.map(i => INDEX_MIS_CH[i.yfTicker]).join('|');
+    const res = await fetch(
+      `https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=${encodeURIComponent(ex)}&json=1&delay=0`,
+      { headers: { 'User-Agent': 'Mozilla/5.0', 'Referer': 'https://mis.twse.com.tw/stock/index.jsp' } },
+    );
+    const data = await res.json();
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    for (const x of (data?.msgArray ?? []) as any[]) {
+      const yf = chToYf.get(x.ch ?? '');
+      if (!yf) continue;
+      const z = parseFloat(x.z);              // 當前/最新指數值（'-' → NaN，如放假）
+      const y = parseFloat(x.y);              // 昨收
+      const d: string = x.d ?? '';            // 交易日 'YYYYMMDD'
+      if (!Number.isNaN(z) && /^\d{8}$/.test(d)) {
+        map.set(yf, {
+          date: `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`,
+          value: z,
+          prevClose: Number.isNaN(y) ? null : y,
+        });
+      }
+    }
+  } catch {
+    // MIS 查詢失敗就沿用 Yahoo 資料（下方 anomaly 會標記落後）
+  }
+  return map;
+}
+
 // Taiwan market closes at 13:30 UTC+8 = 05:30 UTC on weekdays
 function taiwanMarketClosed(): boolean {
   const now = new Date();
@@ -137,7 +183,7 @@ function taiwanMarketClosed(): boolean {
 
 interface CustomRange { start: Date; end: Date }
 
-async function fetchOne(item: PeerItem, customRange?: CustomRange): Promise<PeerPerfResult> {
+async function fetchOne(item: PeerItem, customRange?: CustomRange, idxQuote?: IdxQuote): Promise<PeerPerfResult> {
   const base: PeerPerfResult = {
     ...item, price: null,
     pct1d: null, pctWTD: null, pctMTD: null, pctYTD: null,
@@ -204,7 +250,27 @@ async function fetchOne(item: PeerItem, customRange?: CustomRange): Promise<Peer
     const quoteStale = quote?.regularMarketPrice != null
       && round2(quote.regularMarketPrice) === round2(lastRow.close);
 
-    if (quoteDate === todayStr && !marketClosed) {
+    // 指數（^TWII/^TWOII）不用 Yahoo 即時報價（殭屍值）與可能停更的日 K，改用 MIS 補最新交易日：
+    // 盤中 → 用昨收（y）對齊個股「以上一完整收盤為準」；收盤後 → 用當日指數值（z）。
+    const isIndex = item.yfTicker.startsWith('^');
+    if (isIndex) {
+      if (idxQuote) {
+        if (!marketClosed) {
+          if (idxQuote.prevClose != null) {
+            const prevDay = new Date();
+            do { prevDay.setDate(prevDay.getDate() - 1); } while (prevDay.getDay() === 0 || prevDay.getDay() === 6);
+            if (prevDay.getTime() > lastChartDate.getTime()) {
+              rows.push({ date: prevDay, adjClose: idxQuote.prevClose, close: idxQuote.prevClose });
+            }
+          }
+        } else {
+          const idxDate = new Date(idxQuote.date + 'T05:30:00Z'); // 台股收盤時點
+          if (idxDate.getTime() > lastChartDate.getTime()) {
+            rows.push({ date: idxDate, adjClose: idxQuote.value, close: idxQuote.value });
+          }
+        }
+      }
+    } else if (quoteDate === todayStr && !marketClosed) {
       // Intraday: use previous session's close with last-weekday date
       if (quote?.regularMarketPreviousClose != null) {
         const prevDay = new Date();
@@ -229,9 +295,13 @@ async function fetchOne(item: PeerItem, customRange?: CustomRange): Promise<Peer
 
     const cur = rows[rows.length - 1].adjClose;
 
-    const pct1d = quote?.regularMarketChangePercent != null
-      ? quote.regularMarketChangePercent
-      : pct(cur, rows.length >= 2 ? rows[rows.length - 2].adjClose : null);
+    // 指數 1 日漲跌用 MIS 的 z/y（最新值 vs 昨收），避開 Yahoo 殭屍 changePercent、
+    // 也避開日 K 停更造成的跨數日假 1 日報酬。
+    const pct1d = (isIndex && idxQuote?.value != null && idxQuote?.prevClose != null)
+      ? pct(idxQuote.value, idxQuote.prevClose)
+      : (!isIndex && quote?.regularMarketChangePercent != null)
+        ? quote.regularMarketChangePercent
+        : pct(cur, rows.length >= 2 ? rows[rows.length - 2].adjClose : null);
 
     const pctCustom = customRange
       ? pct(findOnOrBefore(rows, customRange.end), findOnOrBefore(rows, customRange.start))
@@ -239,7 +309,7 @@ async function fetchOne(item: PeerItem, customRange?: CustomRange): Promise<Peer
 
     return {
       ...item,
-      price:   quote?.regularMarketPrice ?? cur,
+      price:   isIndex ? (idxQuote?.value ?? cur) : (quote?.regularMarketPrice ?? cur),
       pct1d,
       pctWTD:  pctSince(prevWeekEnd()),
       pctMTD:  pctSince(prevMonthEnd()),
@@ -250,9 +320,9 @@ async function fetchOne(item: PeerItem, customRange?: CustomRange): Promise<Peer
       pct6m:   pctSince(exactMonthsAgo(6)),
       pct1y:   pctSince(exactMonthsAgo(12)),
       pctCustom,
-      updatedAt: quote?.regularMarketTime
-        ? new Date(quote.regularMarketTime).toISOString()
-        : null,
+      updatedAt: isIndex
+        ? (idxQuote ? new Date(idxQuote.date + 'T05:30:00Z').toISOString() : null)
+        : (quote?.regularMarketTime ? new Date(quote.regularMarketTime).toISOString() : null),
       dataDate: rows[rows.length - 1].date.toISOString().split('T')[0],
       anomaly: false, anomalyReason: null,   // 由 route handler 比對 TWSE 後填入
     };
@@ -278,16 +348,17 @@ export async function GET(request: NextRequest) {
 
   const BATCH = 4;
   const results: PeerPerfResult[] = [];
-  // 同時抓 TWSE 即時，作為偵測 Yahoo 破值/缺價的真相來源
-  const [, twseLatest] = await Promise.all([
-    (async () => {
-      for (let i = 0; i < group.items.length; i += BATCH) {
-        const batch = await Promise.all(group.items.slice(i, i + BATCH).map(item => fetchOne(item, customRange)));
-        results.push(...batch);
-      }
-    })(),
+  // 先抓 TWSE 即時：個股「已成交最新日」(偵測 Yahoo 落後) + 指數即時值(t00/o00，指數計算的真相來源)
+  const [twseLatest, idxMap] = await Promise.all([
     fetchTwseLatestTraded(group.items),
+    fetchTwseIndices(group.items),
   ]);
+  for (let i = 0; i < group.items.length; i += BATCH) {
+    const batch = await Promise.all(
+      group.items.slice(i, i + BATCH).map(item => fetchOne(item, customRange, idxMap.get(item.yfTicker))),
+    );
+    results.push(...batch);
+  }
 
   // ── 數值異常判定 ──
   // 1) 完全無報價（price 為 null）
@@ -301,7 +372,8 @@ export async function GET(request: NextRequest) {
       continue;
     }
     if (closed) {
-      const twseDate = twseLatest.get(r.ticker);
+      // 個股用 tse_<code>，指數用 t00/o00；兩者皆以 TWSE 已成交最新日為準
+      const twseDate = twseLatest.get(r.ticker) ?? idxMap.get(r.yfTicker)?.date;
       if (twseDate && r.dataDate && r.dataDate < twseDate) {
         r.anomaly = true;
         r.anomalyReason = `Yahoo 缺最新報價（採用 ${r.dataDate}，TWSE 已有 ${twseDate}）`;
