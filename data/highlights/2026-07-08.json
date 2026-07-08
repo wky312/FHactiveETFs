@@ -1,0 +1,237 @@
+{
+  "date": "2026-07-08",
+  "scanned_at": "2026-07-08T16:32:45+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": "0050"
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "tw_active"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "stale",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R3-6805-20260615-t15",
+      "rule": "R3",
+      "score": 39.19,
+      "selected": true,
+      "fact": "6/15 減碼 富世達股，其後回跌 19.6%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 6/15 提前減碼富世達股，隨後該股回跌 19.6%，成功避開損失。",
+      "data": {
+        "stockid": "6805",
+        "event_date": "2026-06-15",
+        "direction": "trim",
+        "qty_change_pct": -99.8,
+        "weight_pct": 1.665,
+        "return_since_pct": -19.6,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-8046-20260624-t15",
+      "rule": "R3",
+      "score": 31.9,
+      "selected": true,
+      "fact": "6/24 加碼的 南亞電路 至今 +15.9%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 6/24 加碼南亞電路，至今上漲 15.9%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "8046",
+        "event_date": "2026-06-24",
+        "direction": "add",
+        "qty_change_pct": 15.2,
+        "weight_pct": 2.684,
+        "return_since_pct": 15.95,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-2308-20260622-t8",
+      "rule": "R3",
+      "score": 24.65,
+      "selected": true,
+      "fact": "6/22 減碼 台達電子，其後回跌 12.3%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 6/22 提前減碼台達電子，隨後該股回跌 12.3%，成功避開損失。",
+      "data": {
+        "stockid": "2308",
+        "event_date": "2026-06-22",
+        "direction": "trim",
+        "qty_change_pct": -25.0,
+        "weight_pct": 2.673,
+        "return_since_pct": -12.33,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R1-6274-2026-07-08",
+      "rule": "R1",
+      "score": 19.58,
+      "selected": true,
+      "fact": "台燿科技今日 +4.44%，00991A 持股 4.41%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "台燿科技大漲 4.44%，00991A 以 4.41% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "6274",
+        "pct_change": 4.44,
+        "weight_pct": 4.41,
+        "is_heaviest_among_universe": false,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R3-8996-20260623-t8",
+      "rule": "R3",
+      "score": 17.93,
+      "selected": true,
+      "fact": "6/23 減碼 高力熱處，其後回跌 9.0%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 6/23 提前減碼高力熱處，隨後該股回跌 9.0%，成功避開損失。",
+      "data": {
+        "stockid": "8996",
+        "event_date": "2026-06-23",
+        "direction": "trim",
+        "qty_change_pct": -34.0,
+        "weight_pct": 2.171,
+        "return_since_pct": -8.97,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-8210-20260702-t8",
+      "rule": "R3",
+      "score": 17.56,
+      "selected": false,
+      "fact": "7/2 減碼 勤誠興業，其後回跌 8.8%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 7/2 提前減碼勤誠興業，隨後該股回跌 8.8%，成功避開損失。",
+      "data": {
+        "stockid": "8210",
+        "event_date": "2026-07-02",
+        "direction": "trim",
+        "qty_change_pct": -40.6,
+        "weight_pct": 1.243,
+        "return_since_pct": -8.78,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-2368-20260624-t8",
+      "rule": "R3",
+      "score": 16.73,
+      "selected": false,
+      "fact": "6/24 減碼 金像電子，其後回跌 8.4%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 6/24 提前減碼金像電子，隨後該股回跌 8.4%，成功避開損失。",
+      "data": {
+        "stockid": "2368",
+        "event_date": "2026-06-24",
+        "direction": "trim",
+        "qty_change_pct": -98.7,
+        "weight_pct": 1.319,
+        "return_since_pct": -8.37,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-2344-20260702-t8",
+      "rule": "R3",
+      "score": 16.35,
+      "selected": false,
+      "fact": "7/2 減碼 華邦電子，其後回跌 8.2%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 7/2 提前減碼華邦電子，隨後該股回跌 8.2%，成功避開損失。",
+      "data": {
+        "stockid": "2344",
+        "event_date": "2026-07-02",
+        "direction": "trim",
+        "qty_change_pct": -40.0,
+        "weight_pct": 2.114,
+        "return_since_pct": -8.17,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-3017-20260624-t8",
+      "rule": "R3",
+      "score": 16.21,
+      "selected": false,
+      "fact": "6/24 減碼 奇鋐科技，其後回跌 8.1%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 6/24 提前減碼奇鋐科技，隨後該股回跌 8.1%，成功避開損失。",
+      "data": {
+        "stockid": "3017",
+        "event_date": "2026-06-24",
+        "direction": "trim",
+        "qty_change_pct": -97.8,
+        "weight_pct": 1.445,
+        "return_since_pct": -8.1,
+        "tier": 8
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 498,
+    "line_status": 200,
+    "candidate_count": 9,
+    "selected_count": 5
+  }
+}

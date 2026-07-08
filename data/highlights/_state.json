@@ -1,9 +1,10 @@
 {
-  "updated_at": "2026-07-07T17:46:27+08:00",
+  "updated_at": "2026-07-08T16:32:45+08:00",
   "pushed_dates": [
     "2026-07-03",
     "2026-07-06",
-    "2026-07-07"
+    "2026-07-07",
+    "2026-07-08"
   ],
   "r3_events": {
     "8046|2026/06/23": {
@@ -24,7 +25,7 @@
     },
     "8046|2026/06/24": {
       "direction": "add",
-      "tier_pushed": 8
+      "tier_pushed": 15
     },
     "2368|2026/06/22": {
       "direction": "trim",
@@ -32,7 +33,7 @@
     },
     "6805|2026/06/15": {
       "direction": "trim",
-      "tier_pushed": 8
+      "tier_pushed": 15
     },
     "2360|2026/06/09": {
       "direction": "trim",
@@ -43,6 +44,14 @@
       "tier_pushed": 8
     },
     "2308|2026/06/18": {
+      "direction": "trim",
+      "tier_pushed": 8
+    },
+    "2308|2026/06/22": {
+      "direction": "trim",
+      "tier_pushed": 8
+    },
+    "8996|2026/06/23": {
       "direction": "trim",
       "tier_pushed": 8
     }
