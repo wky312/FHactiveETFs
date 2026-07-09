@@ -1,0 +1,326 @@
+{
+  "date": "2026-07-09",
+  "scanned_at": "2026-07-09T17:43:15+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": "0050"
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "tw_active"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "ok",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R1-2408-2026-07-09",
+      "rule": "R1",
+      "score": 54.74,
+      "selected": true,
+      "fact": "南亞科技今日 +9.97%，00991A 持股 5.49%、為全市場 18 檔主動 ETF 中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "南亞科技大漲 9.97%，00991A 以 5.49% 持股居全市場主動 ETF 之冠，經理人重押命中。",
+      "data": {
+        "stockid": "2408",
+        "pct_change": 9.97,
+        "weight_pct": 5.49,
+        "is_heaviest_among_universe": true,
+        "universe_size": 18
+      }
+    },
+    {
+      "id": "R2-2408-2026-07-09",
+      "rule": "R2",
+      "score": 54.74,
+      "selected": true,
+      "fact": "顯著超配持股 南亞科技今日 +9.97%（00991A 權重 5.49%，其他主動 ETF 最高僅 2.66%）",
+      "angle": "顯著超配股發威：別人沒有的上漲",
+      "draft": "南亞科技今日 +9.97%——這檔是 00991A 的顯著超配持股（5.49%），布局深度遠超同業。",
+      "data": {
+        "stockid": "2408",
+        "pct_change": 9.97,
+        "weight_pct": 5.49,
+        "exclusive": false,
+        "new_high": false,
+        "others_max_weight": 2.66
+      }
+    },
+    {
+      "id": "R1-6223-2026-07-09",
+      "rule": "R1",
+      "score": 49.5,
+      "selected": true,
+      "fact": "旺矽科技今日 +9.94%，00991A 持股 4.98%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "旺矽科技大漲 9.94%，00991A 以 4.98% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "6223",
+        "pct_change": 9.94,
+        "weight_pct": 4.98,
+        "is_heaviest_among_universe": false,
+        "universe_size": 18
+      }
+    },
+    {
+      "id": "R1-8046-2026-07-09",
+      "rule": "R1",
+      "score": 41.69,
+      "selected": true,
+      "fact": "南亞電路今日 +9.95%，00991A 持股 4.19%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "南亞電路大漲 9.95%，00991A 以 4.19% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "8046",
+        "pct_change": 9.95,
+        "weight_pct": 4.19,
+        "is_heaviest_among_universe": false,
+        "universe_size": 18
+      }
+    },
+    {
+      "id": "R3-8996-20260623-t15",
+      "rule": "R3",
+      "score": 30.34,
+      "selected": true,
+      "fact": "6/23 減碼 高力熱處，其後回跌 15.2%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 6/23 提前減碼高力熱處，隨後該股回跌 15.2%，成功避開損失。",
+      "data": {
+        "stockid": "8996",
+        "event_date": "2026-06-23",
+        "direction": "trim",
+        "qty_change_pct": -34.0,
+        "weight_pct": 2.171,
+        "return_since_pct": -15.17,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R4-rank-ytd1-2026-07-09",
+      "rule": "R4",
+      "score": 30.0,
+      "selected": false,
+      "fact": "00991A YTD 報酬在同業觀測群排名第 1（8 檔）",
+      "angle": "績效里程碑：排名領先",
+      "draft": "00991A YTD 績效衝上同業觀測群第 1 名，主動管理實力發酵。",
+      "data": {
+        "kind": "ytd",
+        "rank": 1,
+        "universe_size": 8,
+        "pct": 86.34192932187203
+      }
+    },
+    {
+      "id": "R3-2368-20260624-t8",
+      "rule": "R3",
+      "score": 28.69,
+      "selected": false,
+      "fact": "6/24 減碼 金像電子，其後回跌 14.3%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 6/24 提前減碼金像電子，隨後該股回跌 14.3%，成功避開損失。",
+      "data": {
+        "stockid": "2368",
+        "event_date": "2026-06-24",
+        "direction": "trim",
+        "qty_change_pct": -98.7,
+        "weight_pct": 1.319,
+        "return_since_pct": -14.34,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-8210-20260702-t8",
+      "rule": "R3",
+      "score": 20.61,
+      "selected": false,
+      "fact": "7/2 減碼 勤誠興業，其後回跌 10.3%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 7/2 提前減碼勤誠興業，隨後該股回跌 10.3%，成功避開損失。",
+      "data": {
+        "stockid": "8210",
+        "event_date": "2026-07-02",
+        "direction": "trim",
+        "qty_change_pct": -40.6,
+        "weight_pct": 1.243,
+        "return_since_pct": -10.31,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-2308-20260623-t8",
+      "rule": "R3",
+      "score": 19.23,
+      "selected": false,
+      "fact": "6/23 減碼 台達電子，其後回跌 9.6%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 6/23 提前減碼台達電子，隨後該股回跌 9.6%，成功避開損失。",
+      "data": {
+        "stockid": "2308",
+        "event_date": "2026-06-23",
+        "direction": "trim",
+        "qty_change_pct": -25.0,
+        "weight_pct": 1.916,
+        "return_since_pct": -9.62,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-3189-20260623-t8",
+      "rule": "R3",
+      "score": 19.08,
+      "selected": false,
+      "fact": "6/23 加碼的 景碩科技 至今 +9.5%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 6/23 加碼景碩科技，至今上漲 9.5%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "3189",
+        "event_date": "2026-06-23",
+        "direction": "add",
+        "qty_change_pct": 26.3,
+        "weight_pct": 2.599,
+        "return_since_pct": 9.54,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-3665-20260702-t8",
+      "rule": "R3",
+      "score": 17.16,
+      "selected": false,
+      "fact": "7/2 減碼 貿聯-KY，其後回跌 8.6%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 7/2 提前減碼貿聯-KY，隨後該股回跌 8.6%，成功避開損失。",
+      "data": {
+        "stockid": "3665",
+        "event_date": "2026-07-02",
+        "direction": "trim",
+        "qty_change_pct": -42.2,
+        "weight_pct": 1.258,
+        "return_since_pct": -8.58,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R1-8299-2026-07-09",
+      "rule": "R1",
+      "score": 16.53,
+      "selected": false,
+      "fact": "群聯電子今日 +3.74%，00991A 持股 4.42%、為全市場 18 檔主動 ETF 中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "群聯電子大漲 3.74%，00991A 以 4.42% 持股居全市場主動 ETF 之冠，經理人重押命中。",
+      "data": {
+        "stockid": "8299",
+        "pct_change": 3.74,
+        "weight_pct": 4.42,
+        "is_heaviest_among_universe": true,
+        "universe_size": 18
+      }
+    },
+    {
+      "id": "R2-3026-2026-07-09",
+      "rule": "R2",
+      "score": 14.58,
+      "selected": false,
+      "fact": "顯著超配持股 禾伸堂企今日 +5.46%（00991A 權重 2.67%，其他主動 ETF 最高僅 1.24%）",
+      "angle": "顯著超配股發威：別人沒有的上漲",
+      "draft": "禾伸堂企今日 +5.46%——這檔是 00991A 的顯著超配持股（2.67%），布局深度遠超同業。",
+      "data": {
+        "stockid": "3026",
+        "pct_change": 5.46,
+        "weight_pct": 2.67,
+        "exclusive": false,
+        "new_high": true,
+        "others_max_weight": 1.24
+      }
+    },
+    {
+      "id": "R5-aum750-2026-07-09",
+      "rule": "R5",
+      "score": 12.0,
+      "selected": false,
+      "fact": "00991A 規模首度突破 750 億元（753.5 億）",
+      "angle": "規模里程碑",
+      "draft": "00991A 基金規模正式站上 750 億元大關。",
+      "data": {
+        "aum_billion": 753.46,
+        "milestone": 750,
+        "data_date": "2026-07-09"
+      }
+    },
+    {
+      "id": "R5-top1-2026-07-09",
+      "rule": "R5",
+      "score": 10.0,
+      "selected": false,
+      "fact": "00991A 單日淨申購 2.9 億元，觀測同業（6 檔）中第一",
+      "angle": "資金流向：同業吸金王",
+      "draft": "觀測同業中，00991A 以 2.9 億元淨申購居冠。",
+      "data": {
+        "net_sub_billion": 2.92,
+        "peer_count": 6,
+        "data_date": "2026-07-09"
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 606,
+    "line_status": 200,
+    "candidate_count": 15,
+    "selected_count": 5
+  }
+}
