@@ -42,6 +42,8 @@ export default function SectorExposureTab() {
 
   const [codes, setCodes] = useState<string[]>([]);
   const [groupName, setGroupName] = useState('');
+  const [groupQuery, setGroupQuery] = useState('');       // 族群搜尋框輸入中的文字
+  const [groupFocused, setGroupFocused] = useState(false);
   const [query, setQuery] = useState('');
   const [onlyHolders, setOnlyHolders] = useState(false);
   const [sortBy, setSortBy] = useState<string>('group');   // 'group' | stockid
@@ -98,6 +100,13 @@ export default function SectorExposureTab() {
     const customNames = new Set(custom.map(g => g.name));
     return { custom, builtin: listAll().filter(g => g.builtin && !customNames.has(g.name)) };
   }, [custom]);
+
+  /* 族群搜尋：44 組內建＋自訂，肉眼找太慢，改用文字篩選（不分大小寫）。空字串時顯示全部。 */
+  const groupMatches = useMemo(() => {
+    const q = groupQuery.trim();
+    const filt = (arr: SectorGroup[]) => (q ? arr.filter(g => g.name.includes(q)) : arr);
+    return { custom: filt(groups.custom), builtin: filt(groups.builtin) };
+  }, [groups, groupQuery]);
 
   /* 選股候選：全市場被持有的個股 ∪ 內建族群成分股（後者可能無人持有，仍要能選到並看見 0.00%）。 */
   const candidates = useMemo(() => {
@@ -195,20 +204,46 @@ export default function SectorExposureTab() {
     <div style={{ fontFamily: SANS, color: TEXT }}>
       {/* ── 族群選擇 ── */}
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
-        <select value={groupName} onChange={e => {
-          const g = listAll().find(x => x.name === e.target.value);
-          if (g) pickGroup(g); else { setGroupName(''); }
-        }} style={{ ...toolBtn, cursor: 'pointer', minWidth: 190 }}>
-          <option value="">選擇族群…</option>
-          {groups.custom.length > 0 && (
-            <optgroup label="我的族群">
-              {groups.custom.map(g => <option key={g.name} value={g.name}>{g.name}（{g.codes.length}）</option>)}
-            </optgroup>
+        <div style={{ position: 'relative' }}>
+          <input
+            value={groupFocused ? groupQuery : groupName}
+            onChange={e => setGroupQuery(e.target.value)}
+            onFocus={() => { setGroupFocused(true); setGroupQuery(''); }}
+            onBlur={() => setGroupFocused(false)}
+            placeholder="搜尋族群…"
+            style={{ ...toolBtn, cursor: 'text', width: 200, color: TEXT }} />
+          {groupFocused && (
+            <div onMouseDown={e => e.preventDefault()}
+              style={{ position: 'absolute', top: '100%', left: 0, zIndex: 10, background: CARD, border: `1px solid ${BORDER}`,
+                borderRadius: 6, marginTop: 4, boxShadow: '0 6px 18px rgba(0,0,0,.08)', minWidth: 220, maxHeight: 300, overflowY: 'auto' }}>
+              {groupMatches.custom.length === 0 && groupMatches.builtin.length === 0 && (
+                <div style={{ padding: '8px 10px', fontSize: '.78rem', color: SUB }}>查無符合的族群</div>
+              )}
+              {groupMatches.custom.length > 0 && (
+                <>
+                  <div style={{ padding: '5px 10px 3px', fontSize: '.68rem', color: SUB, fontWeight: 600 }}>我的族群</div>
+                  {groupMatches.custom.map(g => (
+                    <div key={g.name} onClick={() => { pickGroup(g); setGroupQuery(''); setGroupFocused(false); }}
+                      style={{ padding: '6px 10px', cursor: 'pointer', fontSize: '.8rem' }}>
+                      {g.name}<span style={{ color: SUB, marginLeft: 6 }}>（{g.codes.length}）</span>
+                    </div>
+                  ))}
+                </>
+              )}
+              {groupMatches.builtin.length > 0 && (
+                <>
+                  <div style={{ padding: '5px 10px 3px', fontSize: '.68rem', color: SUB, fontWeight: 600 }}>內建產業族群</div>
+                  {groupMatches.builtin.map(g => (
+                    <div key={g.name} onClick={() => { pickGroup(g); setGroupQuery(''); setGroupFocused(false); }}
+                      style={{ padding: '6px 10px', cursor: 'pointer', fontSize: '.8rem' }}>
+                      {g.name}<span style={{ color: SUB, marginLeft: 6 }}>（{g.codes.length}）</span>
+                    </div>
+                  ))}
+                </>
+              )}
+            </div>
           )}
-          <optgroup label="內建產業族群">
-            {groups.builtin.map(g => <option key={g.name} value={g.name}>{g.name}（{g.codes.length}）</option>)}
-          </optgroup>
-        </select>
+        </div>
 
         <div style={{ position: 'relative' }}>
           <input value={query} onChange={e => setQuery(e.target.value)}
