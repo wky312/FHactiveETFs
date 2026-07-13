@@ -1,11 +1,12 @@
 {
-  "updated_at": "2026-07-09T17:43:15+08:00",
+  "updated_at": "2026-07-13T17:31:43+08:00",
   "pushed_dates": [
     "2026-07-03",
     "2026-07-06",
     "2026-07-07",
     "2026-07-08",
-    "2026-07-09"
+    "2026-07-09",
+    "2026-07-13"
   ],
   "r3_events": {
     "8046|2026/06/23": {
@@ -26,7 +27,7 @@
     },
     "8046|2026/06/24": {
       "direction": "add",
-      "tier_pushed": 15
+      "tier_pushed": 30
     },
     "2368|2026/06/22": {
       "direction": "trim",
@@ -42,7 +43,7 @@
     },
     "8210|2026/06/22": {
       "direction": "trim",
-      "tier_pushed": 8
+      "tier_pushed": 15
     },
     "2308|2026/06/18": {
       "direction": "trim",
@@ -55,12 +56,20 @@
     "8996|2026/06/23": {
       "direction": "trim",
       "tier_pushed": 15
+    },
+    "4958|2026/06/12": {
+      "direction": "add",
+      "tier_pushed": 15
+    },
+    "2368|2026/06/24": {
+      "direction": "trim",
+      "tier_pushed": 15
     }
   },
   "r4_rank": {
     "ytd": {
       "period": "2026",
-      "last_rank": 2
+      "last_rank": 1
     }
   },
   "r4_new_high": {},
