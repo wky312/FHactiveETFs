@@ -41,7 +41,7 @@ export default function SectorExposureTab() {
   const [error, setError] = useState('');
 
   const [codes, setCodes] = useState<string[]>([]);
-  const [groupName, setGroupName] = useState('');
+  const [appliedGroups, setAppliedGroups] = useState<string[]>([]);  // 目前疊加套用中的族群名稱，可複數
   const [groupQuery, setGroupQuery] = useState('');       // 族群搜尋框輸入中的文字
   const [groupFocused, setGroupFocused] = useState(false);
   const [query, setQuery] = useState('');
@@ -69,32 +69,38 @@ export default function SectorExposureTab() {
   }, []);
   useEffect(() => { load(); }, [load]);
 
-  /* 掛載後才讀網址，避免 SSR 與 client 初值不同造成 hydration mismatch。 */
+  /* 掛載後才讀網址，避免 SSR 與 client 初值不同造成 hydration mismatch。
+     g 可以是逗號分隔的多個族群名稱（疊加套用）；codes 有值時以它為準，g 只用來還原「套用中」的標籤。 */
   useEffect(() => {
     setCustom(listCustom());
     if (urlApplied.current) return;
     urlApplied.current = true;
     const sp = new URLSearchParams(window.location.search);
     const raw = sp.get('codes');
-    const g = sp.get('g');
+    const gNames = (sp.get('g') ?? '').split(',').map(s => s.trim()).filter(Boolean);
     if (raw) {
       setCodes(raw.split(',').map(normalizeCode).filter(Boolean).slice(0, MAX_CODES));
-      if (g) setGroupName(g);
-    } else if (g) {
-      const found = listAll().find(x => x.name === g);
-      if (found) { setCodes(found.codes); setGroupName(g); }
+      if (gNames.length) setAppliedGroups(gNames.filter(n => listAll().some(x => x.name === n)));
+    } else if (gNames.length) {
+      const found = gNames.map(n => listAll().find(x => x.name === n)).filter((x): x is SectorGroup => !!x);
+      if (found.length) {
+        const merged: string[] = [];
+        for (const fg of found) for (const c of fg.codes) if (!merged.includes(c)) merged.push(c);
+        setCodes(merged.slice(0, MAX_CODES));
+        setAppliedGroups(found.map(f => f.name));
+      }
     }
   }, []);
 
-  /* 選股同步進網址：分享連結即是「族群定義」的傳遞方式。 */
+  /* 選股同步進網址：分享連結即是「族群定義」的傳遞方式，g 用逗號分隔多個族群名稱。 */
   useEffect(() => {
     if (!urlApplied.current) return;
     const sp = new URLSearchParams(window.location.search);
     if (sp.get('tab') !== 'sector') return;   // 只在本分頁作用中才動網址
     if (codes.length) sp.set('codes', codes.join(',')); else sp.delete('codes');
-    if (groupName) sp.set('g', groupName); else sp.delete('g');
+    if (appliedGroups.length) sp.set('g', appliedGroups.join(',')); else sp.delete('g');
     window.history.replaceState(null, '', `${window.location.pathname}?${sp.toString()}`);
-  }, [codes, groupName]);
+  }, [codes, appliedGroups]);
 
   const groups = useMemo(() => {
     const customNames = new Set(custom.map(g => g.name));
@@ -142,16 +148,31 @@ export default function SectorExposureTab() {
   };
   const removeCode = (c: string) => setCodes(codes.filter(x => x !== c));
 
-  const pickGroup = (g: SectorGroup) => { setCodes(g.codes.slice(0, MAX_CODES)); setGroupName(g.name); };
-
   const flash = (msg: string) => { setNotice(msg); setTimeout(() => setNotice(''), 2400); };
 
+  /* 選族群＝疊加合併進目前已選個股，不是取代——這樣可以同時套用「記憶體」+「IC載板」。 */
+  const pickGroup = (g: SectorGroup) => {
+    setCodes(prev => {
+      const merged = [...prev];
+      for (const c of g.codes) if (!merged.includes(c)) merged.push(c);
+      if (merged.length > MAX_CODES) flash(`已達上限 ${MAX_CODES} 檔，部分股票未加入`);
+      return merged.slice(0, MAX_CODES);
+    });
+    setAppliedGroups(prev => (prev.includes(g.name) ? prev : [...prev, g.name]));
+  };
+  /* 移除某個已套用的族群：只拿掉屬於它的個股（若與其他仍套用中的族群重疊會一併移除，簡化模型）。 */
+  const removeAppliedGroup = (name: string) => {
+    const g = listAll().find(x => x.name === name);
+    if (g) setCodes(prev => prev.filter(c => !g.codes.includes(c)));
+    setAppliedGroups(prev => prev.filter(n => n !== name));
+  };
+
   const onSaveGroup = () => {
-    const name = window.prompt('族群名稱', groupName || '我的族群');
+    const name = window.prompt('族群名稱', appliedGroups.join('+') || '我的族群');
     if (!name?.trim()) return;
     saveGroup({ name: name.trim(), codes });
     setCustom(listCustom());
-    setGroupName(name.trim());
+    setAppliedGroups(prev => (prev.includes(name.trim()) ? prev : [...prev, name.trim()]));
     flash(`已存為「${name.trim()}」`);
   };
   const onDeleteGroup = (name: string) => {
@@ -197,7 +218,7 @@ export default function SectorExposureTab() {
     const ws = XLSX.utils.aoa_to_sheet([head, ...body, [], ...foot]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, '族群曝險');
-    XLSX.writeFile(wb, `族群曝險_${groupName || '自選'}_${result.asOf}.xlsx`);
+    XLSX.writeFile(wb, `族群曝險_${appliedGroups.join('+') || '自選'}_${result.asOf}.xlsx`);
   };
 
   return (
@@ -206,11 +227,11 @@ export default function SectorExposureTab() {
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
         <div style={{ position: 'relative' }}>
           <input
-            value={groupFocused ? groupQuery : groupName}
+            value={groupQuery}
             onChange={e => setGroupQuery(e.target.value)}
-            onFocus={() => { setGroupFocused(true); setGroupQuery(''); }}
+            onFocus={() => setGroupFocused(true)}
             onBlur={() => setGroupFocused(false)}
-            placeholder="搜尋族群…"
+            placeholder="搜尋並加入族群…"
             style={{ ...toolBtn, cursor: 'text', width: 200, color: TEXT }} />
           {groupFocused && (
             <div onMouseDown={e => e.preventDefault()}
@@ -223,9 +244,10 @@ export default function SectorExposureTab() {
                 <>
                   <div style={{ padding: '5px 10px 3px', fontSize: '.68rem', color: SUB, fontWeight: 600 }}>我的族群</div>
                   {groupMatches.custom.map(g => (
-                    <div key={g.name} onClick={() => { pickGroup(g); setGroupQuery(''); setGroupFocused(false); }}
+                    <div key={g.name} onClick={() => { pickGroup(g); setGroupQuery(''); }}
                       style={{ padding: '6px 10px', cursor: 'pointer', fontSize: '.8rem' }}>
                       {g.name}<span style={{ color: SUB, marginLeft: 6 }}>（{g.codes.length}）</span>
+                      {appliedGroups.includes(g.name) && <span style={{ color: GOLD, marginLeft: 6 }}>✓ 已套用</span>}
                     </div>
                   ))}
                 </>
@@ -234,9 +256,10 @@ export default function SectorExposureTab() {
                 <>
                   <div style={{ padding: '5px 10px 3px', fontSize: '.68rem', color: SUB, fontWeight: 600 }}>內建產業族群</div>
                   {groupMatches.builtin.map(g => (
-                    <div key={g.name} onClick={() => { pickGroup(g); setGroupQuery(''); setGroupFocused(false); }}
+                    <div key={g.name} onClick={() => { pickGroup(g); setGroupQuery(''); }}
                       style={{ padding: '6px 10px', cursor: 'pointer', fontSize: '.8rem' }}>
                       {g.name}<span style={{ color: SUB, marginLeft: 6 }}>（{g.codes.length}）</span>
+                      {appliedGroups.includes(g.name) && <span style={{ color: GOLD, marginLeft: 6 }}>✓ 已套用</span>}
                     </div>
                   ))}
                 </>
@@ -269,9 +292,23 @@ export default function SectorExposureTab() {
         <button onClick={() => fileRef.current?.click()} style={toolBtn}>匯入</button>
         <input ref={fileRef} type="file" accept="application/json" style={{ display: 'none' }}
           onChange={e => { const f = e.target.files?.[0]; if (f) onImport(f); e.target.value = ''; }} />
-        {codes.length > 0 && <button onClick={() => { setCodes([]); setGroupName(''); }} style={toolBtn}>清空</button>}
+        {codes.length > 0 && <button onClick={() => { setCodes([]); setAppliedGroups([]); }} style={toolBtn}>清空</button>}
         {notice && <span style={{ fontSize: '.78rem', color: GOLD }}>{notice}</span>}
       </div>
+
+      {/* ── 目前套用中的族群：可疊加多組，個別移除只拿掉該組的個股 ── */}
+      {appliedGroups.length > 0 && (
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10, alignItems: 'center' }}>
+          <span style={{ fontSize: '.75rem', color: SUB }}>已套用：</span>
+          {appliedGroups.map(name => (
+            <span key={name} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 10px',
+              background: '#FBEFE6', border: `1px solid ${GOLD}`, borderRadius: 12, fontSize: '.76rem', color: TEXT }}>
+              {name}
+              <span onClick={() => removeAppliedGroup(name)} style={{ cursor: 'pointer', color: SUB, fontWeight: 700 }}>×</span>
+            </span>
+          ))}
+        </div>
+      )}
 
       {/* ── 我的族群：可刪除 ── */}
       {custom.length > 0 && (
