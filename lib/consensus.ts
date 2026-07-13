@@ -15,7 +15,14 @@ import { supabase, supabaseReady } from './supabase';
 
        navProxy = Σ(qshare × close) ÷ (Σprate_有報價 / 100)
 
-   報價覆蓋率不足(<90%)時 navProxy 給 null，該檔排除於市值加權統計之外。 */
+   報價覆蓋率不足(<90%)時 navProxy 給 null，該檔排除於市值加權統計之外。
+
+   收盤價回溯窗口
+   ──────────────────────────────────────────────────────────────────
+   持股快照的 date 不保證是交易日 —— 曾實測 2026-07-10(颱風假、全市場未開盤)仍有
+   基金把當天列為最新持股日，導致 price 表當天完全沒有資料(不是還沒補、是永遠不會有)。
+   故 closesByDate 不抓「當天」，改抓「≤ 當天、往前 PRICE_LOOKBACK_DAYS 天」的收盤價，
+   每檔股票取窗口內最接近該日的一筆 —— 等同市場實務上遇到休市會沿用前一交易日收盤價。 */
 
 export interface ConsensusHolder {
   ticker: string;
@@ -53,6 +60,13 @@ const PAGE = 1000;
 const FUND_CONCURRENCY = 4;
 const ID_CHUNK = 150;          // .in() 的 URL 長度安全上限，比照 lib/marketScorecard.ts
 const MIN_PRICE_COVERAGE = 0.9;
+const PRICE_LOOKBACK_DAYS = 12; // 涵蓋國定連假/颱風假等連續休市，仍抓得到最近一個交易日收盤
+
+function addDays(dateStr: string, delta: number): string {
+  const dt = new Date(dateStr + 'T00:00:00Z');
+  dt.setUTCDate(dt.getUTCDate() + delta);
+  return dt.toISOString().slice(0, 10);
+}
 
 async function fetchAll<T>(build: (from: number, to: number) => PromiseLike<{ data: T[] | null }>): Promise<T[]> {
   const out: T[] = [];
@@ -82,15 +96,19 @@ function isCashLike(stockid: string, stockname: string): boolean {
 interface HoldRow { stockid: string; stockname: string; prate: number | string | null; qshare: number | string | null }
 interface PriceRow { stockid: string; close: number | string | null }
 
-/* 抓 date → (stockid → close)。各檔 ETF 的最新持股日通常相同，故先依日期分組再批次查。 */
+/* 抓 date → (stockid → close)。各檔 ETF 的最新持股日通常相同，故先依日期分組再批次查。
+   查「≤ date 且往前 PRICE_LOOKBACK_DAYS 天」的區間、依日期升冪排序，同一 stockid 的收盤
+   會被較新的值覆蓋 —— 結果自然是「窗口內最接近 date 的一筆」，休市日也能拿到前一交易日收盤。 */
 async function closesByDate(dates: string[], stockids: string[]): Promise<Map<string, Map<string, number>>> {
   const out = new Map<string, Map<string, number>>();
   for (const d of dates) {
+    const start = addDays(d, -PRICE_LOOKBACK_DAYS);
     const m = new Map<string, number>();
     for (let i = 0; i < stockids.length; i += ID_CHUNK) {
       const chunk = stockids.slice(i, i + ID_CHUNK);
       const rows = await fetchAll<PriceRow>((from, to) =>
-        supabase!.from('price').select('stockid,close').eq('date', d).in('stockid', chunk).range(from, to));
+        supabase!.from('price').select('stockid,close').gte('date', start).lte('date', d)
+          .in('stockid', chunk).order('date', { ascending: true }).range(from, to));
       for (const r of rows) {
         const c = r.close == null ? NaN : Number(r.close);
         if (!isNaN(c) && c > 0) m.set(String(r.stockid).trim(), c);
@@ -104,7 +122,7 @@ async function closesByDate(dates: string[], stockids: string[]): Promise<Map<st
 export async function computeConsensus(asOfReq?: string): Promise<ConsensusResult> {
   if (!supabaseReady || !supabase) throw new Error('Supabase 未設定（缺 NEXT_PUBLIC_SUPABASE_URL / KEY）');
 
-  const cacheKey = `v2|${asOfReq ?? 'latest'}`;   // v2: holders 帶權重、funds 帶 navProxy
+  const cacheKey = `v3|${asOfReq ?? 'latest'}`;   // v3: closesByDate 改回溯窗口(休市日仍有規模)
   const cached = _cache.get(cacheKey);
   if (cached && Date.now() - cached.ts < TTL_MS) return cached.data;
 
