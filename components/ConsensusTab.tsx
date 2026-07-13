@@ -24,12 +24,11 @@ interface ConsensusFund {
 interface ConsensusResult { asOf: string; nFunds: number; funds: ConsensusFund[]; stocks: ConsensusStock[] }
 
 type Mode = 'consensus' | 'solo';
-type SortKey = 'heldBy' | 'sumWeight' | 'avgWeight' | 'maxWeight';
+type SortKey = 'heldBy' | 'sumWeight' | 'avgWeight';
 const COLS: { key: SortKey; label: string }[] = [
   { key: 'heldBy',    label: '持有檔數' },
   { key: 'sumWeight', label: '合計權重' },
   { key: 'avgWeight', label: '平均權重' },
-  { key: 'maxWeight', label: '最大權重' },
 ];
 
 function num(v: number, d = 2): string { return v.toFixed(d); }
@@ -51,6 +50,7 @@ export default function ConsensusTab() {
   const [sortKey, setSortKey] = useState<SortKey>('heldBy');
   const [sortAsc, setSortAsc] = useState(false);
   const [query,   setQuery]   = useState('');
+  const [funds,   setFunds]   = useState<string[]>([]);   // 複選＝交集：只看「全部選取者都持有」的個股
 
   const load = useCallback(async () => {
     setLoading(true); setError(''); setData(null);
@@ -72,6 +72,7 @@ export default function ConsensusTab() {
     if (!data) return [];
     let xs = data.stocks;
     if (mode === 'solo') xs = xs.filter(s => s.heldBy === 1);
+    if (funds.length) xs = xs.filter(s => funds.every(t => s.holders.some(h => h.ticker === t)));
     if (query.trim()) {
       const q = query.trim();
       xs = xs.filter(s => s.stockid.includes(q) || s.stockname.includes(q) || s.holders.some(h => h.ticker.includes(q)));
@@ -80,22 +81,25 @@ export default function ConsensusTab() {
       const av = a[sortKey], bv = b[sortKey];
       return sortAsc ? av - bv : bv - av;
     });
-  }, [data, mode, query, sortKey, sortAsc]);
+  }, [data, mode, funds, query, sortKey, sortAsc]);
 
   const toggleSort = (k: SortKey) => {
     if (k === sortKey) setSortAsc(p => !p);
     else { setSortKey(k); setSortAsc(false); }
   };
 
+  const toggleFund = (t: string) =>
+    setFunds(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
+
   const exportExcel = () => {
     if (!data) return;
-    const headers = ['代碼', '名稱', '持有檔數', '合計權重%', '平均權重%', '最大權重%', '最大持有者', '持有清單'];
-    const xs = mode === 'solo' ? data.stocks.filter(s => s.heldBy === 1) : data.stocks;
-    const body = xs.map(s => [s.stockid, s.stockname, s.heldBy, s.sumWeight.toFixed(2), s.avgWeight.toFixed(2), s.maxWeight.toFixed(2), s.maxHolder, s.holders.map(h => h.ticker).join(' ')]);
+    const headers = ['代碼', '名稱', '持有檔數', '合計權重%', '平均權重%', '持有清單(含權重%)'];
+    const body = rows.map(s => [s.stockid, s.stockname, s.heldBy, s.sumWeight.toFixed(2), s.avgWeight.toFixed(2),
+      [...s.holders].sort((a, b) => b.w - a.w).map(h => `${h.ticker} ${h.w.toFixed(2)}%`).join('、')]);
     const ws = XLSX.utils.aoa_to_sheet([headers, ...body]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, mode === 'solo' ? '獨家壓注' : '共識持股');
-    XLSX.writeFile(wb, `共識持股_${data.asOf}.xlsx`);
+    XLSX.writeFile(wb, `共識持股_${data.asOf}${funds.length ? '_' + funds.join('+') : ''}.xlsx`);
   };
 
   return (
@@ -116,6 +120,31 @@ export default function ConsensusTab() {
         <button onClick={load} disabled={loading} style={miniBtn}>{loading ? '載入中…' : '↻ 重新整理'}</button>
         {data && !loading && <button onClick={exportExcel} style={{ ...miniBtn, marginLeft: 'auto' }}>↓ 匯出 Excel</button>}
       </div>
+      {/* 持有者篩選（可複選＝交集） */}
+      {data && !loading && (
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, alignItems: 'center', marginBottom: 10 }}>
+          <span style={{ fontSize: '.74rem', color: SUB, fontWeight: 600, marginRight: 2 }}>持有者篩選（可複選＝交集）</span>
+          {[...data.funds].sort((a, b) => a.ticker.localeCompare(b.ticker)).map(f => {
+            const on = funds.includes(f.ticker);
+            return (
+              <button key={f.ticker} onClick={() => toggleFund(f.ticker)}
+                style={{ padding: '3px 10px', borderRadius: 12, cursor: 'pointer', fontFamily: MONO, fontSize: '.72rem',
+                  fontWeight: on ? 700 : 500, border: on ? `1px solid ${RED}` : `1px solid ${BORDER}`,
+                  background: on ? RED : '#fff', color: on ? '#fff' : SUB }}>
+                {f.ticker}
+              </button>
+            );
+          })}
+          {funds.length > 0 && (
+            <button onClick={() => setFunds([])} style={{ ...miniBtn, padding: '3px 10px', fontSize: '.72rem', borderRadius: 12 }}>✕ 清除</button>
+          )}
+          {funds.length > 0 && (
+            <span style={{ fontSize: '.74rem', color: RED, fontWeight: 600 }}>
+              {funds.join('＋')} 都持有：{rows.length} 檔
+            </span>
+          )}
+        </div>
+      )}
       <p style={{ fontSize: '.74rem', color: SUB, margin: '0 0 14px' }}>
         {mode === 'consensus'
           ? '被越多檔主動式 ETF 同時持有＝市場共識(crowding)；可看出哪些是主動經理人的「共同信仰」。'
@@ -141,7 +170,7 @@ export default function ConsensusTab() {
                       {c.label}{sortKey === c.key ? (sortAsc ? ' ↑' : ' ↓') : ''}
                     </th>
                   ))}
-                  <th style={{ ...TH, textAlign: 'left', cursor: 'default' }}>{mode === 'solo' ? '持有者' : '持有清單'}</th>
+                  <th style={{ ...TH, textAlign: 'left', cursor: 'default' }}>{mode === 'solo' ? '持有者' : '前三大持有者（懸停看全部）'}</th>
                 </tr>
               </thead>
               <tbody>
@@ -152,11 +181,29 @@ export default function ConsensusTab() {
                     <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.84rem', fontWeight: 700, color: s.heldBy >= 5 ? RED : s.heldBy === 1 ? GOLD : TEXT }}>{s.heldBy}</td>
                     <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: TEXT }}>{num(s.sumWeight)}%</td>
                     <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: SUB }}>{num(s.avgWeight)}%</td>
-                    <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: TEXT }}>
-                      {num(s.maxWeight)}% <span style={{ color: SUB, fontSize: '.72rem' }}>{s.maxHolder}</span>
-                    </td>
-                    <td style={{ padding: '7px 10px', fontFamily: MONO, fontSize: '.72rem', color: SUB, maxWidth: 280, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={s.holders.map(h => `${h.ticker} ${h.w.toFixed(2)}%`).join('  ')}>
-                      {s.holders.map(h => h.ticker).join(' ')}
+                    <td style={{ padding: '7px 10px', fontFamily: MONO, fontSize: '.74rem', color: SUB, whiteSpace: 'nowrap' }}
+                      title={[...s.holders].sort((a, b) => b.w - a.w).map(h => `${h.ticker} ${num(h.w)}%`).join('、')}>
+                      {(() => {
+                        const sorted = [...s.holders].sort((a, b) => b.w - a.w);
+                        const top = sorted.slice(0, 3);
+                        const extra = sorted.filter(h => funds.includes(h.ticker) && !top.some(t => t.ticker === h.ticker));
+                        const shown = [...top, ...extra];
+                        const rest = s.heldBy - shown.length;
+                        return (
+                          <>
+                            {shown.map((h, j) => (
+                              <span key={h.ticker}>
+                                {j > 0 && <span style={{ color: '#D0CBC6' }}>・</span>}
+                                <span style={{ color: funds.includes(h.ticker) ? RED : TEXT, fontWeight: funds.includes(h.ticker) ? 700 : 500 }}>
+                                  {h.ticker}
+                                </span>
+                                <span style={{ color: SUB }}> {num(h.w, 1)}%</span>
+                              </span>
+                            ))}
+                            {rest > 0 && <span style={{ color: '#B0AAA4' }}> +{rest}</span>}
+                          </>
+                        );
+                      })()}
                     </td>
                   </tr>
                 ))}
@@ -180,7 +227,7 @@ export default function ConsensusTab() {
 
           <div style={{ marginTop: 12, fontSize: '.72rem', color: SUB, lineHeight: 1.9 }}>
             資料 as-of <b>{data.asOf}</b>，涵蓋 <b>{data.nFunds}</b> 檔台股主動式 ETF（各取自身最新持股快照）。<br />
-            <b>持有檔數</b>＝同時持有該股的 ETF 數（≥5 標紅＝高度共識；=1 標金＝獨家壓注）　<b>合計權重</b>＝各持有者佔比加總　<b>最大權重</b>＝單一 ETF 對該股的最高佔比及其代碼。<br />
+            <b>持有檔數</b>＝同時持有該股的 ETF 數（≥5 標紅＝高度共識；=1 標金＝獨家壓注）　<b>合計權重</b>＝各持有者佔比加總　<b>持有者欄</b>＝佔比前三大（篩選中的基金若不在前三會標紅補列）。<br />
             資料源＝共用 Supabase 每日全量持股快照（已濾現金/期貨類）。權重為各 ETF 申報佔比。
           </div>
         </>
