@@ -19,6 +19,7 @@ import AttributionTab from './AttributionTab';
 import RiskTab from './RiskTab';
 import TurnoverTab from './TurnoverTab';
 import ConsensusTab from './ConsensusTab';
+import SectorExposureTab from './SectorExposureTab';
 import { captureAndShare } from '@/lib/captureImage';
 
 /* ── Design tokens ── */
@@ -33,7 +34,7 @@ const BORDER = '#E8E3DF';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'attribution' | 'risk' | 'turnover' | 'consensus';
+type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'attribution' | 'risk' | 'turnover' | 'consensus' | 'sector';
 
 /* 頂部導覽分組（13 個分頁收進 4 個下拉選單；不改各分頁邏輯，只改呈現） */
 const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
@@ -61,6 +62,7 @@ const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
     { id: 'peerperf',  label: '同業績效觀測' },
     { id: 'turnover',  label: '經理人換手率' },
     { id: 'consensus', label: '共識持股' },
+    { id: 'sector',    label: '族群曝險' },
   ] },
 ];
 
@@ -564,6 +566,12 @@ export default function Dashboard() {
         {activeTab === 'consensus' && (
           <Card title="共識持股 / 獨家壓注">
             <ConsensusTab />
+          </Card>
+        )}
+
+        {activeTab === 'sector' && (
+          <Card title="族群曝險（全市場主動式 ETF）">
+            <SectorExposureTab />
           </Card>
         )}
 

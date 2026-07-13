@@ -12,11 +12,15 @@ const BORDER = '#EEE9E4';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
+interface ConsensusHolder { ticker: string; w: number }
 interface ConsensusStock {
-  stockid: string; stockname: string; heldBy: number; holders: string[];
+  stockid: string; stockname: string; heldBy: number; holders: ConsensusHolder[];
   sumWeight: number; avgWeight: number; maxWeight: number; maxHolder: string;
 }
-interface ConsensusFund { ticker: string; name: string; holdingDate: string | null; nHoldings: number; nSolo: number }
+interface ConsensusFund {
+  ticker: string; name: string; holdingDate: string | null; nHoldings: number; nSolo: number;
+  navProxy: number | null; priceCoverage: number;
+}
 interface ConsensusResult { asOf: string; nFunds: number; funds: ConsensusFund[]; stocks: ConsensusStock[] }
 
 type Mode = 'consensus' | 'solo';
@@ -70,7 +74,7 @@ export default function ConsensusTab() {
     if (mode === 'solo') xs = xs.filter(s => s.heldBy === 1);
     if (query.trim()) {
       const q = query.trim();
-      xs = xs.filter(s => s.stockid.includes(q) || s.stockname.includes(q) || s.holders.some(h => h.includes(q)));
+      xs = xs.filter(s => s.stockid.includes(q) || s.stockname.includes(q) || s.holders.some(h => h.ticker.includes(q)));
     }
     return [...xs].sort((a, b) => {
       const av = a[sortKey], bv = b[sortKey];
@@ -87,7 +91,7 @@ export default function ConsensusTab() {
     if (!data) return;
     const headers = ['代碼', '名稱', '持有檔數', '合計權重%', '平均權重%', '最大權重%', '最大持有者', '持有清單'];
     const xs = mode === 'solo' ? data.stocks.filter(s => s.heldBy === 1) : data.stocks;
-    const body = xs.map(s => [s.stockid, s.stockname, s.heldBy, s.sumWeight.toFixed(2), s.avgWeight.toFixed(2), s.maxWeight.toFixed(2), s.maxHolder, s.holders.join(' ')]);
+    const body = xs.map(s => [s.stockid, s.stockname, s.heldBy, s.sumWeight.toFixed(2), s.avgWeight.toFixed(2), s.maxWeight.toFixed(2), s.maxHolder, s.holders.map(h => h.ticker).join(' ')]);
     const ws = XLSX.utils.aoa_to_sheet([headers, ...body]);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, mode === 'solo' ? '獨家壓注' : '共識持股');
@@ -151,8 +155,8 @@ export default function ConsensusTab() {
                     <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: TEXT }}>
                       {num(s.maxWeight)}% <span style={{ color: SUB, fontSize: '.72rem' }}>{s.maxHolder}</span>
                     </td>
-                    <td style={{ padding: '7px 10px', fontFamily: MONO, fontSize: '.72rem', color: SUB, maxWidth: 280, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={s.holders.join(' ')}>
-                      {s.holders.join(' ')}
+                    <td style={{ padding: '7px 10px', fontFamily: MONO, fontSize: '.72rem', color: SUB, maxWidth: 280, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }} title={s.holders.map(h => `${h.ticker} ${h.w.toFixed(2)}%`).join('  ')}>
+                      {s.holders.map(h => h.ticker).join(' ')}
                     </td>
                   </tr>
                 ))}
