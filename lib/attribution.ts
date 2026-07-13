@@ -4,7 +4,10 @@
  *   R_A − R_B = Σ_t Σ_i ( w^A_{i,t-1} − w^B_{i,t-1} ) · r_{i,t}
  *
  * w_{i,t-1} = 個股 i 前一交易日權重（prate/100，避免 look-ahead；缺報的日子沿用前值）
- * r_{i,t}   = 個股 i 當日報酬（優先用真實日均價 avg，退收盤 close）
+ * r_{i,t}   = 個股 i 當日報酬（收盤對收盤 close，退日均價 avg）
+ *             ── 用收盤而非日均價(VWAP)：基金 NAV／官方報酬以收盤結算，個股報酬同用收盤
+ *                才能與基金實際報酬對齊；日均價會讓 Σw·r 對不上 NAV。盤中執行損益屬另一種
+ *                分析(需逐筆成交資料)，每日快照歸因本就無法涵蓋。
  * 每檔貢獻：gap = Σ(w^A−w^B)·r、ca = Σ w^A·r、cb = Σ w^B·r。
  *
  * 資料來自 active-etf-tracker 的 Supabase（19 檔台股主動式股票 ETF 的逐日持股／均價／股息）。
@@ -125,7 +128,7 @@ export async function compute(
   }
   const price = new Map<string, Map<string, number>>();
   for (const r of px) {
-    const p = r.avg != null ? num(r.avg) : (r.close != null ? num(r.close) : NaN);
+    const p = r.close != null ? num(r.close) : (r.avg != null ? num(r.avg) : NaN);
     if (!Number.isFinite(p)) continue;
     const d = r.date.slice(0, 10);
     let pm = price.get(r.stockid);
