@@ -209,7 +209,7 @@ export default function AttributionTab() {
     <div style={{ fontFamily: SANS }}>
       <p style={{ fontSize: '.82rem', color: SUB, marginTop: 0, marginBottom: 16, lineHeight: 1.7 }}>
         挑兩檔台股主動式 ETF，看一段期間的報酬差距「來自哪些個股」。
-        資料：CMoney 持股 + TWSE/TPEx 均價 + FinMind 股息（來源：active-etf-tracker 資料庫，共 19 檔台股主動式股票 ETF）。
+        資料：CMoney 持股 + TWSE/TPEx 收盤價 + FinMind 股息（來源：active-etf-tracker 資料庫，共 19 檔台股主動式股票 ETF）。
       </p>
 
       {/* 控制列 */}
