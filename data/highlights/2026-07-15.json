@@ -1,0 +1,213 @@
+{
+  "date": "2026-07-15",
+  "scanned_at": "2026-07-15T16:15:48+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": "0050"
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "tw_active"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "stale",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R1-8046-2026-07-15",
+      "rule": "R1",
+      "score": 44.77,
+      "selected": true,
+      "fact": "南亞電路今日 +9.69%，00991A 持股 4.62%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "南亞電路大漲 9.69%，00991A 以 4.62% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "8046",
+        "pct_change": 9.69,
+        "weight_pct": 4.62,
+        "is_heaviest_among_universe": false,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R1-2408-2026-07-15",
+      "rule": "R1",
+      "score": 42.97,
+      "selected": true,
+      "fact": "南亞科技今日 +7.37%，00991A 持股 5.83%、為全市場 20 檔主動 ETF 中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "南亞科技大漲 7.37%，00991A 以 5.83% 持股居全市場主動 ETF 之冠，經理人重押命中。",
+      "data": {
+        "stockid": "2408",
+        "pct_change": 7.37,
+        "weight_pct": 5.83,
+        "is_heaviest_among_universe": true,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R1-3037-2026-07-15",
+      "rule": "R1",
+      "score": 33.75,
+      "selected": true,
+      "fact": "欣興電子今日 +7.09%，00991A 持股 4.76%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "欣興電子大漲 7.09%，00991A 以 4.76% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "3037",
+        "pct_change": 7.09,
+        "weight_pct": 4.76,
+        "is_heaviest_among_universe": false,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R3-3189-20260623-t15",
+      "rule": "R3",
+      "score": 32.86,
+      "selected": true,
+      "fact": "6/23 加碼的 景碩科技 至今 +16.4%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 6/23 加碼景碩科技，至今上漲 16.4%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "3189",
+        "event_date": "2026-06-23",
+        "direction": "add",
+        "qty_change_pct": 26.3,
+        "weight_pct": 2.599,
+        "return_since_pct": 16.43,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-8996-20260703-t8",
+      "rule": "R3",
+      "score": 28.26,
+      "selected": true,
+      "fact": "7/3 減碼 高力熱處，其後回跌 14.1%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 7/3 提前減碼高力熱處，隨後該股回跌 14.1%，成功避開損失。",
+      "data": {
+        "stockid": "8996",
+        "event_date": "2026-07-03",
+        "direction": "trim",
+        "qty_change_pct": -74.3,
+        "weight_pct": 0.919,
+        "return_since_pct": -14.13,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R1-2059-2026-07-15",
+      "rule": "R1",
+      "score": 24.14,
+      "selected": false,
+      "fact": "川湖科技今日 +6.32%，00991A 持股 3.82%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "川湖科技大漲 6.32%，00991A 以 3.82% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "2059",
+        "pct_change": 6.32,
+        "weight_pct": 3.82,
+        "is_heaviest_among_universe": false,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R3-3017-20260622-t8",
+      "rule": "R3",
+      "score": 21.07,
+      "selected": false,
+      "fact": "6/22 減碼 奇鋐科技，其後回跌 10.5%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 6/22 提前減碼奇鋐科技，隨後該股回跌 10.5%，成功避開損失。",
+      "data": {
+        "stockid": "3017",
+        "event_date": "2026-06-22",
+        "direction": "trim",
+        "qty_change_pct": -33.3,
+        "weight_pct": 2.238,
+        "return_since_pct": -10.54,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-2308-20260623-t8",
+      "rule": "R3",
+      "score": 18.27,
+      "selected": false,
+      "fact": "6/23 減碼 台達電子，其後回跌 9.1%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 6/23 提前減碼台達電子，隨後該股回跌 9.1%，成功避開損失。",
+      "data": {
+        "stockid": "2308",
+        "event_date": "2026-06-23",
+        "direction": "trim",
+        "qty_change_pct": -25.0,
+        "weight_pct": 1.916,
+        "return_since_pct": -9.13,
+        "tier": 8
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 555,
+    "line_status": 200,
+    "candidate_count": 8,
+    "selected_count": 5
+  }
+}
