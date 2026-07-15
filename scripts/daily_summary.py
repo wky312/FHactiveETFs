@@ -21,6 +21,12 @@ ETFS = [
     {'ticker': '00991A', 'name': '復華主動式ETF', 'fundId': 'ETF23', 'yfTicker': '00991A.TW'},
 ]
 
+# 單位數注意商品：主管機關要求成立以來平均單位數不得低於發行時單位數之一半。
+# listing_units 只作為文件用途（門檻換算在網站 lib/unitWatch.ts 做），此處只負責每日存檔 qIssue。
+UNIT_WATCH_PRODUCTS = [
+    {'ticker': '00986D', 'fundId': 'ETF25', 'listing_date': date(2026, 4, 15), 'listing_units': 230_677_000.0},
+]
+
 PUSHOVER_TOKEN     = os.environ.get('PUSHOVER_TOKEN', '')
 PUSHOVER_USER      = os.environ.get('PUSHOVER_USER', '')
 SUPABASE_URL       = os.environ.get('SUPABASE_URL', '')
@@ -136,6 +142,68 @@ def fetch_pcf(target: date, fund_id: str):
         except:
             continue
     return None
+
+
+def fetch_units(target: date, fund_id: str) -> float | None:
+    """Return units outstanding (qIssue) for the exact given date, or None (non-trading day /
+    no data yet). Unlike fetch_pcf's actBuyValDate (settlement-lagged), qIssue is keyed by
+    postDate == the requested pcfDate — confirmed via manual probe against ETF25 2026-07."""
+    target_str = date_to_api(target)
+    try:
+        url = f'{FHTRUST_PCF}?fundID={fund_id}&pcfDate={requests.utils.quote(target_str)}'
+        r = get_with_retry(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=20)
+        data = r.json()
+        d = (data.get('result') or [None])[0] if data.get('result') else data
+        if not d or not d.get('postDate') or str(d['postDate']) != target_str:
+            return None
+        units = parse_num(d.get('qIssue', 0))
+        return units or None
+    except Exception as e:
+        print(f'  unit fetch error ({target_str}): {e}')
+        return None
+
+
+def write_unit_watch_to_supabase(rows: list):
+    """rows: [{'date': date, 'ticker': str, 'units': float}, ...]. Upsert into unit_watch."""
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        print('  Supabase credentials not set, skipping unit_watch DB write.')
+        return
+    if not rows:
+        return
+    try:
+        from supabase import create_client
+        client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+        payload = [
+            {'date': str(r['date']), 'ticker': r['ticker'], 'units': round(float(r['units']), 2)}
+            for r in rows
+        ]
+        client.table('unit_watch').upsert(payload, on_conflict='date,ticker').execute()
+        print(f'  ✓ Supabase: upserted {len(payload)} unit_watch row(s)')
+    except Exception as e:
+        print(f'  Supabase unit_watch write error: {e}')
+        import traceback; traceback.print_exc()
+
+
+def process_unit_watch(today: date) -> bool:
+    """Fetch and store the most recent trading day's units outstanding for monitored products."""
+    print('\n[單位數注意商品]')
+    rows = []
+    for p in UNIT_WATCH_PRODUCTS:
+        d = today
+        found = False
+        for _ in range(6):  # walk back through weekends/holidays
+            if d.weekday() < 5:
+                units = fetch_units(d, p['fundId'])
+                if units is not None:
+                    rows.append({'date': d, 'ticker': p['ticker'], 'units': units})
+                    print(f'  {p["ticker"]} {d}: {units:,.0f} 單位')
+                    found = True
+                    break
+            d -= timedelta(days=1)
+        if not found:
+            print(f'  {p["ticker"]}: 無法取得資料')
+    write_unit_watch_to_supabase(rows)
+    return bool(rows)
 
 
 def fetch_etf_price(yf_ticker: str) -> dict | None:
@@ -1066,6 +1134,13 @@ async def main():
         sent_any = bool(await process_peer_redemption(today)) or sent_any
     except Exception as e:
         print(f'  Peer redemption ERROR: {e}')
+        import traceback; traceback.print_exc()
+
+    # 單位數注意商品：獨立於 sent_any（不發 Pushover），失敗也不影響上面兩區塊的告警邏輯。
+    try:
+        process_unit_watch(today)
+    except Exception as e:
+        print(f'  Unit watch ERROR: {e}')
         import traceback; traceback.print_exc()
 
     if not sent_any:

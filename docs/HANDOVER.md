@@ -20,8 +20,10 @@
 | SDD 文件 | `docs/00-concepts/`（概念探索）、`docs/03-features/`（spec/design/develop-plan） | — |
 
 兩個 Supabase 專案，**不要混用**：
-- `SUPABASE_URL`/`SUPABASE_SERVICE_KEY`：本專案自己的（`peer_redemption` 表）。
+- `SUPABASE_URL`/`SUPABASE_SERVICE_KEY`：本專案自己的（`peer_redemption`、`unit_watch` 表）。
 - `ATTR_SUPABASE_URL`/`ATTR_SUPABASE_ANON_KEY`：active-etf-tracker 專案的（`etf`/`holding`/`price` 表，唯讀 anon），attribution 分頁與亮點引擎共用。
+
+**單位數注意商品**（2026-07-15 新增，分頁在「其他」分組）：監測 00986D（fundId `ETF25`）每日在外流通單位數（fhtrust PCF 的 `qIssue`，鍵值為 `postDate`，非 `actBuyValDate`——與規模分頁的結算日落後欄位不同，已手動探測確認）。`daily_summary.py` 每日 17:15 順便存檔（不發 Pushover，失敗不影響其他區塊告警）；一次性回補用 `scripts/backfill_unit_watch.py`（GitHub Actions「Backfill Unit Watch Data」手動觸發）。**表要先手動跑 `scripts/sql/2026-07-15_create_unit_watch.sql`（Supabase SQL Editor）才會存在**，之後才能 backfill。門檻/產品清單集中在 `lib/unitWatch.ts`（`UNIT_WATCH_PRODUCTS`），新增監測商品只需在該陣列加一筆。
 
 ## 2. 每日排程時序（台北時間）
 

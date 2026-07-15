@@ -20,6 +20,7 @@ import RiskTab from './RiskTab';
 import TurnoverTab from './TurnoverTab';
 import ConsensusTab from './ConsensusTab';
 import SectorExposureTab from './SectorExposureTab';
+import UnitWatchTab from './UnitWatchTab';
 import { captureAndShare } from '@/lib/captureImage';
 
 /* ── Design tokens ── */
@@ -34,7 +35,7 @@ const BORDER = '#E8E3DF';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'attribution' | 'risk' | 'turnover' | 'consensus' | 'sector';
+type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'attribution' | 'risk' | 'turnover' | 'consensus' | 'sector' | 'unitwatch';
 
 /* 頂部導覽分組（13 個分頁收進 4 個下拉選單；不改各分頁邏輯，只改呈現） */
 const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
@@ -63,6 +64,9 @@ const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
     { id: 'turnover',  label: '經理人換手率' },
     { id: 'consensus', label: '共識持股' },
     { id: 'sector',    label: '族群曝險' },
+  ] },
+  { label: '其他', items: [
+    { id: 'unitwatch', label: '單位數注意商品' },
   ] },
 ];
 
@@ -590,6 +594,12 @@ export default function Dashboard() {
         {activeTab === 'attribution' && (
           <Card title="績效個股歸因比較">
             <AttributionTab />
+          </Card>
+        )}
+
+        {activeTab === 'unitwatch' && (
+          <Card title="單位數注意商品">
+            <UnitWatchTab />
           </Card>
         )}
       </main>
