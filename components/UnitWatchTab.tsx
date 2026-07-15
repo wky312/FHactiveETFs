@@ -138,7 +138,7 @@ export default function UnitWatchTab() {
             value={ticker} onChange={e => handleTickerChange(e.target.value)}
             style={{ padding: '7px 12px', border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: '.87rem', color: TEXT, background: '#fff', fontFamily: SANS, cursor: 'pointer' }}
           >
-            {UNIT_WATCH_PRODUCTS.map(p => <option key={p.ticker} value={p.ticker}>{p.ticker} {p.name}</option>)}
+            {UNIT_WATCH_PRODUCTS.map(p => <option key={p.ticker} value={p.ticker}>{p.ticker}</option>)}
           </select>
         </div>
         <button
