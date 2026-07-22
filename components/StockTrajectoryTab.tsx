@@ -26,6 +26,12 @@ interface TrajectoryPoint {
   dayBuyCost: number | null;
   avgCost: number | null;
 }
+interface FiniConsensus {
+  reportCount: number;
+  avgTargetPrice: number;
+  avgUpsidePct: number | null;
+  brokers: string[];
+}
 interface TrajectoryResult {
   stockid: string;
   stockname: string;
@@ -38,6 +44,7 @@ interface TrajectoryResult {
   scannedDays: number;
   avgCost: number | null;
   currentPrice: number | null;
+  finiConsensus?: FiniConsensus | null;
 }
 
 const TH: React.CSSProperties = {
@@ -150,6 +157,7 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
   const prates  = data?.series.map(p => p.prate) ?? [];
   const closes  = data?.series.map(p => p.close) ?? [];
   const avgs    = data?.series.map(p => p.avgCost) ?? [];
+  const fini    = data?.finiConsensus ?? null;
 
   // 單一圖、上下兩個子圖共用同一條 X 軸；上=張數+佔比，下=股價+均價
   const traces = [
@@ -203,6 +211,22 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
       domain: [0, 0.44], anchor: 'x', title: { text: '股價 / 均價 (元)', font: titleFont },
       tickfont: axisFont, gridcolor: BORDER,
     },
+    // 外資目標價均價——水平參考線 + 右側標註（僅該股在 fini-stock-dashboard 有覆蓋時才畫）
+    shapes: fini ? [
+      {
+        type: 'line', xref: 'paper', x0: 0, x1: 1, yref: 'y3',
+        y0: fini.avgTargetPrice, y1: fini.avgTargetPrice,
+        line: { color: '#B08F6E', width: 1.5, dash: 'dash' },
+      },
+    ] : [],
+    annotations: fini ? [
+      {
+        xref: 'paper', x: 1, yref: 'y3', y: fini.avgTargetPrice,
+        xanchor: 'right', yanchor: 'bottom', showarrow: false,
+        text: `外資目標價 $${Math.round(fini.avgTargetPrice).toLocaleString('en-US')}`,
+        font: { family: SANS, size: 10, color: '#B08F6E' },
+      },
+    ] : [],
     bargap: 0.25,
     hoverlabel: { bgcolor: '#fff', bordercolor: '#D0CBC6', font: { family: SANS, size: 12, color: TEXT }, align: 'left' },
   };
@@ -311,6 +335,23 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
               </div>
             );
           })()}
+
+          {/* 外資目標價共識——僅該股在 fini-stock-dashboard 有覆蓋時顯示 */}
+          {fini && (
+            <p style={{ fontSize: '.82rem', color: SUB, margin: '-8px 0 16px' }}>
+              <strong style={{ color: TEXT }}>{fini.reportCount}</strong> 家外資覆蓋，均價目標價{' '}
+              <strong style={{ color: TEXT, fontFamily: MONO }}>NT${Math.round(fini.avgTargetPrice).toLocaleString('en-US')}</strong>
+              {fini.avgUpsidePct != null && (
+                <>
+                  （較現價{' '}
+                  <strong style={{ color: fini.avgUpsidePct >= 0 ? RED : GREEN, fontFamily: MONO }}>
+                    {fini.avgUpsidePct >= 0 ? '+' : ''}{fini.avgUpsidePct.toFixed(1)}%
+                  </strong>
+                  ）
+                </>
+              )}
+            </p>
+          )}
 
           {/* 圖表：上=張數+佔比，下=股價+均價，共用 X 軸並同步游標（四個數值同時顯示）
               trace 順序：0 張數(xy)、1 佔比(xy2)、2 股價(xy3)、3 均價(xy3） */}

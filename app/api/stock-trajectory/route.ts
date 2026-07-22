@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchTrajectory } from '@/lib/stockTrajectory';
+import { getFiniConsensus } from '@/lib/finiConsensus';
 
 // 逐交易日掃描，首次查詢可能 15–30 秒
 export const maxDuration = 60;
@@ -14,7 +15,16 @@ export async function GET(request: NextRequest) {
 
   try {
     const data = await fetchTrajectory(q, fundId);
-    return NextResponse.json(data);
+
+    // 外資目標價共識——錦上添花的疊圖資料，查詢失敗絕不可影響軌跡主結果
+    let finiConsensus = null;
+    try {
+      finiConsensus = await getFiniConsensus(data.stockid, data.currentPrice);
+    } catch {
+      finiConsensus = null;
+    }
+
+    return NextResponse.json({ ...data, finiConsensus });
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
     return NextResponse.json({ error: msg }, { status: 500 });
