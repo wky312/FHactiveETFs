@@ -8,10 +8,11 @@ export interface CapitalDay {
   pUnit: number;  // NAV per unit
 }
 
-// Fund IDs for active ETFs
+// Fund IDs for active ETFs（/CFWeb/api/etf/items 可列出全部 fundNo↔stockNo 對照）
 export const CAPITAL_FUNDS: Record<string, string> = {
   '00982A': '399',
   '00992A': '500',
+  '00997A': '502',   // 主動群益美國增長（海外，公告日 = 交易日 +2 交易日）
 };
 
 const HOST = 'www.capitalfund.com.tw';
@@ -107,12 +108,11 @@ async function getSessionCookies(): Promise<string> {
   return mergeCookies('', r.setCookies);
 }
 
-async function fetchOneDay(
-  fundId: string, transactionDate: string, cookies: string
+// 查某個「公告日」的清單，回傳以其自報交易日(date2)標記的一天。
+async function fetchAnnounce(
+  fundId: string, announceDate: string, cookies: string
 ): Promise<CapitalDay | null> {
   try {
-    // Announcement date = next business day after transaction date
-    const announceDate = nextBusinessDay(transactionDate);
     const payload = Buffer.from(
       JSON.stringify({ fundId, date: announceDate }),
       'utf8'
@@ -124,8 +124,6 @@ async function fetchOneDay(
     const json: any = JSON.parse(raw);
     const pcf = json?.data?.pcf;
     if (!pcf?.date2) return null;
-    // Verify the returned transaction date matches what we requested
-    if (pcf.date2 !== transactionDate) return null;
 
     const disUnit = parseNum(pcf.disUnit);
     const pUnit   = parseNum(pcf.pUnit);
@@ -134,7 +132,7 @@ async function fetchOneDay(
     if (pUnit === 0) return null;
 
     return {
-      date:   pcf.date2,
+      date:   pcf.date2,          // ← 交易日，由 API 自報（非我們假設的）
       netSub: (disUnit * pUnit) / 1e8,
       aum:    nav / 1e8,
       pUnit,
@@ -142,6 +140,23 @@ async function fetchOneDay(
   } catch {
     return null;
   }
+}
+
+async function fetchOneDay(
+  fundId: string, transactionDate: string, cookies: string
+): Promise<CapitalDay | null> {
+  // 公告落差不是固定 +1：台股基金(399/500)是交易日+1 交易日公告，海外基金(502 主動群益美國增長)
+  // 是 +2（date2 = 公告日−2 交易日）。原本寫死 nextBusinessDay() 只對台股成立，海外永遠對不上
+  // 而回 null → 00997A 整條線抓不到。改成往後掃 5 個營業日，以 API 自報的 date2 對齊。
+  let announce = transactionDate;
+  for (let i = 0; i < 5; i++) {
+    announce = nextBusinessDay(announce);
+    const day = await fetchAnnounce(fundId, announce, cookies);
+    if (day?.date === transactionDate) return day;
+    // 公告日已超過該交易日對應的清單（date2 跑到更晚的交易日）→ 不會再回來，提早收工
+    if (day?.date && day.date > transactionDate) return null;
+  }
+  return null;
 }
 
 export async function fetchCapitalRange(

@@ -15,19 +15,24 @@ const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
 // 申贖資料來源：每檔 ETF 對應一個投信爬蟲與其 key（fundId / fundCode / stkId）。
 // source 為 undefined 代表該家投信申贖爬蟲尚未接通 → 該欄一律顯示「—」。
-type RedemptionSource = 'fhtrust' | 'ezmoney' | 'capital' | 'fubon' | 'tsit' | 'ctbc' | 'allianz' | 'yuanta' | 'cmoney';
+type RedemptionSource = 'fhtrust' | 'ezmoney' | 'capital' | 'fubon' | 'tsit' | 'ctbc' | 'allianz'
+                      | 'yuanta' | 'cmoney' | 'nomura' | 'cathay' | 'kgi';
 interface RedemptionEtf {
   ticker: string;
   name: string;
   source?: RedemptionSource;
   key?: string;
 }
-interface RedemptionGroup { id: string; label: string; etfs: RedemptionEtf[] }
+// dbGroup = `peer_redemption` 表裡的 group 值。兩個台股分頁共用同一批入庫資料
+// （daily_summary.py 一律寫 group='tw_active'），只是前端呈現的欄位範圍不同。
+interface RedemptionGroup { id: string; label: string; dbGroup: string; etfs: RedemptionEtf[] }
 
 const REDEMPTION_GROUPS: RedemptionGroup[] = [
   {
     id: 'tw_active',
-    label: '台股主動式ETF',
+    label: '台股主動式ETF（主要6檔）',
+    dbGroup: 'tw_active',
+    // 最早接通的六檔核心觀測群，維持原本的順序與口徑，不隨百億群組異動。
     etfs: [
       { ticker: '00991A', name: '復華',    source: 'fhtrust', key: 'ETF23' },
       { ticker: '00981A', name: '統一981', source: 'ezmoney', key: '49YTW' },
@@ -38,15 +43,43 @@ const REDEMPTION_GROUPS: RedemptionGroup[] = [
     ],
   },
   {
+    id: 'tw_active_100',
+    label: '台股主動式ETF（百億以上＋擦邊3檔）',
+    dbGroup: 'tw_active',
+    // 依 2026-07-27 規模由大到小排。最後三檔（00985A 97.1億 / 00993A 96.5億 /
+    // 00984A 94.3億）未達百億，是使用者指定要一起觀察的擦邊標的。
+    etfs: [
+      { ticker: '00981A', name: '統一981', source: 'ezmoney', key: '49YTW' },
+      { ticker: '00403A', name: '統一403', source: 'ezmoney', key: '63YTW' },
+      { ticker: '00991A', name: '復華',    source: 'fhtrust', key: 'ETF23' },
+      { ticker: '00982A', name: '群益982', source: 'capital', key: '399' },
+      { ticker: '00992A', name: '群益992', source: 'capital', key: '500' },
+      { ticker: '00407A', name: '凱基407', source: 'kgi',     key: 'J024'   },  // 凱基投信 fundID
+      { ticker: '00400A', name: '國泰400', source: 'cathay',  key: 'EA'     },  // 國泰 FundCode（申贖為推算值）
+      { ticker: '00405A', name: '富邦405', source: 'fubon',   key: '00405A' },
+      { ticker: '00980A', name: '野村980', source: 'nomura',  key: '00980A' },
+      { ticker: '00406A', name: '中信406', source: 'ctbc',    key: 'E0038'  },  // 中信投信 FID
+      { ticker: '00999A', name: '野村999', source: 'nomura',  key: '00999A' },
+      { ticker: '00985A', name: '野村985', source: 'nomura',  key: '00985A' },
+      { ticker: '00993A', name: '安聯993', source: 'allianz', key: 'E0002'  },  // 安聯投信 FundNo
+      { ticker: '00984A', name: '安聯984', source: 'allianz', key: 'E0001'  },
+    ],
+  },
+  {
     id: 'overseas',
     label: '海外主動式ETF',
+    dbGroup: 'overseas',
+    // 依 2026-07-27 規模由大到小排；前三檔（00988A 564億 / 00990A 384億 / 00997A 143億）為百億以上。
+    // ⚠ 海外基金的 PCF 是交易日 +1～+2 交易日才公告（統一/群益 +2、元大 +1），所以最新一列
+    //    永遠有幾欄是空的——那是「還沒公告」不是抓不到。
     etfs: [
-      { ticker: '00983A', name: '中信ARK創新',  source: 'ctbc',    key: 'E0034'  },  // 中信投信 FID
-      { ticker: '00986A', name: '台新全球龍頭', source: 'tsit',    key: '00986A' },  // 台新投信（HTML）
       { ticker: '00988A', name: '統一全球創新', source: 'ezmoney', key: '61YTW'  },  // 統一 ezmoney
       { ticker: '00990A', name: '元大AI新經濟', source: 'yuanta',  key: '00990A' },  // 元大投信
-      { ticker: '00998A', name: '復華全球金融', source: 'cmoney',  key: '00998A' },  // 復華無官方申贖 → CMoney 推算
+      { ticker: '00997A', name: '群益美國增長', source: 'capital', key: '502'    },  // 群益 fundNo（海外 → 公告 +2）
       { ticker: '00402A', name: '安聯美國科技', source: 'allianz', key: 'E0003'  },  // 安聯投信 FundNo
+      { ticker: '00998A', name: '復華全球金融', source: 'cmoney',  key: '00998A' },  // 復華無官方申贖 → CMoney 推算
+      { ticker: '00983A', name: '中信ARK創新',  source: 'ctbc',    key: 'E0034'  },  // 中信投信 FID
+      { ticker: '00986A', name: '台新全球龍頭', source: 'tsit',    key: '00986A' },  // 台新投信（HTML）
     ],
   },
 ];
@@ -226,6 +259,9 @@ export default function PeerRedemptionTab() {
         case 'ctbc':    url = `/api/ctbc-scale?key=${enc(e.key!)}&startDate=${enc(sdDash)}&endDate=${enc(edDash)}`; break;
         case 'allianz': url = `/api/allianz-scale?key=${enc(e.key!)}&startDate=${enc(sdDash)}&endDate=${enc(edDash)}`; break;
         case 'yuanta':  url = `/api/yuanta-scale?key=${enc(e.key!)}&startDate=${enc(sdDash)}&endDate=${enc(edDash)}`; break;
+        case 'nomura':  url = `/api/nomura-scale?key=${enc(e.key!)}&startDate=${enc(sdDash)}&endDate=${enc(edDash)}`; break;
+        case 'cathay':  url = `/api/cathay-scale?key=${enc(e.key!)}&startDate=${enc(sdDash)}&endDate=${enc(edDash)}`; break;
+        case 'kgi':     url = `/api/kgi-scale?key=${enc(e.key!)}&startDate=${enc(sdDash)}&endDate=${enc(edDash)}`; break;
         case 'cmoney':  url = `/api/cmoney-scale?key=${enc(e.key!)}&startDate=${enc(sdDash)}&endDate=${enc(edDash)}`; break;
       }
       const r = await fetch(url);
@@ -243,7 +279,7 @@ export default function PeerRedemptionTab() {
     setDataSource(null);
     try {
       if (!forceLive) {
-        const r = await fetch(`/api/peer-redemption-db?group=${encodeURIComponent(group)}&startDate=${startDate}&endDate=${endDate}`);
+        const r = await fetch(`/api/peer-redemption-db?group=${encodeURIComponent(currentGroup.dbGroup)}&startDate=${startDate}&endDate=${endDate}`);
         if (r.ok) {
           const json = await r.json();
           const dbRows: DayRow[] = json.rows ?? [];
@@ -278,7 +314,7 @@ export default function PeerRedemptionTab() {
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate, group, loadLive]);
+  }, [startDate, endDate, currentGroup.dbGroup, loadLive]);
 
   // Quick range
   const setRange = (days: number) => {

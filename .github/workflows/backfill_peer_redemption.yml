@@ -11,7 +11,9 @@ on:
 jobs:
   backfill:
     runs-on: ubuntu-latest
-    timeout-minutes: 90
+    # 觀測群從 6 檔擴到 21 檔，且多數來源改成「掃公告日候選再對齊資料日」（每檔最多 5 次請求），
+    # 單日約 11-18 秒 × ~167 個交易日 ≈ 50-90 分鐘，CI 網路更慢 → 從 90 拉到 180 才不會半路被砍。
+    timeout-minutes: 180
 
     steps:
       - uses: actions/checkout@v4

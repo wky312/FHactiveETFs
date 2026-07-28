@@ -173,9 +173,12 @@ async function fetchOneDay(
 
 export async function fetchEzmoneyRange(
   fundCode: string,
-  startDate: string,  // YYYY/MM/DD — transaction date range
-  endDate: string,
+  startDateIn: string,  // YYYY/MM/DD 或 YYYY-MM-DD — transaction date range
+  endDateIn: string,
 ): Promise<EzmoneyDay[]> {
+  // 內部一律用斜線比字串大小；傳連字號進來會在最後的區間過濾被全部濾掉（'/'>'-'）而靜靜回空陣列。
+  const startDate = startDateIn.replace(/-/g, '/');
+  const endDate   = endDateIn.replace(/-/g, '/');
   // Query announcement dates: startDate+1 to endDate+4
   // (PCF is announced T+1; extend by a few days for weekends/holidays)
   const announceStart = addDays(startDate, 1);

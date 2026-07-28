@@ -46,3 +46,6 @@ dev.log
 # Python bytecode cache
 __pycache__/
 .env*.local
+
+# python venv (本機跑 scripts/ 用)
+.venv/

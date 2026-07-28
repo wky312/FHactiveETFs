@@ -3,11 +3,14 @@
 //   1. GET  /webapi/api/AntiForgery/GetAntiForgeryToken  → Set-Cookie: XSRF-TOKEN=…
 //   2. POST /webapi/api/Fund/GetFundTradeInfo  (Cookie + X-XSRF-TOKEN header)
 //        body {"FundNo":fundNo,"Date":"YYYY-MM-DD"} → { StatusCode:0, Entries:{…} }
-// 00402A → FundNo "E0003". Entries is an OBJECT (not an array). CPcfdate echoes the queried
-// (transaction) date; StatusCode:1 means non-trading day.
+// 00402A → FundNo "E0003"、00993A → "E0002"、00984A → "E0001"。Entries 是 OBJECT（非陣列）。
+//
+// ⚠️ `Date` 是**公告日**、不是交易日：CPcfdate 只是把查詢日回聲回來，真正的資料日是
+// `CNavDt`（7/28 公告的內容是 7/27 的資料；海外型可落後 2-3 個交易日）。所以查公告日候選、
+// 用 CNavDt 把每筆歸位。StatusCode:1 = 非公告日。
 
 export interface AllianzDay {
-  date: string;   // YYYY/MM/DD (the queried transaction date)
+  date: string;   // YYYY/MM/DD (資料日 = CNavDt)
   netSub: number; // 億元 (CAnceIssuesDiff × CAnceNav / 1e8); negative = net redemption
   aum: number;    // 億元 (CAnceTotalAv / 1e8)
   pnav: number;   // CAnceNav per unit
@@ -70,7 +73,7 @@ async function getAntiforgery(): Promise<Antiforgery | null> {
   }
 }
 
-async function fetchOneDay(fundNo: string, dateDash: string, af: Antiforgery): Promise<AllianzDay | null> {
+async function fetchOneAnnounce(fundNo: string, announceDash: string, af: Antiforgery): Promise<AllianzDay | null> {
   try {
     const res = await fetch(`${BASE}/Fund/GetFundTradeInfo`, {
       method: 'POST',
@@ -80,7 +83,7 @@ async function fetchOneDay(fundNo: string, dateDash: string, af: Antiforgery): P
         'Cookie':       af.cookieHeader,
         'X-XSRF-TOKEN': af.token,
       },
-      body: JSON.stringify({ FundNo: fundNo, Date: dateDash }),
+      body: JSON.stringify({ FundNo: fundNo, Date: announceDash }),
       cache: 'no-store',
     });
     if (!res.ok) return null;
@@ -89,13 +92,16 @@ async function fetchOneDay(fundNo: string, dateDash: string, af: Antiforgery): P
     const e = json?.Entries;
     if (!e || e.CAnceNav == null) return null;
 
+    const navDate = String(e.CNavDt ?? '').slice(0, 10).replace(/-/g, '/');
+    if (!/^\d{4}\/\d{2}\/\d{2}$/.test(navDate)) return null;
+
     const nav        = Number(e.CAnceNav) || 0;
     const totalav    = Number(e.CAnceTotalAv) || 0;
     const issuesdiff = Number(e.CAnceIssuesDiff) || 0;
     if (nav === 0) return null;
 
     return {
-      date:   dateDash.replace(/-/g, '/'),
+      date:   navDate,
       netSub: (issuesdiff * nav) / 1e8,
       aum:    totalav / 1e8,
       pnav:   nav,
@@ -110,18 +116,23 @@ export async function fetchAllianzRange(
   startDate: string, // YYYY-MM-DD (transaction date range)
   endDate: string,
 ): Promise<AllianzDay[]> {
-  const dates = weekdaysBetween(startDate, endDate);
-  if (!dates.length) return [];
+  // 公告日候選 = 交易日區間往後推 5 個日曆日（涵蓋連假與海外型的多日落後）。
+  const announces = weekdaysBetween(addDays(startDate, 1), addDays(endDate, 5));
+  if (!announces.length) return [];
 
   const af = await getAntiforgery();
   if (!af) return [];
 
+  const startSlash = startDate.replace(/-/g, '/');
+  const endSlash   = endDate.replace(/-/g, '/');
   const BATCH = 5;
-  const all: AllianzDay[] = [];
-  for (let i = 0; i < dates.length; i += BATCH) {
-    const batch = dates.slice(i, i + BATCH);
-    const results = await Promise.all(batch.map(d => fetchOneDay(fundNo, d, af)));
-    for (const r of results) if (r) all.push(r);
+  const byDate = new Map<string, AllianzDay>();
+  for (let i = 0; i < announces.length; i += BATCH) {
+    const batch = announces.slice(i, i + BATCH);
+    const results = await Promise.all(batch.map(d => fetchOneAnnounce(fundNo, d, af)));
+    for (const r of results) {
+      if (r && r.date >= startSlash && r.date <= endSlash) byDate.set(r.date, r);
+    }
   }
-  return all.sort((a, b) => a.date.localeCompare(b.date));
+  return Array.from(byDate.values()).sort((a, b) => a.date.localeCompare(b.date));
 }

@@ -225,18 +225,27 @@ def fetch_etf_price(yf_ticker: str) -> dict | None:
 # ── Peer ETF data fetchers ────────────────────────────────────────────────────
 
 PEER_ETFS = [
-    # 台股主動式ETF
+    # 台股主動式ETF（規模百億以上＋擦邊三檔；key 皆為該投信 PCF API 的基金識別碼）
     {'ticker': '00991A', 'name': '復華991', 'source': 'fhtrust',  'key': 'ETF23',  'group': 'tw_active'},
     {'ticker': '00981A', 'name': '統一981', 'source': 'ezmoney',  'key': '49YTW',  'group': 'tw_active'},
     {'ticker': '00403A', 'name': '統一403', 'source': 'ezmoney',  'key': '63YTW',  'group': 'tw_active'},
     {'ticker': '00982A', 'name': '群益982', 'source': 'capital',  'key': '399',    'group': 'tw_active'},
     {'ticker': '00992A', 'name': '群益992', 'source': 'capital',  'key': '500',    'group': 'tw_active'},
     {'ticker': '00405A', 'name': '富邦405', 'source': 'fubon',    'key': '00405A', 'group': 'tw_active'},
+    {'ticker': '00407A', 'name': '凱基407', 'source': 'kgi',     'key': 'J024',   'group': 'tw_active'},
+    {'ticker': '00400A', 'name': '國泰400', 'source': 'cathay',  'key': 'EA',     'group': 'tw_active'},
+    {'ticker': '00980A', 'name': '野村980', 'source': 'nomura',  'key': '00980A', 'group': 'tw_active'},
+    {'ticker': '00406A', 'name': '中信406', 'source': 'ctbc',    'key': 'E0038',  'group': 'tw_active'},
+    {'ticker': '00999A', 'name': '野村999', 'source': 'nomura',  'key': '00999A', 'group': 'tw_active'},
+    {'ticker': '00985A', 'name': '野村985', 'source': 'nomura',  'key': '00985A', 'group': 'tw_active'},
+    {'ticker': '00993A', 'name': '安聯993', 'source': 'allianz', 'key': 'E0002',  'group': 'tw_active'},
+    {'ticker': '00984A', 'name': '安聯984', 'source': 'allianz', 'key': 'E0001',  'group': 'tw_active'},
     # 海外主動式ETF（step 3：逐家官方申贖來源；復華無官方來源 → CMoney 推算）
     {'ticker': '00983A', 'name': '中信ARK創新',  'source': 'ctbc',    'key': 'E0034',  'group': 'overseas'},
     {'ticker': '00986A', 'name': '台新全球龍頭', 'source': 'tsit',    'key': '00986A', 'group': 'overseas'},
     {'ticker': '00988A', 'name': '統一全球創新', 'source': 'ezmoney', 'key': '61YTW',  'group': 'overseas'},
     {'ticker': '00990A', 'name': '元大AI新經濟', 'source': 'yuanta',  'key': '00990A', 'group': 'overseas'},
+    {'ticker': '00997A', 'name': '群益美國增長', 'source': 'capital', 'key': '502',    'group': 'overseas'},
     {'ticker': '00998A', 'name': '復華全球金融', 'source': 'cmoney',  'key': '00998A', 'group': 'overseas'},
     {'ticker': '00402A', 'name': '安聯美國科技', 'source': 'allianz', 'key': 'E0003',  'group': 'overseas'},
 ]
@@ -332,25 +341,35 @@ def fetch_capital_day(fund_id: str, transaction_date: date) -> dict | None:
         s = requests.Session()
         s.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
         s.get(f'https://{CAPITAL_HOST}/', timeout=15)
-        announce = _next_biz_day(transaction_date)
-        payload = {'fundId': fund_id, 'date': str(announce)}
-        r = s.post(
-            f'https://{CAPITAL_HOST}/CFWeb/api/etf/buyback',
-            json=payload,
-            headers={'Referer': f'https://{CAPITAL_HOST}/etf/transaction/buyback'},
-            timeout=20,
-        )
-        if r.status_code != 200:
-            return None
-        pcf = r.json().get('data', {}).get('pcf', {})
-        if not pcf or pcf.get('date2') != str(transaction_date):
-            return None
-        dis_unit = parse_num(pcf.get('disUnit', 0))
-        p_unit   = parse_num(pcf.get('pUnit', 0))
-        nav      = parse_num(pcf.get('nav', 0))
-        if p_unit == 0:
-            return None
-        return {'netSub': (dis_unit * p_unit) / 1e8, 'aum': nav / 1e8}
+        # 公告落差不是固定 +1：台股基金(399/500) date2 = 公告日−1 交易日，海外基金(502 主動群益
+        # 美國增長) 是 −2。寫死 _next_biz_day() 只對台股成立，海外永遠對不上 → 往後掃 5 個營業日，
+        # 以 API 自報的 date2 對齊（date2 隨公告日遞增，越過目標日就提早收工）。
+        announce = transaction_date
+        for _ in range(5):
+            announce = _next_biz_day(announce)
+            r = s.post(
+                f'https://{CAPITAL_HOST}/CFWeb/api/etf/buyback',
+                json={'fundId': fund_id, 'date': str(announce)},
+                headers={'Referer': f'https://{CAPITAL_HOST}/etf/transaction/buyback'},
+                timeout=20,
+            )
+            if r.status_code != 200:
+                continue
+            pcf = (r.json().get('data') or {}).get('pcf') or {}   # 無資料時 data 是 null，不是 {}
+            date2 = pcf.get('date2')
+            if not date2:
+                continue
+            if date2 > str(transaction_date):
+                return None
+            if date2 != str(transaction_date):
+                continue
+            dis_unit = parse_num(pcf.get('disUnit', 0))
+            p_unit   = parse_num(pcf.get('pUnit', 0))
+            nav      = parse_num(pcf.get('nav', 0))
+            if p_unit == 0:
+                return None
+            return {'netSub': (dis_unit * p_unit) / 1e8, 'aum': nav / 1e8}
+        return None
     except Exception as e:
         print(f'  capital {fund_id} {transaction_date}: {e}')
         return None
@@ -461,32 +480,73 @@ def _get_lax(url, headers=None, timeout=20):
         return requests.get(url, headers=headers, timeout=timeout, verify=False)
 
 
+def _post_lax(url, data=None, json_body=None, headers=None, timeout=25):
+    """POST 版的 _get_lax（凱基 www.kgifund.com.tw 同樣缺 Subject Key Identifier）。"""
+    kw = {'headers': headers or {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'},
+          'timeout': timeout}
+    if data is not None:
+        kw['data'] = data
+    if json_body is not None:
+        kw['json'] = json_body
+    try:
+        return requests.post(url, **kw)
+    except requests.exceptions.SSLError:
+        import urllib3
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        return requests.post(url, **kw, verify=False)
+
+
+def _ann_days(transaction_date: date, n: int = 5) -> list:
+    """交易日之後的 n 個營業日 —— 各家 PCF 的「公告日」候選。
+
+    多數投信的 PCF 端點是**用公告日查詢**、內容才是前一（或前幾）交易日的資料：
+    國內股票型多為 T+1 公告，海外型可能落後 2-3 個交易日。因此凡是用公告日查詢的
+    來源，一律逐一試候選公告日，再用回應裡的「資料日」欄位對齊 transaction_date，
+    不可假設固定位移（踩過：安聯/中信/台新原本直接把交易日當查詢日，整欄晚一天）。
+    """
+    out, cur = [], transaction_date
+    while len(out) < n:
+        cur += timedelta(days=1)
+        if cur.weekday() < 5:
+            out.append(cur)
+    return out
+
+
 def fetch_tsit_day(ticker: str, transaction_date: date) -> dict | None:
-    """台新投信 00986A：GET HTML（<th>label</th><td>value</td>）；DataDate = 交易日。"""
+    """台新投信 00986A：GET HTML（<th>label</th><td>value</td>）。
+    DataDate 是**公告日**；資料日藏在「YYYY/M/D每基數實際申購總價金」標籤前綴。"""
     try:
         import re
-        url = (f'https://www.tsit.com.tw/ETF/Home/Pcf/{ticker}'
-               f'?FundType=&DataDate={transaction_date.isoformat()}')
-        r = _get_lax(url, timeout=20)
-        if r.status_code != 200:
-            return None
-        html = r.text
-        def field(label):
-            m = re.search(rf'<th>{re.escape(label)}[^<]*</th>\s*<td>([^<]*)</td>', html)
-            return m.group(1).strip() if m else None
-        diff = _pcf_num(field('與前日已發行單位差異數'))
-        nav  = _pcf_num(field('基金淨資產價值'))
-        pnav = _pcf_num(field('每受益權單位淨資產價值'))
-        if nav == 0 or pnav == 0:
-            return None
-        return {'netSub': (diff * pnav) / 1e8, 'aum': nav / 1e8}
+        for ann in _ann_days(transaction_date):
+            url = (f'https://www.tsit.com.tw/ETF/Home/Pcf/{ticker}'
+                   f'?FundType=&DataDate={ann.isoformat()}')
+            r = _get_lax(url, timeout=20)
+            if r.status_code != 200:
+                continue
+            html = r.text
+            def field(label):
+                m = re.search(rf'<th>{re.escape(label)}[^<]*</th>\s*<td>([^<]*)</td>', html)
+                return m.group(1).strip() if m else None
+            m = re.search(r'<th>(\d{4})/(\d{1,2})/(\d{1,2})每基數實際申購總價金', html)
+            if not m:
+                continue
+            if date(int(m.group(1)), int(m.group(2)), int(m.group(3))) != transaction_date:
+                continue
+            diff = _pcf_num(field('與前日已發行單位差異數'))
+            nav  = _pcf_num(field('基金淨資產價值'))
+            pnav = _pcf_num(field('每受益權單位淨資產價值'))
+            if nav == 0 or pnav == 0:
+                return None
+            return {'netSub': (diff * pnav) / 1e8, 'aum': nav / 1e8}
+        return None
     except Exception as e:
         print(f'  tsit {ticker} {transaction_date}: {e}')
         return None
 
 
 def fetch_ctbc_day(fid: str, transaction_date: date) -> dict | None:
-    """中信投信 00983A：先取 token → POST Buyback；StartDate = 公告日(=交易日)。"""
+    """中信投信 00406A/00983A：先取 token → POST Buyback。
+    StartDate 是**公告日**，回傳的「淨值日期」才是資料日（海外型可落後 2-3 個交易日）。"""
     try:
         import urllib.parse
         base = 'https://www.ctbcinvestments.com.tw/API'
@@ -501,28 +561,34 @@ def fetch_ctbc_day(fid: str, transaction_date: date) -> dict | None:
         if not token:
             return None
         et = urllib.parse.quote(token, safe='')
-        r = requests.post(f'{base}/etf/Buyback?token={et}',
-                          json={'FID': fid, 'StartDate': transaction_date.isoformat()},
-                          headers=headers, timeout=20)
-        if r.status_code != 200:
-            return None
-        rows = r.json().get('Data', {}).get('Data') or []
-        if not rows:
-            return None
-        row = rows[0]
-        diff = _pcf_num(row.get('與前日已發行單位差異數'))
-        nav  = _pcf_num(row.get('基金淨資產價值'))
-        pnav = _pcf_num(row.get('每受益權單位淨資產價值'))
-        if nav == 0 or pnav == 0:
-            return None
-        return {'netSub': (diff * pnav) / 1e8, 'aum': nav / 1e8}
+        target = transaction_date.strftime('%Y/%m/%d')
+        for ann in _ann_days(transaction_date):
+            r = requests.post(f'{base}/etf/Buyback?token={et}',
+                              json={'FID': fid, 'StartDate': ann.isoformat()},
+                              headers=headers, timeout=20)
+            if r.status_code != 200:
+                continue
+            rows = r.json().get('Data', {}).get('Data') or []
+            if not rows:
+                continue
+            row = rows[0]
+            if str(row.get('淨值日期') or '')[:10] != target:
+                continue
+            diff = _pcf_num(row.get('與前日已發行單位差異數'))
+            nav  = _pcf_num(row.get('基金淨資產價值'))
+            pnav = _pcf_num(row.get('每受益權單位淨資產價值'))
+            if nav == 0 or pnav == 0:
+                return None
+            return {'netSub': (diff * pnav) / 1e8, 'aum': nav / 1e8}
+        return None
     except Exception as e:
         print(f'  ctbc {fid} {transaction_date}: {e}')
         return None
 
 
 def fetch_allianz_day(fund_no: str, transaction_date: date) -> dict | None:
-    """安聯投信 00402A：XSRF 兩步（Session 自動帶 cookie）→ POST GetFundTradeInfo。"""
+    """安聯投信 00984A/00993A/00402A：XSRF 兩步（Session 自動帶 cookie）→ POST GetFundTradeInfo。
+    Date 是**公告日**，資料日在回應的 CNavDt（與野村同一套系統，欄位名一致）。"""
     try:
         base = 'https://etf.allianzgi.com.tw/webapi/api'
         s = requests.Session()
@@ -531,23 +597,137 @@ def fetch_allianz_day(fund_no: str, transaction_date: date) -> dict | None:
         token = s.cookies.get('X-XSRF-TOKEN')
         if not token:
             return None
-        r = s.post(f'{base}/Fund/GetFundTradeInfo',
-                   json={'FundNo': fund_no, 'Date': transaction_date.isoformat()},
-                   headers={'X-XSRF-TOKEN': token, 'Content-Type': 'application/json'}, timeout=20)
-        if r.status_code != 200:
-            return None
-        j = r.json()
-        if j.get('StatusCode') != 0:
-            return None
-        e = j.get('Entries') or {}
-        nav = parse_num(e.get('CAnceNav', 0) or 0)
-        if nav == 0:
-            return None
-        diff = parse_num(e.get('CAnceIssuesDiff', 0) or 0)
-        totalav = parse_num(e.get('CAnceTotalAv', 0) or 0)
-        return {'netSub': (diff * nav) / 1e8, 'aum': totalav / 1e8}
+        for ann in _ann_days(transaction_date):
+            r = s.post(f'{base}/Fund/GetFundTradeInfo',
+                       json={'FundNo': fund_no, 'Date': ann.isoformat()},
+                       headers={'X-XSRF-TOKEN': token, 'Content-Type': 'application/json'}, timeout=20)
+            if r.status_code != 200:
+                continue
+            j = r.json()
+            if j.get('StatusCode') != 0:
+                continue
+            e = j.get('Entries') or {}
+            if str(e.get('CNavDt') or '')[:10] != transaction_date.isoformat():
+                continue
+            nav = parse_num(e.get('CAnceNav', 0) or 0)
+            if nav == 0:
+                return None
+            diff = parse_num(e.get('CAnceIssuesDiff', 0) or 0)
+            totalav = parse_num(e.get('CAnceTotalAv', 0) or 0)
+            return {'netSub': (diff * nav) / 1e8, 'aum': totalav / 1e8}
+        return None
     except Exception as e:
         print(f'  allianz {fund_no} {transaction_date}: {e}')
+        return None
+
+
+def fetch_nomura_day(fund_no: str, transaction_date: date) -> dict | None:
+    """野村投信 00980A/00985A/00999A：POST GetFundTradeInfo（與安聯同系統）。
+    Date 是**公告日**，CNavDtStr 才是資料日。"""
+    try:
+        target = transaction_date.strftime('%Y/%m/%d')
+        for ann in _ann_days(transaction_date):
+            r = _post_lax(
+                'https://www.nomurafunds.com.tw/API/ETFAPI/api/Fund/GetFundTradeInfo',
+                json_body={'Type': 1, 'Keyword': '', 'FundNo': fund_no,
+                           'Date': ann.strftime('%Y/%m/%d')},
+                headers={'Content-Type': 'application/json',
+                         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                         'Referer': 'https://www.nomurafunds.com.tw/ETFWEB/pcf'})
+            if r.status_code != 200:
+                continue
+            e = (r.json() or {}).get('Entries') or {}
+            nav_dt = str(e.get('CNavDtStr') or str(e.get('CNavDt') or '')[:10].replace('-', '/'))
+            if nav_dt != target:
+                continue
+            nav = parse_num(e.get('CAnceNav', 0) or 0)
+            av  = parse_num(e.get('CAnceTotalAv', 0) or 0)
+            if nav == 0 or av == 0:
+                return None
+            return {'netSub': parse_num(e.get('CAnceIssuesDiff', 0) or 0) * nav / 1e8,
+                    'aum': av / 1e8}
+        return None
+    except Exception as e:
+        print(f'  nomura {fund_no} {transaction_date}: {e}')
+        return None
+
+
+def _cathay_assets(fund_code: str, d: date) -> dict | None:
+    """國泰單日規模/已發行單位數。非交易日回 result=null；**未來日期會回退到最新一日**，
+    所以一律驗 preDate == 查詢日才採用。"""
+    r = _get_lax(f'https://cwapi.cathaysite.com.tw/api/ETF/GetETFAssets'
+                 f'?FundCode={fund_code}&SearchDate={d.isoformat()}', timeout=20)
+    if r.status_code != 200:
+        return None
+    res = (r.json() or {}).get('result')
+    if not res or str(res.get('preDate') or '').replace('/', '-') != d.isoformat():
+        return None
+    units = parse_num(res.get('fundOutstandingShares') or 0)
+    nav   = parse_num(res.get('fundNav') or 0)
+    pnav  = parse_num(res.get('fundPerNav') or 0)
+    if units == 0 or nav == 0 or pnav == 0:
+        return None
+    return {'units': units, 'nav': nav, 'pnav': pnav}
+
+
+def fetch_cathay_day(fund_code: str, transaction_date: date) -> dict | None:
+    """國泰投信 00400A：官網沒有公開「與前日已發行單位差異數」→ 用已發行單位數差推算
+    netSub =（當日單位數 − 前一交易日單位數）× 當日每單位淨值（同 00998A 的 CMoney 推算法）。"""
+    try:
+        cur = _cathay_assets(fund_code, transaction_date)
+        if not cur:
+            return None
+        prev, d = None, transaction_date
+        for _ in range(10):
+            d -= timedelta(days=1)
+            if d.weekday() >= 5:
+                continue
+            prev = _cathay_assets(fund_code, d)
+            if prev:
+                break
+        if not prev:
+            return None
+        return {'netSub': (cur['units'] - prev['units']) * cur['pnav'] / 1e8,
+                'aum': cur['nav'] / 1e8}
+    except Exception as e:
+        print(f'  cathay {fund_code} {transaction_date}: {e}')
+        return None
+
+
+def fetch_kgi_day(fund_id: str, transaction_date: date) -> dict | None:
+    """凱基投信 00407A：POST RedemptionVC 回一段 HTML 片段。queryDate 是**公告日**，
+    資料日在「(YYYY/MM/DD)每受益權單位淨資產價值(元)」的括號前綴。"""
+    try:
+        import re, html as _html
+        target = transaction_date.strftime('%Y/%m/%d')
+        for ann in _ann_days(transaction_date):
+            r = _post_lax('https://www.kgifund.com.tw/Fund/RedemptionVC',
+                          data={'fundID': fund_id, 'queryDate': ann.isoformat()},
+                          headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                                   'X-Requested-With': 'XMLHttpRequest',
+                                   'Referer': f'https://www.kgifund.com.tw/Fund/RedemptionList?fundNo={fund_id}'})
+            if r.status_code != 200:
+                continue
+            text = _html.unescape(re.sub(r'<[^>]+>', '|',
+                                         re.sub(r'<script.*?</script>', '', r.text, flags=re.S)))
+            cells = [c.strip() for c in text.split('|') if c.strip()]
+            def value_after(pred):
+                for i, c in enumerate(cells):
+                    if pred(c):
+                        return cells[i + 1] if i + 1 < len(cells) else None
+                return None
+            pnav_raw = value_after(lambda c: c.startswith(f'({target})') and '每受益權單位淨資產價值' in c)
+            if pnav_raw is None:
+                continue
+            pnav = _pcf_num(pnav_raw)
+            nav  = _pcf_num(value_after(lambda c: c.startswith('基金淨資產價值')))
+            diff = _pcf_num(value_after(lambda c: c.startswith('與前日已發行單位差異數')))
+            if nav == 0 or pnav == 0:
+                return None
+            return {'netSub': (diff * pnav) / 1e8, 'aum': nav / 1e8}
+        return None
+    except Exception as e:
+        print(f'  kgi {fund_id} {transaction_date}: {e}')
         return None
 
 
@@ -637,6 +817,12 @@ def fetch_all_peer_data(transaction_date: date) -> list:
             data = fetch_allianz_day(etf['key'], transaction_date)
         elif etf['source'] == 'yuanta':
             data = fetch_yuanta_day(etf['key'], transaction_date)
+        elif etf['source'] == 'nomura':
+            data = fetch_nomura_day(etf['key'], transaction_date)
+        elif etf['source'] == 'cathay':
+            data = fetch_cathay_day(etf['key'], transaction_date)
+        elif etf['source'] == 'kgi':
+            data = fetch_kgi_day(etf['key'], transaction_date)
         elif etf['source'] == 'cmoney':
             data = fetch_cmoney_day(etf['key'], transaction_date)
         elif etf['source'] == 'fhtrust':
@@ -1114,6 +1300,58 @@ async def process_peer_redemption(today: date):
     return True
 
 
+# 海外檔的 PCF 是交易日之後 1～2 個交易日才公告（統一/群益 +2、元大 +1、CMoney 序列也跟著公告日
+# 才更新），但 process_peer_redemption 只查「當天」→ 這些檔每天都拿到 None、從來沒進過 DB
+# （2026-07-27 那次 12 檔只寫進 9 筆，缺的正是 00988A/00990A/00998A）。
+# 這裡改成逐檔往回找「最新一筆已公告」的交易日，各自以自己的日期寫入；主鍵 (date,ticker) 的
+# upsert 天然冪等，每天重跑只會補上新公告的那天。
+OVERSEAS_LOOKBACK_WEEKDAYS = 6
+
+_OVERSEAS_FETCHERS = {
+    'ezmoney': fetch_ezmoney_day,
+    'capital': fetch_capital_day,
+    'ctbc':    fetch_ctbc_day,
+    'tsit':    fetch_tsit_day,
+    'allianz': fetch_allianz_day,
+    'yuanta':  fetch_yuanta_day,
+    'cmoney':  fetch_cmoney_day,
+}
+
+
+def process_overseas_redemption(today: date) -> int:
+    """補海外主動式ETF 的申贖（只寫 DB，不推播）。回傳成功寫入的檔數。"""
+    print('\n[海外同業申贖：補最新已公告交易日]')
+    written = 0
+    for etf in PEER_ETFS:
+        if etf.get('group') != 'overseas':
+            continue
+        fetcher = _OVERSEAS_FETCHERS.get(etf['source'])
+        if fetcher is None:
+            print(f'  {etf["ticker"]}: 無對應抓取器（{etf["source"]}），略過')
+            continue
+
+        # 從「今天」往回掃：投信下午就會把隔日生效的清單掛出來（統一 49YTW 16:40 已能查到
+        # 當日 TranDate），所以 T 日本身也可能有資料，不能從 T-1 才開始。
+        candidates, d = [], today
+        while len(candidates) < OVERSEAS_LOOKBACK_WEEKDAYS:
+            if d.weekday() < 5:
+                candidates.append(d)
+            d -= timedelta(days=1)
+
+        for d in candidates:
+            if is_twse_trading_day(d) is False:   # None = TWSE 連不到，照抓
+                continue
+            data = fetcher(etf['key'], d)
+            if data and data.get('netSub') is not None and data.get('aum') is not None:
+                write_peer_to_supabase([{**etf, 'data': data}], d)
+                print(f'  {etf["ticker"]} {d}: netSub={data["netSub"]:+.2f}億 aum={data["aum"]:.2f}億')
+                written += 1
+                break
+        else:
+            print(f'  {etf["ticker"]}: 近 {OVERSEAS_LOOKBACK_WEEKDAYS} 個工作日查無已公告資料')
+    return written
+
+
 async def main():
     if not PUSHOVER_TOKEN or not PUSHOVER_USER:
         sys.exit('ERROR: PUSHOVER_TOKEN and PUSHOVER_USER must be set.')
@@ -1141,6 +1379,13 @@ async def main():
         process_unit_watch(today)
     except Exception as e:
         print(f'  Unit watch ERROR: {e}')
+        import traceback; traceback.print_exc()
+
+    # 海外檔的公告落後當天，必須另外補（不推播，只寫 DB 給網頁分頁用）。
+    try:
+        process_overseas_redemption(today)
+    except Exception as e:
+        print(f'  Overseas redemption ERROR: {e}')
         import traceback; traceback.print_exc()
 
     if not sent_any:

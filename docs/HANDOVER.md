@@ -8,7 +8,7 @@
 2. **行銷素材類內容永遠不上網站。** fhactiveetf.vercel.app 會被其他同仁/外部人看到；亮點引擎的一切產出只走 LINE 個人推播＋repo JSON，**不得新增任何前端路由/分頁**去呈現它。
 3. **Vercel 沒有接 git 自動部署。** push 到 GitHub 不會改變網站；改了 `app/`、`components/`、`lib/` 要手動 `vercel --prod`（CLI 已登入，專案 `fhactiveetf`）。反過來說：只改 `scripts/`、`config/`、workflow、docs 時**不需要**部署。
 4. **`.env.local` 的值帶雙引號。** 用 `gh secret set` 搬值前要先去引號（`sed 's/^"//;s/"$//'`），否則 secret 值含引號、requests 會炸（2026-07-05 實際踩過）。
-5. **對外數字必須可辯護。** 亮點文案中「同業第一」只能指 `peer_redemption` 觀測群（6 檔），「持有最重」是 ATTR 動態 universe（約 20 檔）——不同母體，模板已寫死正確措辭，改文案時不要放大宣稱。
+5. **對外數字必須可辯護。** 亮點文案中「同業第一」只能指 `peer_redemption` 觀測群（tw_active 14 檔＝規模百億以上＋擦邊三檔，2026-07-28 由 6 檔擴編），「持有最重」是 ATTR 動態 universe（約 20 檔）——不同母體，模板已寫死正確措辭（檔數是 `len(day_rows)` 動態帶入），改文案時不要放大宣稱。
 
 ## 1. 這個 repo 的全貌
 
@@ -95,6 +95,32 @@ DRY_RUN=1 SCAN_DATE=2026-07-03 python scripts/highlight_scan.py
 **已取消/暫緩（不要誤拾）：**
 - ❌ 資金流網站分頁（2026-07-05 使用者取消）——TDCC 知識保留在 concept brief。
 - ⏸ 經理人操作復盤分頁、全市場異動雷達、輿情整合——見 concept brief 的取捨表。
+
+## 5.5 申贖來源的「公告日 vs 資料日」（2026-07-28 踩過，勿再犯）
+
+各家投信的 PCF（申購買回清單）端點**幾乎都是用「公告日」查詢**，內容卻是前一個（海外型可能前 2-3 個）
+交易日的資料。凡是這類來源，一律「試公告日候選 → 用回應裡的資料日欄位對齊交易日」，不要假設固定位移：
+
+| 來源 | 查詢參數 | 回應中的資料日欄位 |
+|---|---|---|
+| 野村 nomura | `Date`（公告日） | `Entries.CNavDtStr` |
+| 安聯 allianz | `Date`（公告日） | `Entries.CNavDt` |
+| 中信 ctbc | `StartDate`（公告日） | `淨值日期` |
+| 台新 tsit | `DataDate`（公告日） | `YYYY/M/D每基數實際申購總價金` 標籤前綴 |
+| 凱基 kgi | `queryDate`（公告日） | `(YYYY/MM/DD)每受益權單位淨資產價值` 括號前綴 |
+| 統一 ezmoney / 群益 capital / 元大 yuanta | 公告日 | `TranDate` / `date2` / `trandate`（本來就有驗） |
+| 富邦 fubon / 國泰 cathay / 復華 fhtrust | **資料日** | 富邦驗標籤前綴、國泰驗 `preDate`、復華驗 `actBuyValDate` |
+
+安聯/中信/台新原本直接把交易日當查詢日 → 整欄晚一天，已於 2026-07-28 修正（Python 與
+`lib/*Scale.ts` 兩邊都改）。**Supabase `peer_redemption` 裡 2026-07-28 以前的 00983A /
+00986A / 00402A 三檔仍是舊的位移資料**，要修就重跑 `backfill_peer_redemption.py`
+（`START_DATE=2025-12-08`，upsert 會覆蓋）。
+
+另外兩個口徑注意事項：
+- **國泰 00400A 沒有公開「與前日已發行單位差異數」**，申贖是用「單位數差 × 每單位淨值」推算的
+  （同 00998A 走 CMoney 的作法）；對外引用時要知道它是推估值。
+- 凱基 `RedemptionVC` 回的 HTML **中文全部是數值 entity**（`&#x8207;`…），不解碼比對不到標籤；
+  且 kgifund / nomurafunds 的憑證缺 Subject Key Identifier，Python 端要走 `_post_lax`。
 
 ## 6. 給 AI 助手的額外提醒
 
