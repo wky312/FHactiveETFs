@@ -118,7 +118,23 @@ function hasWeekdayInRange(startDash: string, endDash: string): boolean {
   }
   return false;
 }
-// Merge persisted DB rows with live gap-fill rows; DB wins on any date collision.
+// 逐「格」合併（DB 有值者優先）。用於補「整欄缺席」的標的：DB 只存了當時已納入觀測群的
+// ETF，之後才加進群組的標的，其歷史列在 DB 裡整欄都是空的——那不是日期尾巴缺口，
+// mergeRowsPreferDb 這種以「列」為單位的合併補不到，必須逐格填。
+function mergeCellsPreferDb(dbRows: DayRow[], liveRows: DayRow[]): DayRow[] {
+  const byDate = new Map<string, DayRow>();
+  for (const r of dbRows) byDate.set(r.date, { date: r.date, data: { ...r.data } });
+  for (const lr of liveRows) {
+    const row = byDate.get(lr.date);
+    if (!row) { byDate.set(lr.date, { date: lr.date, data: { ...lr.data } }); continue; }
+    for (const [ticker, cell] of Object.entries(lr.data)) {
+      if (cell != null && row.data[ticker] == null) row.data[ticker] = cell;
+    }
+  }
+  return Array.from(byDate.values()).sort((a, b) => b.date.localeCompare(a.date));
+}
+
+// 以「列」為單位合併：補日期尾巴（今天還沒入庫）的缺口，DB 在日期撞號時勝出。
 function mergeRowsPreferDb(dbRows: DayRow[], liveRows: DayRow[]): DayRow[] {
   const byDate = new Map<string, DayRow>();
   for (const r of liveRows) byDate.set(r.date, r);
@@ -238,7 +254,8 @@ export default function PeerRedemptionTab() {
 
   const toApi = (s: string) => s.replace(/-/g, '/');
 
-  const loadLive = useCallback(async (sdArg: string = startDate, edArg: string = endDate) => {
+  const loadLive = useCallback(async (sdArg: string = startDate, edArg: string = endDate,
+                                      etfsArg: RedemptionEtf[] = groupEtfs) => {
     const sd = toApi(sdArg);      // 斜線格式 YYYY/MM/DD（fhtrust、ezmoney）
     const ed = toApi(edArg);
     const sdDash = sdArg;         // 連字號格式 YYYY-MM-DD（capital、fubon）
@@ -246,7 +263,7 @@ export default function PeerRedemptionTab() {
     const enc = encodeURIComponent;
 
     // 只打有接通爬蟲的 ETF；未接通者該欄維持「—」。
-    const scrapeable = groupEtfs.filter(e => e.source && e.key);
+    const scrapeable = etfsArg.filter(e => e.source && e.key);
     const results = await Promise.all(scrapeable.map(async (e) => {
       let url = '';
       switch (e.source) {
@@ -269,8 +286,8 @@ export default function PeerRedemptionTab() {
     }));
 
     const perTicker = new Map(results.map(({ ticker, data }) => [ticker, data]));
-    return mergeDays(perTicker, allTickers);
-  }, [startDate, endDate, groupEtfs, allTickers]);
+    return mergeDays(perTicker, scrapeable.map(e => e.ticker));
+  }, [startDate, endDate, groupEtfs]);
 
   const load = useCallback(async (forceLive = false) => {
     setLoading(true);
@@ -288,19 +305,34 @@ export default function PeerRedemptionTab() {
             // persisted yet (today's run, or a day the scheduler skipped). Detect a
             // tail gap beyond the newest DB date and live-fill just that gap — otherwise
             // DB-only silently drops today whenever the range also covers an older day.
+            let merged = dbRows;
+            let filled = false;
+
             const maxDbDate = dbRows.reduce((m, row) => (row.date > m ? row.date : m), dbRows[0].date);
             const gapStart = nextDay(maxDbDate);
             if (gapStart <= endDate && hasWeekdayInRange(gapStart, endDate)) {
               const liveRows = await loadLive(gapStart, endDate);
               const fresh = liveRows.filter(lr => lr.date > maxDbDate);
               if (fresh.length > 0) {
-                setRows(mergeRowsPreferDb(dbRows, fresh));
-                setDataSource('mixed');
-                return;
+                merged = mergeRowsPreferDb(merged, fresh);
+                filled = true;
               }
             }
-            setRows(dbRows);
-            setDataSource('db');
+
+            // 觀測群擴編後，新加入的 ETF 在 DB 的歷史列裡整欄缺席（backfill 跑完前都是如此）。
+            // 只補日期尾巴補不到這種洞，所以再依 ticker 找出範圍內仍有缺格者，單獨即時補抓。
+            const holes = groupEtfs.filter(e =>
+              e.source && e.key && merged.some(row => row.data[e.ticker] == null));
+            if (holes.length > 0) {
+              const holeRows = await loadLive(startDate, endDate, holes);
+              if (holeRows.length > 0) {
+                merged = mergeCellsPreferDb(merged, holeRows);
+                filled = true;
+              }
+            }
+
+            setRows(merged);
+            setDataSource(filled ? 'mixed' : 'db');
             return;
           }
         }
@@ -314,7 +346,7 @@ export default function PeerRedemptionTab() {
     } finally {
       setLoading(false);
     }
-  }, [startDate, endDate, currentGroup.dbGroup, loadLive]);
+  }, [startDate, endDate, currentGroup.dbGroup, groupEtfs, loadLive]);
 
   // Quick range
   const setRange = (days: number) => {
