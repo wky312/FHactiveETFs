@@ -1,0 +1,149 @@
+{
+  "date": "2026-07-29",
+  "scanned_at": "2026-07-29T16:43:53+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": "0050"
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "tw_active"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "ok",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R3-4958-20260706-t30",
+      "rule": "R3",
+      "score": 60.28,
+      "selected": true,
+      "fact": "7/6 減碼 臻鼎-KY，其後回跌 30.1%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 7/6 提前減碼臻鼎-KY，隨後該股回跌 30.1%，成功避開損失。",
+      "data": {
+        "stockid": "4958",
+        "event_date": "2026-07-06",
+        "direction": "trim",
+        "qty_change_pct": -99.4,
+        "weight_pct": 1.245,
+        "return_since_pct": -30.14,
+        "tier": 30
+      }
+    },
+    {
+      "id": "R3-2492-20260721-t15",
+      "rule": "R3",
+      "score": 38.46,
+      "selected": true,
+      "fact": "7/21 減碼 華新科技，其後回跌 19.2%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 7/21 提前減碼華新科技，隨後該股回跌 19.2%，成功避開損失。",
+      "data": {
+        "stockid": "2492",
+        "event_date": "2026-07-21",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 1.368,
+        "return_since_pct": -19.23,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-8210-20260707-t15",
+      "rule": "R3",
+      "score": 33.02,
+      "selected": true,
+      "fact": "7/7 減碼 勤誠興業，其後回跌 16.5%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 7/7 提前減碼勤誠興業，隨後該股回跌 16.5%，成功避開損失。",
+      "data": {
+        "stockid": "8210",
+        "event_date": "2026-07-07",
+        "direction": "trim",
+        "qty_change_pct": -99.8,
+        "weight_pct": 0.716,
+        "return_since_pct": -16.51,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-2344-20260721-t15",
+      "rule": "R3",
+      "score": 32.8,
+      "selected": true,
+      "fact": "7/21 減碼 華邦電子，其後回跌 16.4%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 7/21 提前減碼華邦電子，隨後該股回跌 16.4%，成功避開損失。",
+      "data": {
+        "stockid": "2344",
+        "event_date": "2026-07-21",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 0.994,
+        "return_since_pct": -16.4,
+        "tier": 15
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 398,
+    "line_status": 200,
+    "candidate_count": 4,
+    "selected_count": 4
+  }
+}
