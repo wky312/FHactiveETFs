@@ -1,6 +1,7 @@
 'use client';
 import { useState, useCallback, useRef } from 'react';
 import MarketOverviewTab from './MarketOverviewTab';
+import { captureAndShare } from '@/lib/captureImage';
 
 /* 經理人選股對帳單分頁
    台股配色慣例：紅(RED)=上漲/賺、綠(GREEN)=下跌/賠。
@@ -110,30 +111,16 @@ export default function ScorecardTab({ selectedEtf, initialMode = 'single' }: Pr
     }
   }, [fund.fundId]);
 
-  // 截圖分享（手機走 Web Share 直接傳 LINE；否則下載 JPG），比照 Dashboard.saveImage
+  // 截圖分享（手機走 Web Share 直接傳 LINE；否則下載 JPG）
+  // 共用 captureAndShare：截圖前攤平長清單與寬表格，避免存圖被切
   const saveImage = useCallback(async () => {
     const el = cardRef.current;
     if (!el) return;
-    try {
-      await document.fonts.ready;
-      const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
-      const name = `${fund.ticker}_選股對帳單_${data?.asOf?.replace(/\//g, '') ?? ''}.jpg`;
-      if (typeof navigator !== 'undefined' && navigator.canShare) {
-        try {
-          const blob = await new Promise<Blob>((r) => canvas.toBlob(b => r(b!), 'image/jpeg', 0.92));
-          const file = new File([blob], name, { type: 'image/jpeg' });
-          if (navigator.canShare({ files: [file] })) {
-            await navigator.share({ title: `${fund.ticker} 選股對帳單`, files: [file] });
-            return;
-          }
-        } catch { /* 取消或不支援 → 下載 */ }
-      }
-      const link = document.createElement('a');
-      link.download = name;
-      link.href = canvas.toDataURL('image/jpeg', 0.92);
-      link.click();
-    } catch (e) { console.error('截圖失敗', e); }
+    await captureAndShare(
+      el,
+      `${fund.ticker}_選股對帳單_${data?.asOf?.replace(/\//g, '') ?? ''}.jpg`,
+      `${fund.ticker} 選股對帳單`,
+    );
   }, [fund.ticker, data]);
 
   const agg = data ? (scope === 'current' ? data.current : data.all) : null;

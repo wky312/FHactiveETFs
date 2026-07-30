@@ -1,6 +1,7 @@
 'use client';
 import { useState, useCallback, useRef, useMemo } from 'react';
 import * as XLSX from 'xlsx';
+import { captureAndShare } from '@/lib/captureImage';
 
 // 各申贖來源的回傳列形狀一致，統一用這個型別。
 interface ScaleDay { date: string; netSub: number; aum: number }
@@ -230,26 +231,11 @@ export default function PeerRedemptionTab() {
     setAumSortKey('date');
   };
 
+  // 共用 captureAndShare：截圖前攤平長清單與寬表格，避免存圖被切
   const saveImage = useCallback(async (ref: React.RefObject<HTMLDivElement | null>, filename: string) => {
     const el = ref.current;
     if (!el) return;
-    try {
-      await document.fonts.ready;
-      const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
-      const jpgName = filename.replace(/\.png$/, '.jpg');
-      if (typeof navigator !== 'undefined' && navigator.canShare) {
-        try {
-          const blob = await new Promise<Blob>(res => canvas.toBlob(b => res(b!), 'image/jpeg', 0.92));
-          const file = new File([blob], jpgName, { type: 'image/jpeg' });
-          if (navigator.canShare({ files: [file] })) { await navigator.share({ title: '同業申贖觀測', files: [file] }); return; }
-        } catch {}
-      }
-      const link = document.createElement('a');
-      link.download = jpgName;
-      link.href = canvas.toDataURL('image/jpeg', 0.92);
-      link.click();
-    } catch {}
+    await captureAndShare(el, filename, '同業申贖觀測');
   }, []);
 
   const toApi = (s: string) => s.replace(/-/g, '/');

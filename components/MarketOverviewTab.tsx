@@ -1,6 +1,7 @@
 'use client';
 import { useState, useCallback, useRef, useEffect, useMemo } from 'react';
 import MarketQuadrant from './MarketQuadrant';
+import { captureAndShare } from '@/lib/captureImage';
 
 /* 全 19 檔主動式 ETF「同區間」選股總覽（資料源：共用 Supabase）。
    台股配色：紅(RED)=漲、綠(GREEN)=跌。 */
@@ -131,27 +132,15 @@ export default function MarketOverviewTab() {
     return () => clearTimeout(t);
   }, [run]);
 
+  // 共用 captureAndShare：截圖前攤平長清單與寬表格，避免存圖被切
   const saveImage = useCallback(async () => {
     const el = cardRef.current;
     if (!el) return;
-    try {
-      await document.fonts.ready;
-      const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
-      const name = `主動ETF選股勝率總覽_${data?.startDate ?? ''}_${data?.endDate ?? ''}.jpg`;
-      if (typeof navigator !== 'undefined' && navigator.canShare) {
-        try {
-          const blob = await new Promise<Blob>((r) => canvas.toBlob(b => r(b!), 'image/jpeg', 0.92));
-          const file = new File([blob], name, { type: 'image/jpeg' });
-          if (navigator.canShare({ files: [file] })) {
-            await navigator.share({ title: '主動式ETF 選股勝率總覽', files: [file] });
-            return;
-          }
-        } catch { /* 取消 → 下載 */ }
-      }
-      const link = document.createElement('a');
-      link.download = name; link.href = canvas.toDataURL('image/jpeg', 0.92); link.click();
-    } catch (e) { console.error('截圖失敗', e); }
+    await captureAndShare(
+      el,
+      `主動ETF選股勝率總覽_${data?.startDate ?? ''}_${data?.endDate ?? ''}.jpg`,
+      '主動式ETF 選股勝率總覽',
+    );
   }, [data]);
 
   return (

@@ -1,5 +1,6 @@
 'use client';
 import { useState, useMemo, useRef, useCallback } from 'react';
+import { captureAndShare } from '@/lib/captureImage';
 
 /* 全 19 檔主動式 ETF「同區間選股」互動四象限散佈圖。
    X＝進場勝率、Y＝賺賠比(或進場報酬)、泡泡大小＝本期投入金額。
@@ -61,16 +62,14 @@ export default function MarketQuadrant({ funds, startDate, endDate }: { funds: Q
     return { f, x: xOf(f.winRate!), y: yOf(yv), r: rOf(f.investedK), isNullPayoff };
   });
 
+  // 共用 captureAndShare：截圖前攤平被裁切的容器，手機另可直接分享
   const saveImage = useCallback(async () => {
     const el = cardRef.current; if (!el) return;
-    try {
-      await document.fonts.ready;
-      const html2canvas = (await import('html2canvas')).default;
-      const canvas = await html2canvas(el, { scale: 2, backgroundColor: '#ffffff', useCORS: true, logging: false });
-      const link = document.createElement('a');
-      link.download = `主動ETF選股四象限_${startDate}_${endDate}.jpg`;
-      link.href = canvas.toDataURL('image/jpeg', 0.92); link.click();
-    } catch (e) { console.error('截圖失敗', e); }
+    await captureAndShare(
+      el,
+      `主動ETF選股四象限_${startDate}_${endDate}.jpg`,
+      '主動式ETF 選股四象限',
+    );
   }, [startDate, endDate]);
 
   const xDiv = xOf(50);
