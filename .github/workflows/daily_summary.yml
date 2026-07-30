@@ -16,10 +16,30 @@ jobs:
         with:
           python-version: '3.11'
 
+      # 套件清單直接寫在下面的 run 裡（無 requirements.txt），所以 key 綁這個 workflow 檔的 hash：
+      # 改了清單就自動 miss、重新安裝。
+      - name: Cache pip downloads
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('.github/workflows/daily_summary.yml') }}
+
       - name: Install Python dependencies
         run: pip install playwright requests pytz yfinance supabase
 
+      # 瀏覽器本體約 170MB，快取後省下每次下載；key 綁 playwright 版本，升版自動 miss。
+      - name: Resolve Playwright version
+        id: pw
+        run: echo "version=$(playwright --version | tr -d '\r' | awk '{print $NF}')" >> "$GITHUB_OUTPUT"
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-${{ steps.pw.outputs.version }}
+
       - name: Install Playwright browser
+        # 命中快取時只做版本檢查；--with-deps 的 apt 套件無法跨 run 保留，仍會執行。
         run: playwright install chromium --with-deps
 
       - name: Run daily summary script
