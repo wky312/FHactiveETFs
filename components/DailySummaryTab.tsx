@@ -2,6 +2,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { Holding } from '@/lib/types';
+import { onlyStockRows } from '@/lib/holdingRows';
 
 const TEXT   = '#1C1C1E';
 const SUB    = '#6B6460';
@@ -76,8 +77,9 @@ interface Row {
 }
 
 function buildRows(curr: Holding[], prev: Holding[]): Row[] {
-  const cm = new Map(curr.map(h => [h.stockid || h.stockname, h]));
-  const pm = new Map(prev.map(h => [h.stockid || h.stockname, h]));
+  // 現金餘額／應付買回款／應付申購預收款等非個股列不列入加減碼計算
+  const cm = new Map(onlyStockRows(curr).map(h => [h.stockid || h.stockname, h]));
+  const pm = new Map(onlyStockRows(prev).map(h => [h.stockid || h.stockname, h]));
   const keys = new Set([...cm.keys(), ...pm.keys()]);
   const rows: Row[] = [];
   for (const key of keys) {
@@ -313,7 +315,7 @@ export default function DailySummaryTab({ baseDate, cmpDate, baseHoldings, cmpHo
         {(['new', 'increased', 'decreased', 'removed'] as Status[]).map(s => (
           <span key={s} style={{ ...BADGE_STYLE, ...BADGE[s] }}>{BADGE_LABEL[s]}</span>
         ))}
-        <span style={{ marginLeft: 'auto', fontSize: '.8rem', color: SUB }}>共 {total} 筆變動　點擊欄位標題可排序</span>
+        <span style={{ marginLeft: 'auto', fontSize: '.8rem', color: SUB }}>共 {total} 筆變動（不含現金／應付款等非個股項目）　點擊欄位標題可排序</span>
         {sorted.length > 0 && (
           <button
             onClick={() => exportExcel(sorted, baseDate, cmpDate, etfTicker, bs, cs)}

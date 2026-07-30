@@ -2,6 +2,7 @@
 import { useState, useMemo } from 'react';
 import * as XLSX from 'xlsx';
 import { Holding } from '@/lib/types';
+import { onlyStockRows } from '@/lib/holdingRows';
 
 const TEXT   = '#1C1C1E';
 const SUB    = '#6B6460';
@@ -71,8 +72,9 @@ interface Row {
 }
 
 function buildRows(curr: Holding[], prev: Holding[]): Row[] {
-  const cm = new Map(curr.map(h => [h.stockid || h.stockname, h]));
-  const pm = new Map(prev.map(h => [h.stockid || h.stockname, h]));
+  // 現金餘額／應付買回款／應付申購預收款等非個股列不列入加減碼計算
+  const cm = new Map(onlyStockRows(curr).map(h => [h.stockid || h.stockname, h]));
+  const pm = new Map(onlyStockRows(prev).map(h => [h.stockid || h.stockname, h]));
   const keys = new Set([...cm.keys(), ...pm.keys()]);
   const rows: Row[] = [];
   for (const key of keys) {
