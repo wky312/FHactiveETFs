@@ -2,6 +2,11 @@ name: Daily Holdings Summary
 
 on:
   workflow_dispatch:  # triggered by cron-job.org via /api/cron/trigger
+    inputs:
+      test_date:
+        description: '手動測試：只送指定日期的 00991A 進出場摘要 Pushover（YYYY-MM-DD，留空為正常每日排程）'
+        required: false
+        default: ''
 
 jobs:
   send-summary:
@@ -48,4 +53,5 @@ jobs:
           PUSHOVER_USER:       ${{ secrets.PUSHOVER_USER }}
           SUPABASE_URL:        ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          TEST_DATE:           ${{ github.event.inputs.test_date }}
         run: python scripts/daily_summary.py

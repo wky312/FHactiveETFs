@@ -5,6 +5,7 @@ Runs Mon-Fri at 17:15 TST via GitHub Actions.
 """
 
 import os
+import re
 import sys
 import time
 import asyncio
@@ -13,6 +14,27 @@ from datetime import datetime, timedelta, date
 import pytz
 
 TZ = pytz.timezone('Asia/Taipei')
+
+
+def load_sector_map() -> dict:
+    """Parse lib/sectorGroups.ts BUILTIN_GROUPS to build a stockid -> sector name
+    lookup. Reads the .ts source directly (not a duplicated copy) so the Pushover
+    report never drifts from the tab=sector page's tagging."""
+    path = os.path.join(os.path.dirname(__file__), '..', 'lib', 'sectorGroups.ts')
+    try:
+        with open(path, encoding='utf-8') as f:
+            content = f.read()
+    except OSError:
+        return {}
+    mapping = {}
+    for m in re.finditer(r"name:\s*'([^']+)',\s*codes:\s*\[([^\]]*)\]", content):
+        name = m.group(1)
+        for code in re.findall(r"'(\d+)'", m.group(2)):
+            mapping[code] = name
+    return mapping
+
+
+SECTOR_MAP = load_sector_map()
 
 FHTRUST_ASSETS = 'https://www.fhtrust.com.tw/api/assets'
 FHTRUST_PCF    = 'https://www.fhtrust.com.tw/api/ETFPcf'
@@ -917,12 +939,11 @@ def find_trading_day_with_data(start: date, fund_id: str, max_lookback: int = 10
 # ── Diff logic ────────────────────────────────────────────────────────────────
 
 def build_diff_rows(base_holdings, cmp_holdings):
-    """Return only changed rows, sorted by status then weight."""
+    """Return only changed rows, sorted by 異動金額 descending."""
     curr_map = {(h['stockid'] or h['stockname']): h for h in base_holdings}
     prev_map = {(h['stockid'] or h['stockname']): h for h in cmp_holdings}
     keys = set(curr_map) | set(prev_map)
 
-    ORDER = {'new': 0, 'increased': 1, 'decreased': 2, 'removed': 3}
     rows = []
     for key in keys:
         c, p = curr_map.get(key), prev_map.get(key)
@@ -939,9 +960,11 @@ def build_diff_rows(base_holdings, cmp_holdings):
         elif p and p_price:       diff_amount = -p['mvalue']
         else:                     diff_amount = None
 
+        stockid = (c or p)['stockid']
         rows.append({
-            'stockid':    (c or p)['stockid'],
+            'stockid':    stockid,
             'stockname':  (c or p)['stockname'],
+            'sector':     SECTOR_MAP.get(stockid, ''),
             'status':     status,
             'curr_q':     c['qshare']           if c else None,
             'prev_q':     p['qshare']           if p else None,
@@ -952,7 +975,7 @@ def build_diff_rows(base_holdings, cmp_holdings):
             'diff_amount': diff_amount,
         })
 
-    rows.sort(key=lambda r: (ORDER[r['status']], -(r['curr_p'] or 0)))
+    rows.sort(key=lambda r: -(r['diff_amount'] or 0))
     return rows
 
 
@@ -1076,9 +1099,10 @@ def build_html(etf, base_data, cmp_data, curr_pcf, prev_pcf, rows, etf_price=Non
               <td style="padding:7px 8px;font-family:monospace;font-size:12px;color:{cp_c};text-align:right;">{fp(r['curr_p'])}</td>
               <td style="padding:7px 8px;font-family:monospace;font-size:12px;color:{diff_color(r['diff_p'])};font-weight:600;text-align:right;">{fdp(r['diff_p'])}</td>
               <td style="padding:7px 8px;text-align:center;"><span style="display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600;background:{sc['bbg']};color:{sc['bc']};border:1px solid {sc['bb']};">{sc['label']}</span></td>
+              <td style="padding:7px 8px;font-size:12px;color:#6B6460;white-space:nowrap;">{r['sector'] or ''}</td>
             </tr>'''
     else:
-        tbody = '<tr><td colspan="10" style="text-align:center;padding:28px;color:#AAA;font-size:13px;">當日無持股異動</td></tr>'
+        tbody = '<tr><td colspan="11" style="text-align:center;padding:28px;color:#AAA;font-size:13px;">當日無持股異動</td></tr>'
 
     thead = f'''<thead><tr>
       <th style="padding:9px 8px;background:#1C1C1E;color:#fff;font-size:11px;text-align:center;white-space:nowrap;">代碼</th>
@@ -1091,6 +1115,7 @@ def build_html(etf, base_data, cmp_data, curr_pcf, prev_pcf, rows, etf_price=Non
       <th style="padding:9px 8px;background:#1C1C1E;color:#fff;font-size:11px;text-align:right;white-space:nowrap;">佔比% ({bs})</th>
       <th style="padding:9px 8px;background:#1C1C1E;color:#fff;font-size:11px;text-align:right;white-space:nowrap;">佔比變化</th>
       <th style="padding:9px 8px;background:#1C1C1E;color:#fff;font-size:11px;text-align:center;white-space:nowrap;">操作</th>
+      <th style="padding:9px 8px;background:#1C1C1E;color:#fff;font-size:11px;text-align:left;white-space:nowrap;">產業族群</th>
     </tr></thead>'''
 
     now_str = datetime.now(TZ).strftime('%Y/%m/%d %H:%M')
@@ -1355,6 +1380,16 @@ def process_overseas_redemption(today: date) -> int:
 async def main():
     if not PUSHOVER_TOKEN or not PUSHOVER_USER:
         sys.exit('ERROR: PUSHOVER_TOKEN and PUSHOVER_USER must be set.')
+
+    test_date_raw = os.environ.get('TEST_DATE', '').strip()
+    if test_date_raw:
+        # 手動測試單一日期的 00991A 進出場摘要：只送這一則 Pushover，
+        # 不動 peer_redemption / unit_watch / overseas（避免重寫已正確的 DB 資料、
+        # 重複推播同業申贖）。
+        test_date = datetime.strptime(test_date_raw, '%Y-%m-%d').date()
+        print(f'TEST_DATE (TST): {test_date}')
+        await process_etf(ETFS[0], test_date)
+        return
 
     today = datetime.now(TZ).date()
     print(f'Date (TST): {today}')
