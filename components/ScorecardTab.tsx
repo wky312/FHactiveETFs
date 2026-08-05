@@ -275,9 +275,9 @@ export default function ScorecardTab({ selectedEtf, initialMode = 'single' }: Pr
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 680 }}>
                 <thead>
                   <tr>
-                    <th style={{ ...TH, textAlign: 'left' }}>#</th>
-                    <th style={{ ...TH, textAlign: 'left' }}>代碼</th>
-                    <th style={{ ...TH, textAlign: 'left' }}>名稱</th>
+                    <th style={{ ...TH, textAlign: 'left', width: 30, position: 'sticky', left: 0, zIndex: 2 }}>#</th>
+                    <th style={{ ...TH, textAlign: 'left', width: 64, position: 'sticky', left: 30, zIndex: 2 }}>代碼</th>
+                    <th style={{ ...TH, textAlign: 'left', position: 'sticky', left: 94, zIndex: 2 }}>名稱</th>
                     {scope === 'all'
                       ? <th style={{ ...TH, textAlign: 'center' }}>狀態</th>
                       : <th style={{ ...TH, textAlign: 'right' }}>權重 %</th>}
@@ -292,11 +292,12 @@ export default function ScorecardTab({ selectedEtf, initialMode = 'single' }: Pr
                 <tbody>
                   {rows.map((p, i) => {
                     const ret = scope === 'current' ? p.returnUnreal : p.returnAll;
+                    const rowBg = i % 2 === 0 ? '#fff' : '#FAFAF9';
                     return (
-                      <tr key={p.stockid} style={{ background: i % 2 === 0 ? '#fff' : '#FAFAF9', borderBottom: `1px solid ${BORDER}` }}>
-                        <td style={{ ...TD, color: SUB }}>{i + 1}</td>
-                        <td style={{ ...TD, color: TEXT, fontWeight: 600 }}>{p.stockid}</td>
-                        <td style={{ ...TD, fontFamily: SANS, color: TEXT }}>{p.stockname}</td>
+                      <tr key={p.stockid} style={{ background: rowBg, borderBottom: `1px solid ${BORDER}` }}>
+                        <td style={{ ...TD, color: SUB, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{i + 1}</td>
+                        <td style={{ ...TD, color: TEXT, fontWeight: 600, position: 'sticky', left: 30, zIndex: 1, background: rowBg }}>{p.stockid}</td>
+                        <td style={{ ...TD, fontFamily: SANS, color: TEXT, position: 'sticky', left: 94, zIndex: 1, background: rowBg }}>{p.stockname}</td>
                         {scope === 'all'
                           ? <td style={{ ...TD, textAlign: 'center', fontFamily: SANS, fontSize: '.74rem', color: p.held ? RED : SUB }}>{p.held ? '持有' : '已出清'}</td>
                           : <td style={{ ...TD, textAlign: 'right', color: SUB }}>{p.prate.toFixed(2)}</td>}

@@ -269,8 +269,8 @@ export default function PerformanceTab({
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 780 }}>
           <thead>
             <tr>
-              <th style={{ ...TH, textAlign: 'center', width: 76 }}>代碼</th>
-              <th style={{ ...TH, textAlign: 'left' }}>名稱</th>
+              <th style={{ ...TH, textAlign: 'center', width: 76, position: 'sticky', left: 0, zIndex: 2 }}>代碼</th>
+              <th style={{ ...TH, textAlign: 'left', position: 'sticky', left: 76, zIndex: 2 }}>名稱</th>
               <th
                 style={{ ...TH, textAlign: 'right', background: sortKey === 'prate' ? '#333' : '#1C1C1E' }}
                 onClick={() => toggleSort('prate')}
@@ -304,8 +304,8 @@ export default function PerformanceTab({
               const cv = customMap.get(b.stockid) ?? null;
               return (
                 <tr key={`bench-${b.stockid}`} style={{ background: '#FFF8E6', borderBottom: `1px solid #F2D98A` }}>
-                  <td style={{ padding: '8px 12px', textAlign: 'center', fontSize: '.78rem', fontFamily: MONO, color: SUB }}>{b.stockid}</td>
-                  <td style={{ padding: '8px 12px', fontSize: '.84rem', color: TEXT, fontWeight: 700 }}>
+                  <td style={{ padding: '8px 12px', textAlign: 'center', fontSize: '.78rem', fontFamily: MONO, color: SUB, position: 'sticky', left: 0, zIndex: 1, background: '#FFF8E6' }}>{b.stockid}</td>
+                  <td style={{ padding: '8px 12px', fontSize: '.84rem', color: TEXT, fontWeight: 700, position: 'sticky', left: 76, zIndex: 1, background: '#FFF8E6' }}>
                     {b.stockname}
                     <span style={{ marginLeft: 6, fontSize: '.62rem', fontWeight: 700, color: '#92620A', background: '#F5E2A8', padding: '1px 6px', borderRadius: 4 }}>基準</span>
                   </td>
@@ -329,13 +329,15 @@ export default function PerformanceTab({
                 </tr>
               );
             })}
-            {sorted.map((r, i) => (
+            {sorted.map((r, i) => {
+              const rowBg = i % 2 === 0 ? '#fff' : '#FAFAF9';
+              return (
               <tr key={`${r.stockid}-${i}`} style={{
-                background: i % 2 === 0 ? '#fff' : '#FAFAF9',
+                background: rowBg,
                 borderBottom: `1px solid ${BORDER}`,
               }}>
-                <td style={{ padding: '8px 12px', textAlign: 'center', fontSize: '.8rem', fontFamily: MONO, color: SUB }}>{r.stockid || '—'}</td>
-                <td style={{ padding: '8px 12px', fontSize: '.86rem', color: TEXT, maxWidth: 180, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.stockname}</td>
+                <td style={{ padding: '8px 12px', textAlign: 'center', fontSize: '.8rem', fontFamily: MONO, color: SUB, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{r.stockid || '—'}</td>
+                <td style={{ padding: '8px 12px', fontSize: '.86rem', color: TEXT, maxWidth: 180, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', position: 'sticky', left: 76, zIndex: 1, background: rowBg }}>{r.stockname}</td>
                 <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', color: TEXT, fontWeight: 500 }}>{r.prate.toFixed(3)}%</td>
                 <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: SUB }}>
                   {r.currentPrice !== null ? r.currentPrice.toFixed(2) : '—'}
@@ -364,7 +366,8 @@ export default function PerformanceTab({
                   );
                 })}
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>

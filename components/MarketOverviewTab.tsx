@@ -210,13 +210,18 @@ export default function MarketOverviewTab() {
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
               <thead>
                 <tr>
-                  {COLUMNS.map(c => {
+                  {COLUMNS.map((c, ci) => {
                     const active = c.key != null && c.key === sortKey;
                     const arrow = !c.key ? '' : active ? (sortDir === 'asc' ? '▲' : '▼') : '↕';
+                    const stickyStyle: React.CSSProperties = ci === 0
+                      ? { position: 'sticky', left: 0, zIndex: 2, width: 28 }
+                      : ci === 1
+                      ? { position: 'sticky', left: 28, zIndex: 2 }
+                      : {};
                     return (
                       <th key={c.label}
                         onClick={c.key ? () => onSort(c.key!, c.num) : undefined}
-                        style={{ ...TH, textAlign: c.align, cursor: c.key ? 'pointer' : 'default', userSelect: 'none' }}>
+                        style={{ ...TH, textAlign: c.align, cursor: c.key ? 'pointer' : 'default', userSelect: 'none', ...stickyStyle }}>
                         {c.label}
                         {arrow && <span style={{ marginLeft: 3, fontSize: '.6rem', opacity: active ? 1 : 0.4 }}>{arrow}</span>}
                       </th>
@@ -227,10 +232,11 @@ export default function MarketOverviewTab() {
               <tbody>
                 {sortedFunds.map((f, i) => {
                   const hi = f.ticker === HIGHLIGHT;
+                  const rowBg = hi ? '#FFF7F2' : i % 2 === 0 ? '#fff' : '#FAFAF9';
                   return (
-                    <tr key={f.ticker} style={{ background: hi ? '#FFF7F2' : i % 2 === 0 ? '#fff' : '#FAFAF9', borderBottom: `1px solid ${BORDER}`, borderLeft: hi ? `3px solid ${GOLD}` : '3px solid transparent' }}>
-                      <td style={{ ...TD, color: SUB }}>{i + 1}</td>
-                      <td style={{ ...TD, fontFamily: SANS }}>
+                    <tr key={f.ticker} style={{ background: rowBg, borderBottom: `1px solid ${BORDER}`, borderLeft: hi ? `3px solid ${GOLD}` : '3px solid transparent' }}>
+                      <td style={{ ...TD, color: SUB, position: 'sticky', left: 0, zIndex: 1, width: 28, background: rowBg }}>{i + 1}</td>
+                      <td style={{ ...TD, fontFamily: SANS, position: 'sticky', left: 28, zIndex: 1, background: rowBg }}>
                         <span style={{ fontFamily: MONO, fontWeight: 700, color: hi ? RED : TEXT }}>{f.ticker}</span>
                         <span style={{ color: TEXT, marginLeft: 6 }}>{f.name}</span>
                       </td>

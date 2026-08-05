@@ -208,7 +208,7 @@ export default function UnitWatchTab() {
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 560 }}>
               <thead>
                 <tr>
-                  <th onClick={() => toggleSort('date')}        style={{ ...TH, textAlign: 'left' }}>{label('date', '日期')}</th>
+                  <th onClick={() => toggleSort('date')}        style={{ ...TH, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2 }}>{label('date', '日期')}</th>
                   <th onClick={() => toggleSort('units')}       style={{ ...TH, textAlign: 'right' }}>{label('units', '單位數')}</th>
                   <th onClick={() => toggleSort('cumAvgUnits')} style={{ ...TH, textAlign: 'right' }}>{label('cumAvgUnits', '成立以來平均單位數')}</th>
                   <th onClick={() => toggleSort('ratio')}       style={{ ...TH, textAlign: 'right' }}>{label('ratio', '佔發行單位數比例')}</th>
@@ -216,9 +216,11 @@ export default function UnitWatchTab() {
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((r, i) => (
-                  <tr key={r.date} style={{ background: i % 2 === 0 ? '#fff' : '#FAFAF9', borderBottom: `1px solid ${BORDER}` }}>
-                    <td style={{ padding: '7px 14px', fontFamily: MONO, fontSize: '.8rem', color: TEXT }}>{r.date}</td>
+                {sorted.map((r, i) => {
+                  const rowBg = i % 2 === 0 ? '#fff' : '#FAFAF9';
+                  return (
+                  <tr key={r.date} style={{ background: rowBg, borderBottom: `1px solid ${BORDER}` }}>
+                    <td style={{ padding: '7px 14px', fontFamily: MONO, fontSize: '.8rem', color: TEXT, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{r.date}</td>
                     <td style={{ padding: '7px 14px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: TEXT }}>{fmtUnits(r.units)}</td>
                     <td style={{ padding: '7px 14px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: SUB }}>{fmtUnits(r.cumAvgUnits)}</td>
                     <td style={{ padding: '7px 14px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: r.pass ? RED : GREEN, fontWeight: 600 }}>{fmtPct(r.ratio)}</td>
@@ -232,7 +234,8 @@ export default function UnitWatchTab() {
                       </span>
                     </td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

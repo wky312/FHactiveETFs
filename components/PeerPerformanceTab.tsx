@@ -271,8 +271,8 @@ export default function PeerPerformanceTab() {
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 960 }}>
             <thead>
               <tr>
-                <th onClick={() => toggleSort('ticker')}   style={{ ...TH, textAlign: 'left',  width: 72  }}>{thLabel('ticker',  '代號')}</th>
-                <th onClick={() => toggleSort('name')}     style={{ ...TH, textAlign: 'left',  minWidth: 100, width: 100 }}>{thLabel('name', '名稱')}</th>
+                <th onClick={() => toggleSort('ticker')}   style={{ ...TH, textAlign: 'left',  width: 72, position: 'sticky', left: 0, zIndex: 2 }}>{thLabel('ticker',  '代號')}</th>
+                <th onClick={() => toggleSort('name')}     style={{ ...TH, textAlign: 'left',  minWidth: 100, width: 100, position: 'sticky', left: 72, zIndex: 2 }}>{thLabel('name', '名稱')}</th>
                 <th onClick={() => toggleSort('price')}    style={{ ...TH, textAlign: 'right', width: 70  }}>{thLabel('price',  '收盤價')}</th>
                 {appliedRange && (
                   <th onClick={() => toggleSort('pctCustom')}
@@ -290,10 +290,12 @@ export default function PeerPerformanceTab() {
               </tr>
             </thead>
             <tbody>
-              {sorted.map((r, i) => (
-                <tr key={r.ticker} style={{ background: i % 2 === 0 ? '#fff' : '#FAFAF9', borderBottom: `1px solid ${BORDER}` }}>
-                  <td style={{ padding: '8px 10px', fontFamily: MONO, fontSize: '.8rem', color: SUB, fontWeight: 600 }}>{r.ticker}</td>
-                  <td style={{ padding: '8px 10px', fontSize: '.83rem', color: TEXT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 100 }}>{r.name}</td>
+              {sorted.map((r, i) => {
+                const rowBg = i % 2 === 0 ? '#fff' : '#FAFAF9';
+                return (
+                <tr key={r.ticker} style={{ background: rowBg, borderBottom: `1px solid ${BORDER}` }}>
+                  <td style={{ padding: '8px 10px', fontFamily: MONO, fontSize: '.8rem', color: SUB, fontWeight: 600, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{r.ticker}</td>
+                  <td style={{ padding: '8px 10px', fontSize: '.83rem', color: TEXT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 100, position: 'sticky', left: 72, zIndex: 1, background: rowBg }}>{r.name}</td>
                   <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', color: TEXT }}>{fmtPrice(r.price)}</td>
                   {r.anomaly ? (
                     <td colSpan={(appliedRange ? 1 : 0) + PERF_COLS.length}
@@ -319,11 +321,12 @@ export default function PeerPerformanceTab() {
                     </>
                   )}
                 </tr>
-              ))}
+                );
+              })}
               {/* Average row */}
               {avg && (
                 <tr style={{ background: '#F0EDE8', borderTop: `2px solid ${BORDER}` }}>
-                  <td colSpan={2} style={{ padding: '8px 10px', fontSize: '.78rem', color: SUB, fontWeight: 600 }}>等權平均</td>
+                  <td colSpan={2} style={{ padding: '8px 10px', fontSize: '.78rem', color: SUB, fontWeight: 600, position: 'sticky', left: 0, zIndex: 1, background: '#F0EDE8' }}>等權平均</td>
                   <td style={{ padding: '8px 10px', textAlign: 'right', fontSize: '.78rem', color: SUB }}>—</td>
                   {appliedRange && (() => {
                     const vals = sorted.filter(r => !r.anomaly).map(r => r.pctCustom).filter((v): v is number => v !== null);

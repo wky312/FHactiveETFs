@@ -375,7 +375,7 @@ export default function SectorExposureTab() {
             <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 640 }}>
               <thead>
                 <tr>
-                  <th style={{ ...TH, textAlign: 'left' }}>ETF</th>
+                  <th style={{ ...TH, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2 }}>ETF</th>
                   <th style={{ ...TH, textAlign: 'left' }}>持股日</th>
                   <th style={{ ...TH, textAlign: 'right' }}>規模(億)</th>
                   {result.stocks.map(s => (
@@ -392,7 +392,7 @@ export default function SectorExposureTab() {
               <tbody>
                 {fundRows.map(f => (
                   <tr key={f.ticker} style={{ borderTop: `1px solid ${BORDER}` }}>
-                    <td style={{ padding: '7px 10px', whiteSpace: 'nowrap' }}>
+                    <td style={{ padding: '7px 10px', whiteSpace: 'nowrap', position: 'sticky', left: 0, zIndex: 1, background: CARD }}>
                       <span style={{ fontFamily: MONO, fontWeight: 600 }}>{f.ticker}</span>
                       <span style={{ color: SUB, fontSize: '.74rem', marginLeft: 6 }}>{f.name}</span>
                     </td>

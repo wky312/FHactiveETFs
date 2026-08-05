@@ -164,8 +164,8 @@ export default function TurnoverTab() {
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 820 }}>
               <thead>
                 <tr>
-                  <th style={{ ...TH, textAlign: 'left', cursor: 'default' }}>代碼</th>
-                  <th style={{ ...TH, textAlign: 'left', cursor: 'default' }}>名稱</th>
+                  <th style={{ ...TH, textAlign: 'left', cursor: 'default', width: 76, position: 'sticky', left: 0, zIndex: 2 }}>代碼</th>
+                  <th style={{ ...TH, textAlign: 'left', cursor: 'default', position: 'sticky', left: 76, zIndex: 2 }}>名稱</th>
                   <th style={{ ...TH, textAlign: 'center', cursor: 'default' }}>起算日</th>
                   {COLS.map(c => (
                     <th key={c.key} onClick={() => toggleSort(c.key)}
@@ -176,10 +176,12 @@ export default function TurnoverTab() {
                 </tr>
               </thead>
               <tbody>
-                {sorted.map((r, i) => (
-                  <tr key={r.ticker} style={{ background: i % 2 === 0 ? '#fff' : '#FAFAF9', borderBottom: `1px solid ${BORDER}` }}>
-                    <td style={{ padding: '7px 10px', fontFamily: MONO, fontSize: '.8rem', color: TEXT, fontWeight: 600 }}>{r.ticker}</td>
-                    <td style={{ padding: '7px 10px', fontSize: '.82rem', color: TEXT, whiteSpace: 'nowrap' }}>{r.name}</td>
+                {sorted.map((r, i) => {
+                  const rowBg = i % 2 === 0 ? '#fff' : '#FAFAF9';
+                  return (
+                  <tr key={r.ticker} style={{ background: rowBg, borderBottom: `1px solid ${BORDER}` }}>
+                    <td style={{ padding: '7px 10px', fontFamily: MONO, fontSize: '.8rem', color: TEXT, fontWeight: 600, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{r.ticker}</td>
+                    <td style={{ padding: '7px 10px', fontSize: '.82rem', color: TEXT, whiteSpace: 'nowrap', position: 'sticky', left: 76, zIndex: 1, background: rowBg }}>{r.name}</td>
                     <td style={{ padding: '7px 10px', textAlign: 'center', fontFamily: MONO, fontSize: '.76rem', color: incompleteInfo.set.has(r.ticker) ? '#92620A' : SUB, whiteSpace: 'nowrap' }}>
                       {incompleteInfo.set.has(r.ticker) ? '⚠ ' : ''}{mmdd(r.firstDate)}
                     </td>
@@ -190,7 +192,8 @@ export default function TurnoverTab() {
                     <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: TEXT }}>{num(r.sellValueE)}</td>
                     <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: SUB }}>{r.nSnapshots}</td>
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
             </table>
           </div>

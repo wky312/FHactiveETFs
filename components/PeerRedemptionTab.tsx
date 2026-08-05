@@ -157,6 +157,12 @@ function subColor(v: number | null) {
   if (v === null || v === 0) return SUB;
   return v > 0 ? RED : GREEN;
 }
+function fmtAumDiff(v: number | null) {
+  if (v === null) return '—';
+  const abs = Math.abs(v);
+  const unit = abs >= 10000 ? `${(abs / 10000).toFixed(2)} 兆` : `${abs.toFixed(2)} 億`;
+  return v > 0 ? `+${unit}` : v < 0 ? `−${unit}` : '0 億';
+}
 
 // Unified row type
 interface DayRow {
@@ -382,6 +388,29 @@ export default function PeerRedemptionTab() {
     });
   }, [rows, aumSortKey, aumSortAsc]);
 
+  // 區間合計（不受目前排序影響，永遠依實際資料計算）：每檔淨申贖加總。
+  const subsTotal = useMemo(() => {
+    const out: Record<string, number | null> = {};
+    for (const t of allTickers) {
+      const vals = (rows ?? []).map(r => r.data[t]?.netSub).filter((v): v is number => v != null);
+      out[t] = vals.length ? vals.reduce((a, b) => a + b, 0) : null;
+    }
+    return out;
+  }, [rows, allTickers]);
+
+  // 區間規模變化：區間內最新一筆有資料的規模 − 最早一筆有資料的規模。
+  const aumChange = useMemo(() => {
+    const out: Record<string, number | null> = {};
+    for (const t of allTickers) {
+      const withData = (rows ?? [])
+        .filter(r => r.data[t]?.aum != null)
+        .map(r => ({ date: r.date, aum: r.data[t]!.aum }))
+        .sort((a, b) => a.date.localeCompare(b.date));
+      out[t] = withData.length >= 2 ? withData[withData.length - 1].aum - withData[0].aum : null;
+    }
+    return out;
+  }, [rows, allTickers]);
+
   return (
     <div style={{ fontFamily: SANS, color: TEXT }}>
 
@@ -480,7 +509,7 @@ export default function PeerRedemptionTab() {
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
               <thead>
                 <tr>
-                  <th onClick={() => toggleSubsSort('date')} style={{ ...TH, textAlign: 'left', minWidth: 100 }}>{subsLabel('date', '日期')}</th>
+                  <th onClick={() => toggleSubsSort('date')} style={{ ...TH, textAlign: 'left', minWidth: 100, position: 'sticky', left: 0, zIndex: 2 }}>{subsLabel('date', '日期')}</th>
                   {allTickers.map(t => (
                     <th key={t} onClick={() => toggleSubsSort(t)} style={{ ...TH, textAlign: 'right', minWidth: 100 }}>
                       {subsSortKey === t ? subsLabel(t, t) : t}<br />
@@ -490,9 +519,11 @@ export default function PeerRedemptionTab() {
                 </tr>
               </thead>
               <tbody>
-                {sortedSubsRows.map((row, ri) => (
-                  <tr key={row.date} style={{ background: ri % 2 === 0 ? '#fff' : '#FAFAF9', borderBottom: `1px solid ${BORDER}` }}>
-                    <td style={{ padding: '7px 12px', fontFamily: MONO, fontSize: '.8rem', color: TEXT }}>{row.date}</td>
+                {sortedSubsRows.map((row, ri) => {
+                  const rowBg = ri % 2 === 0 ? '#fff' : '#FAFAF9';
+                  return (
+                  <tr key={row.date} style={{ background: rowBg, borderBottom: `1px solid ${BORDER}` }}>
+                    <td style={{ padding: '7px 12px', fontFamily: MONO, fontSize: '.8rem', color: TEXT, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{row.date}</td>
                     {allTickers.map(t => {
                       const d = row.data[t];
                       return (
@@ -502,8 +533,22 @@ export default function PeerRedemptionTab() {
                       );
                     })}
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
+              <tfoot>
+                <tr style={{ background: '#F5F3F0', borderTop: `2px solid ${BORDER}` }}>
+                  <td style={{ padding: '7px 12px', fontFamily: MONO, fontSize: '.8rem', fontWeight: 700, color: TEXT, position: 'sticky', left: 0, zIndex: 1, background: '#F5F3F0' }}>區間合計</td>
+                  {allTickers.map(t => {
+                    const sum = subsTotal[t];
+                    return (
+                      <td key={t} style={{ padding: '7px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', fontWeight: 700, color: subColor(sum) }}>
+                        {sum !== null ? fmtSub(sum) : <span style={{ color: '#CCC' }}>—</span>}
+                      </td>
+                    );
+                  })}
+                </tr>
+              </tfoot>
             </table>
           </div>
           </div>
@@ -521,7 +566,7 @@ export default function PeerRedemptionTab() {
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
               <thead>
                 <tr>
-                  <th onClick={() => toggleAumSort('date')} style={{ ...TH, textAlign: 'left', minWidth: 100 }}>{aumLabel('date', '日期')}</th>
+                  <th onClick={() => toggleAumSort('date')} style={{ ...TH, textAlign: 'left', minWidth: 100, position: 'sticky', left: 0, zIndex: 2 }}>{aumLabel('date', '日期')}</th>
                   {allTickers.map(t => (
                     <th key={t} onClick={() => toggleAumSort(t)} style={{ ...TH, textAlign: 'right', minWidth: 100 }}>
                       {aumSortKey === t ? aumLabel(t, t) : t}<br />
@@ -531,9 +576,11 @@ export default function PeerRedemptionTab() {
                 </tr>
               </thead>
               <tbody>
-                {sortedAumRows.map((row, ri) => (
-                  <tr key={row.date} style={{ background: ri % 2 === 0 ? '#fff' : '#FAFAF9', borderBottom: `1px solid ${BORDER}` }}>
-                    <td style={{ padding: '7px 12px', fontFamily: MONO, fontSize: '.8rem', color: TEXT }}>{row.date}</td>
+                {sortedAumRows.map((row, ri) => {
+                  const rowBg = ri % 2 === 0 ? '#fff' : '#FAFAF9';
+                  return (
+                  <tr key={row.date} style={{ background: rowBg, borderBottom: `1px solid ${BORDER}` }}>
+                    <td style={{ padding: '7px 12px', fontFamily: MONO, fontSize: '.8rem', color: TEXT, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{row.date}</td>
                     {allTickers.map(t => {
                       const d = row.data[t];
                       return (
@@ -543,8 +590,22 @@ export default function PeerRedemptionTab() {
                       );
                     })}
                   </tr>
-                ))}
+                  );
+                })}
               </tbody>
+              <tfoot>
+                <tr style={{ background: '#F5F3F0', borderTop: `2px solid ${BORDER}` }}>
+                  <td style={{ padding: '7px 12px', fontFamily: MONO, fontSize: '.8rem', fontWeight: 700, color: TEXT, position: 'sticky', left: 0, zIndex: 1, background: '#F5F3F0' }}>區間規模變化</td>
+                  {allTickers.map(t => {
+                    const diff = aumChange[t];
+                    return (
+                      <td key={t} style={{ padding: '7px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', fontWeight: 700, color: subColor(diff) }}>
+                        {diff !== null ? fmtAumDiff(diff) : <span style={{ color: '#CCC' }}>—</span>}
+                      </td>
+                    );
+                  })}
+                </tr>
+              </tfoot>
             </table>
           </div>
           </div>

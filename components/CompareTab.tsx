@@ -238,8 +238,8 @@ export default function CompareTab({ baseDate, cmpDate, baseHoldings, cmpHolding
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 980 }}>
           <thead>
             <tr>
-              <th onClick={() => toggleSort('stockid')}     style={{ ...TH, textAlign: 'center', width: 78 }}>{thLabel('stockid', '代碼')}</th>
-              <th onClick={() => toggleSort('stockname')}   style={{ ...TH, textAlign: 'left',   minWidth: 150 }}>{thLabel('stockname', '名稱')}</th>
+              <th onClick={() => toggleSort('stockid')}     style={{ ...TH, textAlign: 'center', width: 78, position: 'sticky', left: 0, zIndex: 2 }}>{thLabel('stockid', '代碼')}</th>
+              <th onClick={() => toggleSort('stockname')}   style={{ ...TH, textAlign: 'left',   minWidth: 150, position: 'sticky', left: 78, zIndex: 2 }}>{thLabel('stockname', '名稱')}</th>
               <th onClick={() => toggleSort('country')}     style={{ ...TH, textAlign: 'center', width: 80 }}>{thLabel('country', '國家')}</th>
               <th onClick={() => toggleSort('prev_q')}      style={{ ...TH, textAlign: 'right',  width: 110 }}>{thLabel('prev_q', `持股 (${cs})`)}</th>
               <th onClick={() => toggleSort('curr_q')}      style={{ ...TH, textAlign: 'right',  width: 110 }}>{thLabel('curr_q', `持股 (${bs})`)}</th>
@@ -254,10 +254,10 @@ export default function CompareTab({ baseDate, cmpDate, baseHoldings, cmpHolding
           <tbody>
             {rows.map((r, i) => (
               <tr key={`${r.stockid}-${i}`} style={{ background: ROW_BG[r.status], borderBottom: `1px solid ${BORDER}` }}>
-                <td style={{ padding: '8px 10px', textAlign: 'center', fontFamily: MONO, fontSize: '.78rem', color: SUB }}>
+                <td style={{ padding: '8px 10px', textAlign: 'center', fontFamily: MONO, fontSize: '.78rem', color: SUB, position: 'sticky', left: 0, zIndex: 1, background: ROW_BG[r.status] }}>
                   {r.stockid || '—'}
                 </td>
-                <td style={{ padding: '8px 10px', fontSize: '.85rem', color: TEXT, maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                <td style={{ padding: '8px 10px', fontSize: '.85rem', color: TEXT, maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', position: 'sticky', left: 78, zIndex: 1, background: ROW_BG[r.status] }}>
                   {r.stockname}
                 </td>
                 <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: '.78rem', color: SUB }}>

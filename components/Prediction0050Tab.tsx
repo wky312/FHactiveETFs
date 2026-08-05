@@ -103,20 +103,22 @@ function FullTable({ rows }: { rows: RankedStock[] }) {
       <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 500 }}>
         <thead>
           <tr>
-            <th style={{ ...TH, textAlign: 'center', width: 50 }}>排名</th>
-            <th style={{ ...TH, textAlign: 'center', width: 60 }}>代碼</th>
-            <th style={{ ...TH, textAlign: 'left' }}>名稱</th>
+            <th style={{ ...TH, textAlign: 'center', width: 50, position: 'sticky', left: 0, zIndex: 2 }}>排名</th>
+            <th style={{ ...TH, textAlign: 'center', width: 60, position: 'sticky', left: 50, zIndex: 2 }}>代碼</th>
+            <th style={{ ...TH, textAlign: 'left', position: 'sticky', left: 110, zIndex: 2 }}>名稱</th>
             <th style={{ ...TH, textAlign: 'right' }}>市值</th>
             <th style={{ ...TH, textAlign: 'right' }}>現價</th>
             <th style={{ ...TH, textAlign: 'center' }}>成分股</th>
           </tr>
         </thead>
         <tbody>
-          {rows.map((r, i) => (
-            <tr key={r.stockid} style={{ background: i % 2 === 0 ? '#fff' : '#FAFAF9', borderBottom: `1px solid ${BORDER}` }}>
-              <td style={{ padding: '6px 10px', textAlign: 'center', fontFamily: MONO, fontSize: '.78rem', color: r.rank <= 50 ? TEXT : SUB, fontWeight: r.rank <= 50 ? 600 : 400 }}>{r.rank}</td>
-              <td style={{ padding: '6px 10px', textAlign: 'center', fontFamily: MONO, fontSize: '.8rem', color: TEXT }}>{r.stockid}</td>
-              <td style={{ padding: '6px 10px', fontSize: '.82rem', color: TEXT, maxWidth: 160, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{r.name}</td>
+          {rows.map((r, i) => {
+            const rowBg = i % 2 === 0 ? '#fff' : '#FAFAF9';
+            return (
+            <tr key={r.stockid} style={{ background: rowBg, borderBottom: `1px solid ${BORDER}` }}>
+              <td style={{ padding: '6px 10px', textAlign: 'center', fontFamily: MONO, fontSize: '.78rem', color: r.rank <= 50 ? TEXT : SUB, fontWeight: r.rank <= 50 ? 600 : 400, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{r.rank}</td>
+              <td style={{ padding: '6px 10px', textAlign: 'center', fontFamily: MONO, fontSize: '.8rem', color: TEXT, position: 'sticky', left: 50, zIndex: 1, background: rowBg }}>{r.stockid}</td>
+              <td style={{ padding: '6px 10px', fontSize: '.82rem', color: TEXT, maxWidth: 160, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', position: 'sticky', left: 110, zIndex: 1, background: rowBg }}>{r.name}</td>
               <td style={{ padding: '6px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.78rem', color: SUB }}>{fmtCap(r.marketCap)}</td>
               <td style={{ padding: '6px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.78rem', color: SUB }}>{r.price !== null ? r.price.toFixed(2) : '—'}</td>
               <td style={{ padding: '6px 10px', textAlign: 'center' }}>
@@ -125,7 +127,8 @@ function FullTable({ rows }: { rows: RankedStock[] }) {
                   : <span style={{ fontSize: '.7rem', color: BORDER }}>—</span>}
               </td>
             </tr>
-          ))}
+            );
+          })}
         </tbody>
       </table>
     </div>
