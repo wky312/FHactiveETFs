@@ -1,0 +1,285 @@
+{
+  "date": "2026-08-05",
+  "scanned_at": "2026-08-05T16:39:06+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": "0050"
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "tw_active"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "stale",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R3-6223-20260730-t30",
+      "rule": "R3",
+      "score": 60.21,
+      "selected": true,
+      "fact": "7/30 加碼的 旺矽科技 至今 +30.1%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 7/30 加碼旺矽科技，至今上漲 30.1%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "6223",
+        "event_date": "2026-07-30",
+        "direction": "add",
+        "qty_change_pct": 13.3,
+        "weight_pct": 4.949,
+        "return_since_pct": 30.1,
+        "tier": 30
+      }
+    },
+    {
+      "id": "R1-2330-2026-08-05",
+      "rule": "R1",
+      "score": 53.29,
+      "selected": true,
+      "fact": "台灣積體今日 +3.66%，00991A 持股 14.56%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "台灣積體大漲 3.66%，00991A 以 14.56% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "2330",
+        "pct_change": 3.66,
+        "weight_pct": 14.56,
+        "is_heaviest_among_universe": false,
+        "universe_size": 19
+      }
+    },
+    {
+      "id": "R3-2345-20260730-t15",
+      "rule": "R3",
+      "score": 46.51,
+      "selected": true,
+      "fact": "7/30 加碼的 智邦科技 至今 +23.3%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 7/30 加碼智邦科技，至今上漲 23.3%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "2345",
+        "event_date": "2026-07-30",
+        "direction": "add",
+        "qty_change_pct": 13.3,
+        "weight_pct": 4.988,
+        "return_since_pct": 23.26,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-5274-20260730-t15",
+      "rule": "R3",
+      "score": 42.64,
+      "selected": true,
+      "fact": "7/30 加碼的 信驊科技 至今 +21.3%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 7/30 加碼信驊科技，至今上漲 21.3%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "5274",
+        "event_date": "2026-07-30",
+        "direction": "add",
+        "qty_change_pct": 18.6,
+        "weight_pct": 1.912,
+        "return_since_pct": 21.32,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-3017-20260731-t15",
+      "rule": "R3",
+      "score": 35.34,
+      "selected": true,
+      "fact": "7/31 加碼的 奇鋐科技 至今 +17.7%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 7/31 加碼奇鋐科技，至今上漲 17.7%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "3017",
+        "event_date": "2026-07-31",
+        "direction": "add",
+        "qty_change_pct": 11.1,
+        "weight_pct": 2.88,
+        "return_since_pct": 17.67,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-3653-20260803-t15",
+      "rule": "R3",
+      "score": 30.24,
+      "selected": false,
+      "fact": "8/3 加碼的 健策精密 至今 +15.1%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 8/3 加碼健策精密，至今上漲 15.1%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "3653",
+        "event_date": "2026-08-03",
+        "direction": "add",
+        "qty_change_pct": 30.0,
+        "weight_pct": 0.54,
+        "return_since_pct": 15.12,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-6669-20260731-t8",
+      "rule": "R3",
+      "score": 29.13,
+      "selected": false,
+      "fact": "7/31 加碼的 緯穎科技 至今 +14.6%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 7/31 加碼緯穎科技，至今上漲 14.6%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "6669",
+        "event_date": "2026-07-31",
+        "direction": "add",
+        "qty_change_pct": 15.6,
+        "weight_pct": 3.344,
+        "return_since_pct": 14.56,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R1-6223-2026-08-05",
+      "rule": "R1",
+      "score": 28.9,
+      "selected": false,
+      "fact": "旺矽科技今日 +5.85%，00991A 持股 4.94%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "旺矽科技大漲 5.85%，00991A 以 4.94% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "6223",
+        "pct_change": 5.85,
+        "weight_pct": 4.94,
+        "is_heaviest_among_universe": false,
+        "universe_size": 19
+      }
+    },
+    {
+      "id": "R1-3037-2026-08-05",
+      "rule": "R1",
+      "score": 26.15,
+      "selected": false,
+      "fact": "欣興電子今日 +4.87%，00991A 持股 5.37%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "欣興電子大漲 4.87%，00991A 以 5.37% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "3037",
+        "pct_change": 4.87,
+        "weight_pct": 5.37,
+        "is_heaviest_among_universe": false,
+        "universe_size": 19
+      }
+    },
+    {
+      "id": "R3-3665-20260722-t8",
+      "rule": "R3",
+      "score": 22.7,
+      "selected": false,
+      "fact": "7/22 加碼的 貿聯-KY 至今 +11.3%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 7/22 加碼貿聯-KY，至今上漲 11.3%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "3665",
+        "event_date": "2026-07-22",
+        "direction": "add",
+        "qty_change_pct": 21.7,
+        "weight_pct": 1.52,
+        "return_since_pct": 11.35,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-2408-20260721-t8",
+      "rule": "R3",
+      "score": 19.75,
+      "selected": false,
+      "fact": "7/21 加碼的 南亞科技 至今 +9.9%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 7/21 加碼南亞科技，至今上漲 9.9%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "2408",
+        "event_date": "2026-07-21",
+        "direction": "add",
+        "qty_change_pct": 18.8,
+        "weight_pct": 6.5,
+        "return_since_pct": 9.88,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R1-2454-2026-08-05",
+      "rule": "R1",
+      "score": 18.04,
+      "selected": false,
+      "fact": "聯發科技今日 +3.49%，00991A 持股 5.17%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "聯發科技大漲 3.49%，00991A 以 5.17% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "2454",
+        "pct_change": 3.49,
+        "weight_pct": 5.17,
+        "is_heaviest_among_universe": false,
+        "universe_size": 19
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 502,
+    "line_status": 200,
+    "candidate_count": 12,
+    "selected_count": 5
+  }
+}
