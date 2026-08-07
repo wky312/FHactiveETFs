@@ -1,0 +1,129 @@
+{
+  "date": "2026-08-07",
+  "scanned_at": "2026-08-07T15:18:41+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": "0050"
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "tw_active"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "stale",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R1-2059-2026-08-07",
+      "rule": "R1",
+      "score": 56.5,
+      "selected": true,
+      "fact": "川湖科技今日 +10.0%，00991A 持股 5.65%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "川湖科技大漲 10.0%，00991A 以 5.65% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "2059",
+        "pct_change": 10.0,
+        "weight_pct": 5.65,
+        "is_heaviest_among_universe": false,
+        "universe_size": 19
+      }
+    },
+    {
+      "id": "R3-2408-20260721-t8",
+      "rule": "R3",
+      "score": 25.68,
+      "selected": true,
+      "fact": "7/21 加碼的 南亞科技 至今 +12.8%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 7/21 加碼南亞科技，至今上漲 12.8%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "2408",
+        "event_date": "2026-07-21",
+        "direction": "add",
+        "qty_change_pct": 18.8,
+        "weight_pct": 6.5,
+        "return_since_pct": 12.84,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-3017-20260803-t8",
+      "rule": "R3",
+      "score": 18.43,
+      "selected": true,
+      "fact": "8/3 加碼的 奇鋐科技 至今 +9.2%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 8/3 加碼奇鋐科技，至今上漲 9.2%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "3017",
+        "event_date": "2026-08-03",
+        "direction": "add",
+        "qty_change_pct": 10.0,
+        "weight_pct": 3.093,
+        "return_since_pct": 9.22,
+        "tier": 8
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 322,
+    "line_status": 200,
+    "candidate_count": 3,
+    "selected_count": 3
+  }
+}
