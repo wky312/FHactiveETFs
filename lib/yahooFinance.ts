@@ -17,6 +17,12 @@ export interface StockPerformance {
   m3: number | null;
   ytd: number | null;
   pctCustom: number | null;
+  priorHigh: number | null;       // 比較基準日（預設今年1/1，可由 highSince 覆寫）「以前」的最高價（前高）
+  priorHighDate: string | null;   // 前高日期 YYYY-MM-DD
+  postHigh: number | null;        // 比較基準日「以後」至今的最高價
+  postHighDate: string | null;    // 創高日期 YYYY-MM-DD（postHigh 對應日期）
+  isNewHigh: boolean;             // 是否突破：postHigh 是否高於 priorHigh
+  distFromHighPct: number | null; // 現價距「應比較的高點」百分比（已突破比 postHigh、未突破比 priorHigh；0＝正好在高點）
 }
 
 function dn(d: Date): number {
@@ -136,13 +142,14 @@ export async function fetchStockPerformance(
   fallbackTicker?: string,
   customStart?: Date,
   customEnd?: Date,
+  highSince?: Date, // 「前高 vs 突破後新高」比較基準日；不帶時沿用 ytdTarget（今年1/1）
 ): Promise<StockPerformance> {
   try {
     const today   = new Date();
     const baseFrom = new Date(today.getFullYear() - 1, 0, 1);
-    const from    = customStart && customStart < baseFrom
-      ? new Date(customStart.getTime() - 7 * 86400 * 1000)
-      : baseFrom;
+    let from = baseFrom;
+    if (customStart && customStart < from) from = new Date(customStart.getTime() - 7 * 86400 * 1000);
+    if (highSince && highSince < from)     from = new Date(highSince.getTime() - 7 * 86400 * 1000);
 
     // Fetch quote and chart in parallel; quote is more reliable for today's price
     let [quote, data] = await Promise.all([
@@ -191,6 +198,34 @@ export async function fetchStockPerformance(
       pctCustom = pct(adj(endRow), adj(startRow));
     }
 
+    // 前高（比較基準日以前）／創新高（比較基準日以後）：分別在 sorted 中找 adj() 最大值與對應日期。
+    const highBoundary = highSince ?? ytdTarget;
+    let priorHigh: number | null = null;
+    let priorHighDate: string | null = null;
+    let postHigh: number | null = null;
+    let postHighDate: string | null = null;
+    for (const row of sorted as any[]) {
+      const v = adj(row);
+      if (v == null) continue;
+      if (dn(row.date) <= dn(highBoundary)) {
+        if (priorHigh == null || v > priorHigh) {
+          priorHigh = v;
+          priorHighDate = new Date(row.date).toISOString().slice(0, 10);
+        }
+      } else {
+        if (postHigh == null || v > postHigh) {
+          postHigh = v;
+          postHighDate = new Date(row.date).toISOString().slice(0, 10);
+        }
+      }
+    }
+    // 突破＝比較基準日以後的最高價，高於比較基準日以前的前高（沒有前高可比時，只要有 postHigh 就算突破）
+    const isNewHigh = postHigh != null && (priorHigh == null || postHigh > priorHigh + 1e-6);
+    const referenceHigh = isNewHigh ? postHigh : priorHigh;
+    const distFromHighPct = curPrice != null && referenceHigh != null && referenceHigh > 0
+      ? Math.abs(pct(curPrice ?? undefined, referenceHigh ?? undefined) as number)
+      : null;
+
     return {
       stockid,
       stockname,
@@ -205,6 +240,12 @@ export async function fetchStockPerformance(
       m3:    pct(adj(sorted[0]), adj(sorted.find((d: any) => dn(d.date) <= dn(m3Target)))),
       ytd:   pct(adj(sorted[0]), adj(sorted.find((d: any) => dn(d.date) <= dn(ytdTarget)))),
       pctCustom,
+      priorHigh,
+      priorHighDate,
+      postHigh,
+      postHighDate,
+      isNewHigh,
+      distFromHighPct,
     };
   } catch {
     return {
@@ -212,6 +253,8 @@ export async function fetchStockPerformance(
       currentPrice: null, priceAsOf: null,
       today: null, d3: null, d5: null, m1: null, m3: null, ytd: null,
       pctCustom: null,
+      priorHigh: null, priorHighDate: null, postHigh: null, postHighDate: null,
+      isNewHigh: false, distFromHighPct: null,
     };
   }
 }

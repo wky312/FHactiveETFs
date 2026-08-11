@@ -407,7 +407,7 @@ export default function Dashboard() {
             </div>
             <ErrorMsg msg={holdError} onReset={() => { setHoldError(''); setHoldData(null); }} />
             {holdData
-              ? <HoldingsTab holdings={holdData.holdings} date={holdData.date} etfTicker={selectedEtf.ticker} />
+              ? <HoldingsTab holdings={holdData.holdings} date={holdData.date} etfTicker={selectedEtf.ticker} fundId={selectedEtf.fundId} />
               : !holdLoading && <EmptyHint text="請選擇日期並點擊「載入」" />
             }
           </Card>
