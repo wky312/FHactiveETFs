@@ -241,12 +241,13 @@ function NewHighPanel({ date, fundId }: { date: string; fundId: string }) {
       </div>
 
       <div style={{ overflowX: 'auto', borderRadius: 8, border: `1px solid ${BORDER}` }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1080 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1160 }}>
           <thead>
             <tr>
               <th style={{ ...TH, textAlign: 'center', width: 88, cursor: 'default' }}>代碼</th>
               <th style={{ ...TH, textAlign: 'left', cursor: 'default' }}>名稱</th>
               <th style={{ ...TH, textAlign: 'right', cursor: 'default' }}>持股佔比</th>
+              <th style={{ ...TH, textAlign: 'right', cursor: 'default' }}>現價</th>
               <th style={{ ...TH, textAlign: 'right', cursor: 'default' }}>YTD 還原權息</th>
               <th style={{ ...TH, textAlign: 'center', cursor: 'default' }}>目前狀態</th>
               <th style={{ ...TH, textAlign: 'right', cursor: 'default' }}>距高點</th>
@@ -262,6 +263,7 @@ function NewHighPanel({ date, fundId }: { date: string; fundId: string }) {
                 <td style={{ padding: '9px 14px', textAlign: 'center', fontSize: '.82rem', fontFamily: MONO, color: SUB }}>{r.stockid}</td>
                 <td style={{ padding: '9px 14px', fontSize: '.88rem', color: TEXT }}>{r.stockname}</td>
                 <td style={{ padding: '9px 14px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', color: SUB }}>{r.prate.toFixed(2)}%</td>
+                <td style={{ padding: '9px 14px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', color: TEXT }}>{fmtPrice(r.currentPrice)}</td>
                 <td style={{ padding: '9px 14px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', fontWeight: 600, color: plColor(r.ytd) }}>{fmtPct(r.ytd)}</td>
                 <td style={{ padding: '9px 14px', textAlign: 'center' }}>
                   {r.isNewHigh
@@ -298,7 +300,7 @@ function NewHighPanel({ date, fundId }: { date: string; fundId: string }) {
               </tr>
             ))}
             {filtered.length === 0 && (
-              <tr><td colSpan={10} style={{ padding: '24px', textAlign: 'center', color: SUB, fontFamily: SANS, fontSize: '.85rem' }}>
+              <tr><td colSpan={11} style={{ padding: '24px', textAlign: 'center', color: SUB, fontFamily: SANS, fontSize: '.85rem' }}>
                 無符合篩選條件的持股
               </td></tr>
             )}
@@ -306,7 +308,7 @@ function NewHighPanel({ date, fundId }: { date: string; fundId: string }) {
         </table>
       </div>
       <div style={{ marginTop: 10, fontSize: '.74rem', color: SUB, fontFamily: SANS }}>
-YTD 還原權息固定以去年 12/31 為基準；「前高」「創新高」則以上方「高點比較基準」日期切分前後兩段各自找最高價。三者皆採 Yahoo Finance 還原收盤價（adjClose），避免除息造成的價格跳空被誤判。
+「現價」台股盤中（09:00–13:30）為前一交易日收盤價，收盤後約 1–2 小時更新為當日收盤價。YTD 還原權息固定以去年 12/31 為基準；「前高」「創新高」則以上方「高點比較基準」日期切分前後兩段各自找最高價。皆採 Yahoo Finance 還原收盤價（adjClose），避免除息造成的價格跳空被誤判。
       </div>
     </>
   );
