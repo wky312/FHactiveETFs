@@ -21,6 +21,7 @@ import TurnoverTab from './TurnoverTab';
 import ConsensusTab from './ConsensusTab';
 import SectorExposureTab from './SectorExposureTab';
 import UnitWatchTab from './UnitWatchTab';
+import MarketCapRankingTab from './MarketCapRankingTab';
 import { captureAndShare } from '@/lib/captureImage';
 
 /* ── Design tokens ── */
@@ -35,7 +36,7 @@ const BORDER = '#E8E3DF';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'attribution' | 'risk' | 'turnover' | 'consensus' | 'sector' | 'unitwatch';
+type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'attribution' | 'risk' | 'turnover' | 'consensus' | 'sector' | 'unitwatch' | 'mktcap150';
 
 /* 頂部導覽分組（13 個分頁收進 4 個下拉選單；不改各分頁邏輯，只改呈現） */
 const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
@@ -67,6 +68,7 @@ const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
   ] },
   { label: '其他', items: [
     { id: 'unitwatch', label: '單位數注意商品' },
+    { id: 'mktcap150', label: '市值前150大漲跌排行' },
   ] },
 ];
 
@@ -600,6 +602,12 @@ export default function Dashboard() {
         {activeTab === 'unitwatch' && (
           <Card title="單位數注意商品">
             <UnitWatchTab />
+          </Card>
+        )}
+
+        {activeTab === 'mktcap150' && (
+          <Card title="市值前150大漲跌排行">
+            <MarketCapRankingTab />
           </Card>
         )}
       </main>
