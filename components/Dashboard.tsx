@@ -22,6 +22,7 @@ import ConsensusTab from './ConsensusTab';
 import SectorExposureTab from './SectorExposureTab';
 import UnitWatchTab from './UnitWatchTab';
 import MarketCapRankingTab from './MarketCapRankingTab';
+import NewHighTab from './NewHighTab';
 import { captureAndShare } from '@/lib/captureImage';
 
 /* ── Design tokens ── */
@@ -36,7 +37,7 @@ const BORDER = '#E8E3DF';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'attribution' | 'risk' | 'turnover' | 'consensus' | 'sector' | 'unitwatch' | 'mktcap150';
+type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'attribution' | 'risk' | 'turnover' | 'consensus' | 'sector' | 'unitwatch' | 'mktcap150' | 'newhigh150';
 
 /* 頂部導覽分組（13 個分頁收進 4 個下拉選單；不改各分頁邏輯，只改呈現） */
 const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
@@ -69,6 +70,7 @@ const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
   { label: '其他', items: [
     { id: 'unitwatch', label: '單位數注意商品' },
     { id: 'mktcap150', label: '市值前150大漲跌排行' },
+    { id: 'newhigh150', label: '創新高強勢股' },
   ] },
 ];
 
@@ -246,6 +248,7 @@ export default function Dashboard() {
   const compareRef    = useRef<HTMLDivElement>(null);
   const countryRef    = useRef<HTMLDivElement>(null);
   const performanceRef = useRef<HTMLDivElement>(null);
+  const newHighRef    = useRef<HTMLDivElement>(null);
 
   const fetchData = useCallback(async (dateStr: string, fundId: string): Promise<LoadedData> => {
     const res  = await fetch(`/api/holdings?date=${encodeURIComponent(toApiDate(dateStr))}&fundId=${encodeURIComponent(fundId)}`);
@@ -608,6 +611,15 @@ export default function Dashboard() {
         {activeTab === 'mktcap150' && (
           <Card title="市值前150大漲跌排行">
             <MarketCapRankingTab />
+          </Card>
+        )}
+
+        {activeTab === 'newhigh150' && (
+          <Card
+            ref={newHighRef} title="創新高強勢股"
+            onSave={() => saveImage(newHighRef, `00991A_創新高強勢股_${localStr(new Date())}.png`)}
+          >
+            <NewHighTab />
           </Card>
         )}
       </main>
