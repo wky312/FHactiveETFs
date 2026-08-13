@@ -111,7 +111,7 @@ export default function Top300YtdTab() {
 
   const exportExcel = () => {
     if (!data) return;
-    const headers = ['基準排名(12/31)', '代號', '名稱', '市場', 'Tier', '12/31還原價', '現在還原價', '今年漲幅%(還原權息)', '目前市值(億)', '最新排名', '排名前進'];
+    const headers = ['基準排名(12/31)', '代號', '名稱', '市場', 'Tier', '12/31還原價', `${data.latestDate}還原收盤價`, '今年漲幅%(還原權息)', '目前市值(億)', '最新排名', '排名前進'];
     const body = rows.map(r => [
       r.rankBase, r.code, r.name, r.market, r.rankBase <= 150 ? 1 : 2,
       Number(r.adjBasePrice.toFixed(2)), Number(r.adjLatestPrice.toFixed(2)), Number(r.pct.toFixed(2)),
@@ -133,7 +133,7 @@ export default function Top300YtdTab() {
     <div style={{ fontFamily: SANS, color: TEXT }}>
       {loading && !data && (
         <p style={{ color: SUB, textAlign: 'center', padding: '40px 0', fontSize: '.9rem' }}>
-          抓取300檔還原權息報酬與市值排名中，約需 30–90 秒，請耐心等候…
+          抓取300檔還原權息報酬與市值排名中，若為今天第一次查詢約需20–30秒；同一天內之後再查會用快取秒開，請耐心等候…
         </p>
       )}
       {error && (
@@ -142,8 +142,15 @@ export default function Top300YtdTab() {
 
       {data && (
         <>
-          <div style={{ fontSize: '.78rem', color: SUB, margin: '0 0 12px' }}>
-            基準：<b style={{ color: TEXT }}>{data.baseDate}</b> 收盤市值排名 → 追蹤到 <b style={{ color: TEXT }}>{data.latestDate}</b> 收盤。股價與漲幅皆採<b style={{ color: TEXT }}>還原權息</b>（Yahoo Finance adjClose，去年12/31為基準，跟「創新高強勢股」「個股與績效」分頁同一套口徑）；市值/排名仍用原始成交價計算。
+          <div style={{
+            display: 'flex', gap: 18, flexWrap: 'wrap', alignItems: 'center', marginBottom: 16,
+            padding: '9px 14px', background: '#FAFAF9', border: `1px solid ${BORDER}`, borderRadius: 8,
+            fontSize: '.78rem', color: SUB, fontFamily: SANS,
+          }}>
+            <span>基準日期：<b style={{ color: TEXT, fontFamily: MONO }}>{data.baseDate}</b></span>
+            <span>資料日期：<b style={{ color: TEXT, fontFamily: MONO }}>{data.latestDate}</b>（最新收盤，非即時報價）</span>
+            <span style={{ color: '#B0AAA4' }}>｜</span>
+            <span>股價與漲幅皆採<b style={{ color: TEXT }}>還原權息</b>（Yahoo Finance adjClose，釘死在這兩個已收盤日期，跟「創新高強勢股」「個股與績效」分頁同一套口徑）；市值/排名仍用原始成交價計算。</span>
           </div>
 
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', marginBottom: 16 }}>
@@ -187,7 +194,7 @@ export default function Top300YtdTab() {
                   <th style={{ ...TH, textAlign: 'center', cursor: 'default' }}>市場</th>
                   <th style={{ ...TH, textAlign: 'center', cursor: 'default' }}>Tier</th>
                   {colHead('closeBase', '12/31還原價')}
-                  {colHead('adjLatestPrice', '現在還原價')}
+                  {colHead('adjLatestPrice', '最新收盤還原價')}
                   {colHead('pct', '今年漲幅')}
                   {colHead('mktcapLatest', '目前市值(億)')}
                   {colHead('rankLatest', '最新排名')}

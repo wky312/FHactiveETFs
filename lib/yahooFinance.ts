@@ -18,6 +18,8 @@ export interface StockPerformance {
   ytd: number | null;
   ytdBasePrice: number | null; // 去年12/31還原權息收盤價（ytd 的分母，供需要顯示還原價的頁面用）
   pctCustom: number | null;
+  customStartPrice: number | null; // customStart 當天還原權息收盤價（穩定值，非即時報價；customStart/customEnd 都帶時才有）
+  customEndPrice: number | null;   // customEnd 當天還原權息收盤價
   priorHigh: number | null;       // 比較基準日（預設今年1/1，可由 highSince 覆寫）「以前」的最高價（前高）
   priorHighDate: string | null;   // 前高日期 YYYY-MM-DD
   postHigh: number | null;        // 比較基準日「以後」至今的最高價
@@ -190,12 +192,16 @@ export async function fetchStockPerformance(
       ?? (marketClosedToday ? sorted[1]?.close : sorted[0]?.close);
 
     let pctCustom: number | null = null;
+    let customStartPrice: number | null = null;
+    let customEndPrice: number | null = null;
     if (customStart && customEnd) {
       const startDn = dn(customStart);
       const endDn   = dn(customEnd);
       // sorted is descending; find last row <= target date
       const startRow = sorted.find((d: any) => dn(d.date) <= startDn);
       const endRow   = sorted.find((d: any) => dn(d.date) <= endDn);
+      customStartPrice = adj(startRow) ?? null;
+      customEndPrice   = adj(endRow) ?? null;
       pctCustom = pct(adj(endRow), adj(startRow));
     }
 
@@ -242,6 +248,8 @@ export async function fetchStockPerformance(
       ytd:   pct(adj(sorted[0]), adj(sorted.find((d: any) => dn(d.date) <= dn(ytdTarget)))),
       ytdBasePrice: adj(sorted.find((d: any) => dn(d.date) <= dn(ytdTarget))) ?? null,
       pctCustom,
+      customStartPrice,
+      customEndPrice,
       priorHigh,
       priorHighDate,
       postHigh,
@@ -254,7 +262,7 @@ export async function fetchStockPerformance(
       stockid, stockname, prate, ticker: yfTicker,
       currentPrice: null, priceAsOf: null,
       today: null, d3: null, d5: null, m1: null, m3: null, ytd: null, ytdBasePrice: null,
-      pctCustom: null,
+      pctCustom: null, customStartPrice: null, customEndPrice: null,
       priorHigh: null, priorHighDate: null, postHigh: null, postHighDate: null,
       isNewHigh: false, distFromHighPct: null,
     };
