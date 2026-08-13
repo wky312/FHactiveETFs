@@ -16,6 +16,7 @@ export interface StockPerformance {
   m1: number | null;
   m3: number | null;
   ytd: number | null;
+  ytdBasePrice: number | null; // 去年12/31還原權息收盤價（ytd 的分母，供需要顯示還原價的頁面用）
   pctCustom: number | null;
   priorHigh: number | null;       // 比較基準日（預設今年1/1，可由 highSince 覆寫）「以前」的最高價（前高）
   priorHighDate: string | null;   // 前高日期 YYYY-MM-DD
@@ -239,6 +240,7 @@ export async function fetchStockPerformance(
       m1:    pct(adj(sorted[0]), adj(sorted.find((d: any) => dn(d.date) <= dn(m1Target)))),
       m3:    pct(adj(sorted[0]), adj(sorted.find((d: any) => dn(d.date) <= dn(m3Target)))),
       ytd:   pct(adj(sorted[0]), adj(sorted.find((d: any) => dn(d.date) <= dn(ytdTarget)))),
+      ytdBasePrice: adj(sorted.find((d: any) => dn(d.date) <= dn(ytdTarget))) ?? null,
       pctCustom,
       priorHigh,
       priorHighDate,
@@ -251,7 +253,7 @@ export async function fetchStockPerformance(
     return {
       stockid, stockname, prate, ticker: yfTicker,
       currentPrice: null, priceAsOf: null,
-      today: null, d3: null, d5: null, m1: null, m3: null, ytd: null,
+      today: null, d3: null, d5: null, m1: null, m3: null, ytd: null, ytdBasePrice: null,
       pctCustom: null,
       priorHigh: null, priorHighDate: null, postHigh: null, postHighDate: null,
       isNewHigh: false, distFromHighPct: null,

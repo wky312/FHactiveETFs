@@ -47,7 +47,7 @@ const TTL_MS = 15 * 60 * 1000;
 interface BaselineFile { date: string; stocks: Record<string, { name: string; market: string; close: number }> }
 let _cache: { ts: number; data: MarketCapRankingResult } | null = null;
 
-function isOrdinary(code: string, name: string): boolean {
+export function isOrdinary(code: string, name: string): boolean {
   if (!/^[1-9]\d{3}$/.test(code)) return false;
   if (name.includes('DR')) return false;
   if (name.endsWith('特')) return false;
@@ -66,7 +66,7 @@ function loadBaseline(): BaselineFile {
   return JSON.parse(fs.readFileSync(BASELINE_PATH, 'utf-8'));
 }
 
-async function fetchTwseLatest(): Promise<{ date: string; prices: Map<string, number> }> {
+export async function fetchTwseLatest(): Promise<{ date: string; prices: Map<string, number> }> {
   const res = await fetch('https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL', {
     signal: AbortSignal.timeout(15000), cache: 'no-store',
   });
@@ -84,7 +84,7 @@ async function fetchTwseLatest(): Promise<{ date: string; prices: Map<string, nu
   return { date, prices };
 }
 
-async function fetchTpexLatest(): Promise<{ date: string; prices: Map<string, number> }> {
+export async function fetchTpexLatest(): Promise<{ date: string; prices: Map<string, number> }> {
   const res = await fetch('https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes', {
     signal: AbortSignal.timeout(15000), cache: 'no-store',
   });
@@ -102,9 +102,9 @@ async function fetchTpexLatest(): Promise<{ date: string; prices: Map<string, nu
   return { date, prices };
 }
 
-interface CompanyInfo { name: string; shares: number; parShares: number | null }
+export interface CompanyInfo { name: string; shares: number; parShares: number | null }
 
-async function fetchTwseShares(): Promise<Map<string, CompanyInfo>> {
+export async function fetchTwseShares(): Promise<Map<string, CompanyInfo>> {
   const res = await fetch('https://openapi.twse.com.tw/v1/opendata/t187ap03_L', {
     signal: AbortSignal.timeout(15000), cache: 'no-store',
   });
@@ -124,7 +124,7 @@ async function fetchTwseShares(): Promise<Map<string, CompanyInfo>> {
   return out;
 }
 
-async function fetchTpexShares(): Promise<Map<string, CompanyInfo>> {
+export async function fetchTpexShares(): Promise<Map<string, CompanyInfo>> {
   const res = await fetch('https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap03_O', {
     signal: AbortSignal.timeout(15000), cache: 'no-store',
   });
@@ -145,7 +145,7 @@ async function fetchTpexShares(): Promise<Map<string, CompanyInfo>> {
 }
 
 // 已發行股數與股本回推值偏離超過 50% → 視為資料源異常，改用回推值
-function sanitizeShares(info: CompanyInfo): number {
+export function sanitizeShares(info: CompanyInfo): number {
   if (info.parShares && info.parShares > 0) {
     const ratio = info.shares / info.parShares;
     if (ratio > 1.5 || ratio < 0.5) return info.parShares;
