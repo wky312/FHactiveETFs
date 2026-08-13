@@ -66,10 +66,25 @@ function loadBaseline(): BaselineFile {
   return JSON.parse(fs.readFileSync(BASELINE_PATH, 'utf-8'));
 }
 
+const sleep = (ms: number) => new Promise(res => setTimeout(res, ms));
+
+// TWSE/TPEX openapi 偶發連線中斷（實測過 ChunkedEncodingError / "terminated"），
+// 重試 2 次再放棄；避免整批 20-30 秒的運算因為單一來源短暫抽風就整個失敗。
+async function fetchWithRetry(url: string, retries = 2): Promise<Response> {
+  let lastErr: unknown;
+  for (let i = 0; i <= retries; i++) {
+    try {
+      return await fetch(url, { signal: AbortSignal.timeout(15000), cache: 'no-store' });
+    } catch (err) {
+      lastErr = err;
+      if (i < retries) await sleep(800 * (i + 1));
+    }
+  }
+  throw lastErr instanceof Error ? lastErr : new Error('fetch failed');
+}
+
 export async function fetchTwseLatest(): Promise<{ date: string; prices: Map<string, number> }> {
-  const res = await fetch('https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL', {
-    signal: AbortSignal.timeout(15000), cache: 'no-store',
-  });
+  const res = await fetchWithRetry('https://openapi.twse.com.tw/v1/exchangeReport/STOCK_DAY_ALL');
   if (!res.ok) throw new Error(`TWSE STOCK_DAY_ALL HTTP ${res.status}`);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data: any[] = await res.json();
@@ -85,9 +100,7 @@ export async function fetchTwseLatest(): Promise<{ date: string; prices: Map<str
 }
 
 export async function fetchTpexLatest(): Promise<{ date: string; prices: Map<string, number> }> {
-  const res = await fetch('https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes', {
-    signal: AbortSignal.timeout(15000), cache: 'no-store',
-  });
+  const res = await fetchWithRetry('https://www.tpex.org.tw/openapi/v1/tpex_mainboard_daily_close_quotes');
   if (!res.ok) throw new Error(`TPEX daily_close_quotes HTTP ${res.status}`);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data: any[] = await res.json();
@@ -105,9 +118,7 @@ export async function fetchTpexLatest(): Promise<{ date: string; prices: Map<str
 export interface CompanyInfo { name: string; shares: number; parShares: number | null }
 
 export async function fetchTwseShares(): Promise<Map<string, CompanyInfo>> {
-  const res = await fetch('https://openapi.twse.com.tw/v1/opendata/t187ap03_L', {
-    signal: AbortSignal.timeout(15000), cache: 'no-store',
-  });
+  const res = await fetchWithRetry('https://openapi.twse.com.tw/v1/opendata/t187ap03_L');
   if (!res.ok) throw new Error(`TWSE t187ap03_L HTTP ${res.status}`);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data: any[] = await res.json();
@@ -125,9 +136,7 @@ export async function fetchTwseShares(): Promise<Map<string, CompanyInfo>> {
 }
 
 export async function fetchTpexShares(): Promise<Map<string, CompanyInfo>> {
-  const res = await fetch('https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap03_O', {
-    signal: AbortSignal.timeout(15000), cache: 'no-store',
-  });
+  const res = await fetchWithRetry('https://www.tpex.org.tw/openapi/v1/mopsfin_t187ap03_O');
   if (!res.ok) throw new Error(`TPEX mopsfin_t187ap03_O HTTP ${res.status}`);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const data: any[] = await res.json();
