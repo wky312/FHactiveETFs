@@ -60,6 +60,7 @@ export interface Top300YtdResult {
   tier1: TierStats; // 排名 1-150
   tier2: TierStats; // 排名 151-300
   rows: Top300Row[];
+  cacheSource?: 'memory' | 'supabase' | 'fresh'; // 診斷用：這次回應是從哪一層拿到的，不影響顯示邏輯
 }
 
 const BASELINE_PATH = path.join(process.cwd(), 'data', 'marketcap_baseline_20251231.json');
@@ -90,20 +91,23 @@ async function readPageCache(cacheKey: string): Promise<Top300YtdResult | null> 
   const db = ownSupabase();
   if (!db) return null;
   try {
-    const { data } = await db.from('page_cache').select('payload').eq('cache_key', cacheKey).maybeSingle();
+    const { data, error } = await db.from('page_cache').select('payload').eq('cache_key', cacheKey).maybeSingle();
+    if (error) { console.error('[top300Ytd] page_cache read failed:', error.message); return null; }
     return (data?.payload as Top300YtdResult) ?? null;
-  } catch {
-    return null; // 表還沒建、或連線失敗都當快取沒命中，照樣重算，不擋主流程
+  } catch (err) {
+    console.error('[top300Ytd] page_cache read threw:', err); // 表還沒建、或連線失敗都當快取沒命中，照樣重算，不擋主流程
+    return null;
   }
 }
 
 async function writePageCache(cacheKey: string, payload: Top300YtdResult): Promise<void> {
   const db = ownSupabase();
-  if (!db) return;
+  if (!db) { console.warn('[top300Ytd] SUPABASE_URL/SUPABASE_SERVICE_KEY 未設定，跳過持久化快取寫入'); return; }
   try {
-    await db.from('page_cache').upsert({ cache_key: cacheKey, payload, updated_at: new Date().toISOString() });
-  } catch {
-    // 寫入失敗不影響本次回應，下次請求會再試一次
+    const { error } = await db.from('page_cache').upsert({ cache_key: cacheKey, payload, updated_at: new Date().toISOString() });
+    if (error) console.error('[top300Ytd] page_cache write failed:', error.message);
+  } catch (err) {
+    console.error('[top300Ytd] page_cache write threw:', err); // 寫入失敗不影響本次回應，下次請求會再試一次
   }
 }
 
@@ -219,18 +223,18 @@ export async function computeTop300Ytd(): Promise<Top300YtdResult> {
 
   // L1：記憶體，同一 instance 內短 TTL 就能秒回，省掉 Supabase 來回
   if (_memCache && _memCache.dateKey === dateKey && Date.now() - _memCache.ts < MEM_TTL_MS) {
-    return _memCache.data;
+    return { ..._memCache.data, cacheSource: 'memory' };
   }
 
   // L2：本專案 Supabase，跨 instance / cold start 共用，當天算過就不用重算
   const cached = await readPageCache(cacheKey);
   if (cached) {
     _memCache = { ts: Date.now(), dateKey, data: cached };
-    return cached;
+    return { ...cached, cacheSource: 'supabase' };
   }
 
   const result = await computeFresh();
   _memCache = { ts: Date.now(), dateKey, data: result };
   await writePageCache(cacheKey, result);
-  return result;
+  return { ...result, cacheSource: 'fresh' };
 }
