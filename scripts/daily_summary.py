@@ -116,6 +116,21 @@ def is_twse_trading_day(d: date):
     return None if days is None else (d in days)
 
 
+def latest_expected_trading_day(anchor: date, max_back: int = 10) -> date | None:
+    """從 anchor（通常是「今天」）往回找最近一個 TWSE 交易日，作為「資料應該多新」的基準。
+    TWSE 行事曆連不到時（is_twse_trading_day 回 None）整體回 None ——
+    呼叫端不可把「無法判斷」當成「資料太舊」誤報。"""
+    d = anchor
+    for _ in range(max_back):
+        trading = is_twse_trading_day(d)
+        if trading is None:
+            return None
+        if trading:
+            return d
+        d -= timedelta(days=1)
+    return None
+
+
 # ── API fetchers ──────────────────────────────────────────────────────────────
 
 def fetch_holdings(date_str: str, fund_id: str):
