@@ -60,6 +60,10 @@ SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_KEY', '')
 def date_to_api(d: date) -> str:
     return d.strftime('%Y/%m/%d')
 
+def api_to_date(s: str) -> date:
+    """反向於 date_to_api：把 API 回傳的 'YYYY/MM/DD' 字串轉回 date。"""
+    return datetime.strptime(str(s), '%Y/%m/%d').date()
+
 def parse_num(v) -> float:
     if isinstance(v, (int, float)):
         return float(v)
@@ -129,6 +133,13 @@ def latest_expected_trading_day(anchor: date, max_back: int = 10) -> date | None
             return d
         d -= timedelta(days=1)
     return None
+
+
+def is_stale(reported_date: date, today: date) -> tuple[bool, date | None]:
+    """回傳 (是否為非最新交易日資料, 最新交易日應為的日期或 None)。
+    expected 為 None（TWSE 行事曆連不到）時一律不視為 stale——呼叫端不可誤報。"""
+    expected = latest_expected_trading_day(today)
+    return (expected is not None and reported_date < expected), expected
 
 
 # ── API fetchers ──────────────────────────────────────────────────────────────
@@ -1221,10 +1232,13 @@ async def process_etf(etf: dict, today: date):
 
     print(f'  base={base_date}  cmp={cmp_date}')
 
-    expected = latest_expected_trading_day(today)
-    stale = expected is not None and base_date < expected
+    # base_date 是搜尋迴圈「走到」的日期；base_data['date']（dDate）才是 API 實際回傳、
+    # 真正會顯示/使用的日期——兩者可能不同（官網回放前一交易日的內容），
+    # 所以 stale 判斷與 stale_note 都要用「API 實際回報的日期」而非搜尋迴圈的 base_date。
+    reported_date = api_to_date(base_data['date'])
+    stale, expected = is_stale(reported_date, today)
     if stale:
-        print(f'  ⚠ 資料非最新：base_date={base_date}，最新交易日應為 {expected}')
+        print(f'  ⚠ 資料非最新：reported_date={reported_date}，最新交易日應為 {expected}')
 
     curr_pcf  = fetch_pcf(base_date, fid)
     prev_pcf  = fetch_pcf(cmp_date,  fid)
@@ -1238,7 +1252,7 @@ async def process_etf(etf: dict, today: date):
     bs    = str(base_data['date'])[5:]
     cs    = str(cmp_data['date'])[5:]
     total = len(rows)
-    stale_note = f'\n⚠️ 官網尚未更新，此為 {base_date} 資料（最新交易日應為 {expected}）' if stale else ''
+    stale_note = f'\n⚠️ 官網尚未更新，此為 {reported_date} 資料（最新交易日應為 {expected}）' if stale else ''
     send_pushover(
         title   = f'{"⚠️ " if stale else ""}{etf["ticker"]} 當日摘要 {bs}',
         message = f'vs {cs}　共 {total} 筆異動{stale_note}',
@@ -1335,8 +1349,7 @@ async def process_peer_redemption(today: date):
         )
         return False
 
-    expected = latest_expected_trading_day(today)
-    stale = expected is not None and base_date < expected
+    stale, expected = is_stale(base_date, today)
     if stale:
         print(f'  ⚠ 資料非最新：base_date={base_date}，最新交易日應為 {expected}')
 

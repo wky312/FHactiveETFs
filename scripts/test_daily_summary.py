@@ -38,3 +38,21 @@ def test_latest_expected_trading_day_gives_up_after_max_back(monkeypatch):
     """一路都非交易日、超過 max_back 天仍找不到 → 回 None（不要無限迴圈或誤回舊日期）。"""
     monkeypatch.setattr(ds, 'is_twse_trading_day', lambda d: False)
     assert ds.latest_expected_trading_day(date(2026, 8, 17), max_back=3) is None
+
+
+def test_is_stale_never_false_positive_when_twse_unreachable(monkeypatch):
+    """TWSE 行事曆連不到（is_twse_trading_day 一律回 None）→ is_stale 回 (False, None)，不誤報。"""
+    monkeypatch.setattr(ds, 'is_twse_trading_day', lambda d: None)
+    assert ds.is_stale(date(2026, 8, 10), date(2026, 8, 17)) == (False, None)
+
+
+def test_is_stale_false_when_reported_date_matches_expected(monkeypatch):
+    """回報日期就是最新交易日 → 不算 stale。"""
+    monkeypatch.setattr(ds, 'is_twse_trading_day', lambda d: True)
+    assert ds.is_stale(date(2026, 8, 14), date(2026, 8, 14)) == (False, date(2026, 8, 14))
+
+
+def test_is_stale_true_when_reported_date_earlier_than_expected(monkeypatch):
+    """回報日期早於最新交易日 → 視為 stale。"""
+    monkeypatch.setattr(ds, 'is_twse_trading_day', lambda d: True)
+    assert ds.is_stale(date(2026, 8, 13), date(2026, 8, 14)) == (True, date(2026, 8, 14))
