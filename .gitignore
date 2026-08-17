@@ -49,3 +49,4 @@ __pycache__/
 
 # python venv (本機跑 scripts/ 用)
 .venv/
+.superpowers/
