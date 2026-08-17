@@ -1168,11 +1168,14 @@ async def screenshot_html(html: str) -> bytes:
 
 # ── Pushover ──────────────────────────────────────────────────────────────────
 
-def send_pushover(title: str, message: str, image_bytes: bytes):
+def send_pushover(title: str, message: str, image_bytes: bytes, priority: int = 0):
+    data = {'token': PUSHOVER_TOKEN, 'user': PUSHOVER_USER,
+             'title': title, 'message': message, 'html': '1'}
+    if priority:
+        data['priority'] = priority
     r = requests.post(
         'https://api.pushover.net/1/messages.json',
-        data={'token': PUSHOVER_TOKEN, 'user': PUSHOVER_USER,
-              'title': title, 'message': message, 'html': '1'},
+        data=data,
         files={'attachment': ('summary.png', image_bytes, 'image/png')},
         timeout=30,
     )
@@ -1218,6 +1221,11 @@ async def process_etf(etf: dict, today: date):
 
     print(f'  base={base_date}  cmp={cmp_date}')
 
+    expected = latest_expected_trading_day(today)
+    stale = expected is not None and base_date < expected
+    if stale:
+        print(f'  ⚠ 資料非最新：base_date={base_date}，最新交易日應為 {expected}')
+
     curr_pcf  = fetch_pcf(base_date, fid)
     prev_pcf  = fetch_pcf(cmp_date,  fid)
     etf_price = fetch_etf_price(etf.get('yfTicker', ''))
@@ -1230,10 +1238,12 @@ async def process_etf(etf: dict, today: date):
     bs    = str(base_data['date'])[5:]
     cs    = str(cmp_data['date'])[5:]
     total = len(rows)
+    stale_note = f'\n⚠️ 官網尚未更新，此為 {base_date} 資料（最新交易日應為 {expected}）' if stale else ''
     send_pushover(
-        title   = f'{etf["ticker"]} 當日摘要 {bs}',
-        message = f'vs {cs}　共 {total} 筆異動',
+        title   = f'{"⚠️ " if stale else ""}{etf["ticker"]} 當日摘要 {bs}',
+        message = f'vs {cs}　共 {total} 筆異動{stale_note}',
         image_bytes = img,
+        priority = 1 if stale else 0,
     )
     return True
 
@@ -1325,17 +1335,24 @@ async def process_peer_redemption(today: date):
         )
         return False
 
+    expected = latest_expected_trading_day(today)
+    stale = expected is not None and base_date < expected
+    if stale:
+        print(f'  ⚠ 資料非最新：base_date={base_date}，最新交易日應為 {expected}')
+
     write_peer_to_supabase(peer_results, base_date)
 
     html = build_peer_html(peer_results, base_date)
     img  = await screenshot_html(html)
+    stale_note = f'\n⚠️ 官網尚未更新，此為 {base_date} 資料（最新交易日應為 {expected}）' if stale else ''
     send_pushover(
-        title       = f'同業申贖觀測 {base_date}',
+        title       = f'{"⚠️ " if stale else ""}同業申贖觀測 {base_date}',
         message     = '淨申贖：' + '　'.join(
             f'{e["ticker"]} {e["data"]["netSub"]:+.2f}億' if e['data'] and e['data']['netSub'] is not None else f'{e["ticker"]} —'
             for e in peer_results
-        ),
+        ) + stale_note,
         image_bytes = img,
+        priority = 1 if stale else 0,
     )
     return True
 
