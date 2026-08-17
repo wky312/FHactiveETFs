@@ -21,10 +21,14 @@ function resolveCountry(item: any): string {
   return getCountry(ticker) ?? getSuffixCountry(suffix);
 }
 
-export async function fetchHoldings(date: string, fundId = 'ETF24'): Promise<HoldingsResponse> {
+export async function fetchHoldings(
+  date: string,
+  fundId = 'ETF24',
+  opts?: { force?: boolean },
+): Promise<HoldingsResponse> {
   const url = `${API_URL}?fundID=${fundId}&qDate=${encodeURIComponent(date)}`;
   const res = await fetch(url, {
-    next: { revalidate: 3600 },
+    ...(opts?.force ? { cache: 'no-store' as const } : { next: { revalidate: 3600 } }),
     headers: { 'User-Agent': 'Mozilla/5.0' },
   });
   if (!res.ok) throw new Error(`fhtrust API ${res.status}`);

@@ -4,12 +4,13 @@ import { fetchHoldings } from '@/lib/fhtrust';
 export async function GET(request: NextRequest) {
   const date   = request.nextUrl.searchParams.get('date');
   const fundId = request.nextUrl.searchParams.get('fundId') ?? 'ETF24';
+  const force  = request.nextUrl.searchParams.get('force') === '1';
   if (!date) {
     return NextResponse.json({ error: '缺少 date 參數（格式：YYYY/MM/DD）' }, { status: 400 });
   }
 
   try {
-    const data = await fetchHoldings(date, fundId);
+    const data = await fetchHoldings(date, fundId, { force });
     return NextResponse.json(data);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error';
