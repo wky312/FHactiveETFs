@@ -252,24 +252,28 @@ export default function Dashboard() {
   const performanceRef = useRef<HTMLDivElement>(null);
   const newHighRef    = useRef<HTMLDivElement>(null);
 
-  const fetchData = useCallback(async (dateStr: string, fundId: string): Promise<LoadedData> => {
-    const res  = await fetch(`/api/holdings?date=${encodeURIComponent(toApiDate(dateStr))}&fundId=${encodeURIComponent(fundId)}`);
+  const fetchData = useCallback(async (dateStr: string, fundId: string, force = false): Promise<LoadedData> => {
+    const qs = `date=${encodeURIComponent(toApiDate(dateStr))}&fundId=${encodeURIComponent(fundId)}${force ? '&force=1' : ''}`;
+    const res  = await fetch(`/api/holdings?${qs}`);
     const json = await res.json();
     if (!res.ok) throw new Error(json.error ?? '載入失敗');
     return json as LoadedData;
   }, []);
 
-  const loadHoldings = useCallback(async () => {
+  const loadHoldings = useCallback(async (force = false) => {
     setHoldLoading(true); setHoldError('');
-    try   { setHoldData(await fetchData(holdDate, selectedEtf.fundId)); }
+    try   { setHoldData(await fetchData(holdDate, selectedEtf.fundId, force)); }
     catch (e) { setHoldError(e instanceof Error ? e.message : '載入失敗'); }
     finally   { setHoldLoading(false); }
   }, [holdDate, selectedEtf, fetchData]);
 
-  const loadCompare = useCallback(async () => {
+  const loadCompare = useCallback(async (force = false) => {
     setCmpLoading(true); setCmpError('');
     try {
-      const [b, c] = await Promise.all([fetchData(baseDate, selectedEtf.fundId), fetchData(cmpDate, selectedEtf.fundId)]);
+      const [b, c] = await Promise.all([
+        fetchData(baseDate, selectedEtf.fundId, force),
+        fetchData(cmpDate, selectedEtf.fundId, force),
+      ]);
       setBaseData(b); setCmpData(c);
     } catch (e) { setCmpError(e instanceof Error ? e.message : '載入失敗'); }
     finally     { setCmpLoading(false); }
@@ -411,6 +415,7 @@ export default function Dashboard() {
             <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 18, flexWrap: 'wrap' }}>
               <DateInput label="資料日期" value={holdDate} onChange={setHoldDate} />
               <ActionButton onClick={loadHoldings} loading={holdLoading} label="載入" />
+              <ActionButton onClick={() => loadHoldings(true)} loading={holdLoading} label="強制查詢最新資料" />
             </div>
             <ErrorMsg msg={holdError} onReset={() => { setHoldError(''); setHoldData(null); }} />
             {holdData
@@ -429,6 +434,7 @@ export default function Dashboard() {
               <DateInput label="比較日期" value={cmpDate}  onChange={setCmpDate} />
               <DateInput label="基準日期" value={baseDate} onChange={setBaseDate} />
               <ActionButton onClick={loadCompare} loading={cmpLoading} label="載入比較" />
+              <ActionButton onClick={() => loadCompare(true)} loading={cmpLoading} label="強制查詢最新資料" />
             </div>
             <ErrorMsg msg={cmpError} onReset={() => { setCmpError(''); setBaseData(null); setCmpData(null); }} />
             {baseData && cmpData
@@ -441,15 +447,22 @@ export default function Dashboard() {
         {activeTab === 'summary' && (
           <Card ref={summaryRef} title="當日摘要" onSave={baseData && cmpData ? () => saveImage(summaryRef, imgName('當日摘要')) : undefined}>
             {baseData && cmpData
-              ? <DailySummaryTab
-                  baseDate={baseData.date}
-                  cmpDate={cmpData.date}
-                  baseHoldings={baseData.holdings}
-                  cmpHoldings={cmpData.holdings}
-                  fundId={selectedEtf.fundId}
-                  yfTicker={selectedEtf.yfTicker}
-                  etfTicker={selectedEtf.ticker}
-                />
+              ? (
+                <>
+                  <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+                    <ActionButton onClick={() => loadCompare(true)} loading={cmpLoading} label="強制查詢最新資料" />
+                  </div>
+                  <DailySummaryTab
+                    baseDate={baseData.date}
+                    cmpDate={cmpData.date}
+                    baseHoldings={baseData.holdings}
+                    cmpHoldings={cmpData.holdings}
+                    fundId={selectedEtf.fundId}
+                    yfTicker={selectedEtf.yfTicker}
+                    etfTicker={selectedEtf.ticker}
+                  />
+                </>
+              )
               : (
                 <div style={{ textAlign: 'center', padding: '40px 0' }}>
                   <p style={{ color: '#AAA', fontSize: '.9rem', marginBottom: 18 }}>請先在「持股比較」頁面選擇日期並載入資料</p>
@@ -457,6 +470,7 @@ export default function Dashboard() {
                     <DateInput label="基準日期" value={baseDate} onChange={setBaseDate} />
                     <DateInput label="比較日期" value={cmpDate}  onChange={setCmpDate} />
                     <ActionButton onClick={loadCompare} loading={cmpLoading} label="載入比較" />
+                    <ActionButton onClick={() => loadCompare(true)} loading={cmpLoading} label="強制查詢最新資料" />
                   </div>
                   <ErrorMsg msg={cmpError} onReset={() => { setCmpError(''); setBaseData(null); setCmpData(null); }} />
                 </div>
