@@ -127,7 +127,7 @@ function DateInput({ label, value, onChange }: { label: string; value: string; o
 function ActionButton({ onClick, loading, label }: { onClick: () => void; loading: boolean; label: string }) {
   return (
     <button
-      onClick={onClick} disabled={loading}
+      onClick={() => onClick()} disabled={loading}
       style={{
         padding: '8px 22px',
         background: loading ? '#999' : RED,
@@ -254,7 +254,7 @@ export default function Dashboard() {
 
   const fetchData = useCallback(async (dateStr: string, fundId: string, force = false): Promise<LoadedData> => {
     const qs = `date=${encodeURIComponent(toApiDate(dateStr))}&fundId=${encodeURIComponent(fundId)}${force ? '&force=1' : ''}`;
-    const res  = await fetch(`/api/holdings?${qs}`);
+    const res  = await fetch(`/api/holdings?${qs}`, force ? { cache: 'no-store' } : undefined);
     const json = await res.json();
     if (!res.ok) throw new Error(json.error ?? '載入失敗');
     return json as LoadedData;
