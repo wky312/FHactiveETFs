@@ -1,0 +1,147 @@
+{
+  "date": "2026-08-18",
+  "scanned_at": "2026-08-18T14:46:06+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": "0050"
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "tw_active"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "stale",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R3-3653-20260803-t30",
+      "rule": "R3",
+      "score": 73.21,
+      "selected": true,
+      "fact": "8/3 加碼的 健策精密 至今 +36.6%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 8/3 加碼健策精密，至今上漲 36.6%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "3653",
+        "event_date": "2026-08-03",
+        "direction": "add",
+        "qty_change_pct": 30.0,
+        "weight_pct": 0.54,
+        "return_since_pct": 36.6,
+        "tier": 30
+      }
+    },
+    {
+      "id": "R1-2059-2026-08-18",
+      "rule": "R1",
+      "score": 33.55,
+      "selected": true,
+      "fact": "川湖科技今日 +4.51%，00991A 持股 7.44%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "川湖科技大漲 4.51%，00991A 以 7.44% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "2059",
+        "pct_change": 4.51,
+        "weight_pct": 7.44,
+        "is_heaviest_among_universe": false,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R3-5274-20260722-t8",
+      "rule": "R3",
+      "score": 19.92,
+      "selected": true,
+      "fact": "7/22 加碼的 信驊科技 至今 +10.0%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 7/22 加碼信驊科技，至今上漲 10.0%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "5274",
+        "event_date": "2026-07-22",
+        "direction": "add",
+        "qty_change_pct": 28.8,
+        "weight_pct": 1.602,
+        "return_since_pct": 9.96,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-3081-20260813-t8",
+      "rule": "R3",
+      "score": 19.51,
+      "selected": true,
+      "fact": "8/13 加碼的 聯亞光電 至今 +9.8%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 8/13 加碼聯亞光電，至今上漲 9.8%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "3081",
+        "event_date": "2026-08-13",
+        "direction": "add",
+        "qty_change_pct": 140.4,
+        "weight_pct": 1.446,
+        "return_since_pct": 9.76,
+        "tier": 8
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 409,
+    "line_status": 200,
+    "candidate_count": 4,
+    "selected_count": 4
+  }
+}
