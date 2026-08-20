@@ -1,0 +1,111 @@
+{
+  "date": "2026-08-20",
+  "scanned_at": "2026-08-20T14:49:41+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": "0050"
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "tw_active"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "stale",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R3-3653-20260804-t30",
+      "rule": "R3",
+      "score": 70.21,
+      "selected": true,
+      "fact": "8/4 加碼的 健策精密 至今 +35.1%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 8/4 加碼健策精密，至今上漲 35.1%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "3653",
+        "event_date": "2026-08-04",
+        "direction": "add",
+        "qty_change_pct": 100.0,
+        "weight_pct": 1.252,
+        "return_since_pct": 35.1,
+        "tier": 30
+      }
+    },
+    {
+      "id": "R1-2408-2026-08-20",
+      "rule": "R1",
+      "score": 58.27,
+      "selected": true,
+      "fact": "南亞科技今日 +7.48%，00991A 持股 7.79%、為全市場 19 檔主動 ETF 中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "南亞科技大漲 7.48%，00991A 以 7.79% 持股居全市場主動 ETF 之冠，經理人重押命中。",
+      "data": {
+        "stockid": "2408",
+        "pct_change": 7.48,
+        "weight_pct": 7.79,
+        "is_heaviest_among_universe": true,
+        "universe_size": 19
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 268,
+    "line_status": 200,
+    "candidate_count": 2,
+    "selected_count": 2
+  }
+}

@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-08-18T14:46:06+08:00",
+  "updated_at": "2026-08-20T14:49:41+08:00",
   "pushed_dates": [
     "2026-07-03",
     "2026-07-06",
@@ -29,31 +29,12 @@
     "2026-08-12",
     "2026-08-13",
     "2026-08-14",
-    "2026-08-18"
+    "2026-08-18",
+    "2026-08-20"
   ],
   "r3_events": {
-    "8046|2026/06/23": {
-      "direction": "add",
-      "tier_pushed": 30
-    },
     "8046|2026/06/24": {
       "direction": "add",
-      "tier_pushed": 30
-    },
-    "2368|2026/06/22": {
-      "direction": "trim",
-      "tier_pushed": 30
-    },
-    "8210|2026/06/22": {
-      "direction": "trim",
-      "tier_pushed": 15
-    },
-    "2308|2026/06/22": {
-      "direction": "trim",
-      "tier_pushed": 15
-    },
-    "8996|2026/06/23": {
-      "direction": "trim",
       "tier_pushed": 30
     },
     "2368|2026/06/24": {
@@ -76,31 +57,11 @@
       "direction": "trim",
       "tier_pushed": 8
     },
-    "3189|2026/06/23": {
-      "direction": "add",
-      "tier_pushed": 15
-    },
     "8996|2026/07/03": {
       "direction": "trim",
       "tier_pushed": 30
     },
-    "2308|2026/06/23": {
-      "direction": "trim",
-      "tier_pushed": 8
-    },
-    "3017|2026/06/22": {
-      "direction": "trim",
-      "tier_pushed": 8
-    },
     "2344|2026/07/02": {
-      "direction": "trim",
-      "tier_pushed": 15
-    },
-    "3042|2026/06/22": {
-      "direction": "trim",
-      "tier_pushed": 15
-    },
-    "4958|2026/06/23": {
       "direction": "trim",
       "tier_pushed": 15
     },
@@ -194,7 +155,7 @@
     },
     "3653|2026/08/04": {
       "direction": "add",
-      "tier_pushed": 15
+      "tier_pushed": 30
     },
     "5274|2026/08/04": {
       "direction": "add",
