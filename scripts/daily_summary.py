@@ -1443,6 +1443,101 @@ def process_overseas_redemption(today: date) -> int:
     return written
 
 
+# ── 近期補洞 ────────────────────────────────────────────────────────────────
+# process_peer_redemption 每次只寫「一個 base_date」（＝復華當下已公布持股的那一天），
+# process_overseas_redemption 每檔也只寫「最近一筆已公告」的那一天。兩者都沒有回頭看的機制，
+# 所以只要有一天沒寫成，那個交易日就永久留白：
+#   ① 排程當天被 cancel / 失敗（實例：2026-08-19 那次 run 是 cancelled → tw_active 缺 08-19）
+#   ② 復華 17:20 還沒掛出當日持股 → base_date 退回前一天（那天已寫過），隔天又前進到新的一天，
+#      中間被跳過的交易日再也沒人補（實例：tw_active 缺 08-07、08-13）
+#   ③ 海外檔 PCF 要 T+1～T+2 才公告，寫入當下抓不到；等公告出來時排程早就往前走了
+#      （實例：overseas 缺 08-18——實測那天 21/21 檔現在全部抓得到，純粹是沒人寫）
+# 所以每天補跑一次：查最近 N 個交易日在 DB 裡「缺任何一檔有來源的 ticker」的日期，只補那些。
+# upsert 以 (date,ticker) 為主鍵，重寫既有列是冪等的。
+GAP_REPAIR_LOOKBACK = 10   # 交易日
+
+
+def recent_trading_days(today: date, n: int) -> list:
+    """回最近 n 個交易日，升冪。
+
+    沿用 process_overseas_redemption 的判定慣例：`is_twse_trading_day` 回 None 代表
+    TWSE 連不到，這時照收（寧可多補一天，也不要因為行事曆查不到就漏掉）。
+    FMTQIK 只列已收盤結算的日子，所以「今天」通常還不在裡面而被排除——沒關係，
+    視窗每天往前滑，明天就會納入。guard 防 TWSE 異常時無限迴圈。
+    """
+    days, d, guard = [], today, 0
+    while len(days) < n and guard < n * 5:
+        guard += 1
+        if d.weekday() < 5 and is_twse_trading_day(d) is not False:
+            days.append(d)
+        d -= timedelta(days=1)
+    return sorted(days)
+
+
+def find_peer_gaps(days: list, existing: set, expected: set) -> list:
+    """純函式：回傳 days 之中「還缺任何一檔 expected ticker」的日期。
+
+    days     = [date]（升冪）
+    existing = {(date_str, ticker)} 已在 DB 的列
+    expected = {ticker} 有接通資料來源、理應有值的檔
+    """
+    gaps = []
+    for d in days:
+        have = {t for (ds, t) in existing if ds == str(d)}
+        if not expected <= have:
+            gaps.append(d)
+    return gaps
+
+
+def _fetch_existing_peer_keys(start: date, end: date):
+    """讀 DB 已有的 (date,ticker)。Supabase 不可用回 None（呼叫端就整個跳過補洞）。"""
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        print('  Supabase credentials not set, skipping gap repair.')
+        return None
+    try:
+        from supabase import create_client
+        client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+        res = (client.table('peer_redemption')
+               .select('date, ticker')
+               .gte('date', str(start)).lte('date', str(end))
+               .execute())
+        return {(r['date'], r['ticker']) for r in res.data}
+    except Exception as e:
+        print(f'  gap repair: 讀取 Supabase 失敗（{e}），跳過')
+        return None
+
+
+def process_peer_gap_repair(today: date) -> int:
+    """補最近 GAP_REPAIR_LOOKBACK 個交易日的缺漏（只寫 DB、不推播）。回傳補起來的天數。"""
+    print(f'\n[同業申贖：近 {GAP_REPAIR_LOOKBACK} 個交易日補洞]')
+    days = recent_trading_days(today, GAP_REPAIR_LOOKBACK)
+    existing = _fetch_existing_peer_keys(days[0], days[-1])
+    if existing is None:
+        return 0
+    expected = {e['ticker'] for e in PEER_ETFS if e.get('source')}
+    gaps = find_peer_gaps(days, existing, expected)
+    if not gaps:
+        print('  近期無缺漏。')
+        return 0
+    # 最新的那一兩天本來就會缺（海外檔 T+1～T+2 才公告），這是預期內、隔天會自己補上。
+    print(f'  待補 {len(gaps)} 天：{", ".join(str(d) for d in gaps)}')
+    repaired = 0
+    for d in gaps:
+        try:
+            results = fetch_all_peer_data(d)
+            have = {t for (ds, t) in existing if ds == str(d)}
+            # 只寫「這天還沒有的 ticker」，不覆蓋既有列
+            new = [e for e in results if e['ticker'] not in have]
+            if any(e.get('data') and e['data'].get('netSub') is not None for e in new):
+                write_peer_to_supabase(new, d)
+                repaired += 1
+            else:
+                print(f'  {d}: 尚無新資料可補（海外檔可能還沒公告）')
+        except Exception as e:
+            print(f'  {d}: 補洞失敗 {e}')
+    return repaired
+
+
 async def main():
     if not PUSHOVER_TOKEN or not PUSHOVER_USER:
         sys.exit('ERROR: PUSHOVER_TOKEN and PUSHOVER_USER must be set.')
@@ -1487,6 +1582,14 @@ async def main():
         process_overseas_redemption(today)
     except Exception as e:
         print(f'  Overseas redemption ERROR: {e}')
+        import traceback; traceback.print_exc()
+
+    # 近期補洞：排程被 cancel、官網延遲公布、海外檔 T+1~T+2 公告，都會讓某個交易日永久留白。
+    # 獨立於 sent_any（不推播），失敗也不影響上面的告警邏輯。
+    try:
+        process_peer_gap_repair(today)
+    except Exception as e:
+        print(f'  Peer gap repair ERROR: {e}')
         import traceback; traceback.print_exc()
 
     if not sent_any:

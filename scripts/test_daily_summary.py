@@ -56,3 +56,57 @@ def test_is_stale_true_when_reported_date_earlier_than_expected(monkeypatch):
     """回報日期早於最新交易日 → 視為 stale。"""
     monkeypatch.setattr(ds, 'is_twse_trading_day', lambda d: True)
     assert ds.is_stale(date(2026, 8, 13), date(2026, 8, 14)) == (True, date(2026, 8, 14))
+
+
+# ── 近期補洞（find_peer_gaps / recent_trading_days）─────────────────────────
+
+def test_find_peer_gaps_flags_date_missing_any_ticker():
+    """某日少了一檔有來源的 ticker → 該日算缺漏。"""
+    days = [date(2026, 8, 17), date(2026, 8, 18)]
+    existing = {('2026-08-17', 'A'), ('2026-08-17', 'B'), ('2026-08-18', 'A')}
+    assert ds.find_peer_gaps(days, existing, {'A', 'B'}) == [date(2026, 8, 18)]
+
+
+def test_find_peer_gaps_empty_when_all_present():
+    days = [date(2026, 8, 17)]
+    existing = {('2026-08-17', 'A'), ('2026-08-17', 'B')}
+    assert ds.find_peer_gaps(days, existing, {'A', 'B'}) == []
+
+
+def test_find_peer_gaps_date_absent_entirely_is_a_gap():
+    """整天完全沒有列（實例：overseas 的 2026-08-18）→ 必須被抓出來。"""
+    days = [date(2026, 8, 18)]
+    assert ds.find_peer_gaps(days, set(), {'A'}) == [date(2026, 8, 18)]
+
+
+def test_find_peer_gaps_ignores_extra_tickers():
+    """DB 有多的 ticker（例如已停用的來源）不影響判定。"""
+    days = [date(2026, 8, 17)]
+    existing = {('2026-08-17', 'A'), ('2026-08-17', 'Z')}
+    assert ds.find_peer_gaps(days, existing, {'A'}) == []
+
+
+def test_recent_trading_days_skips_weekend(monkeypatch):
+    """2026-08-23 是週日 → 最近 3 個交易日應為 8/19、8/20、8/21。"""
+    monkeypatch.setattr(ds, 'is_twse_trading_day', lambda d: d.weekday() < 5)
+    assert ds.recent_trading_days(date(2026, 8, 23), 3) == [
+        date(2026, 8, 19), date(2026, 8, 20), date(2026, 8, 21),
+    ]
+
+
+def test_recent_trading_days_skips_market_holiday(monkeypatch):
+    """行事曆說 8/20 休市（例：颱風）→ 該日不算，往前多取一天。"""
+    closed = {date(2026, 8, 20)}
+    monkeypatch.setattr(ds, 'is_twse_trading_day',
+                        lambda d: d.weekday() < 5 and d not in closed)
+    assert ds.recent_trading_days(date(2026, 8, 23), 3) == [
+        date(2026, 8, 18), date(2026, 8, 19), date(2026, 8, 21),
+    ]
+
+
+def test_recent_trading_days_includes_day_when_twse_unreachable(monkeypatch):
+    """TWSE 連不到（回 None）→ 照收平日，寧可多補一天也不要漏。"""
+    monkeypatch.setattr(ds, 'is_twse_trading_day', lambda d: None)
+    assert ds.recent_trading_days(date(2026, 8, 21), 2) == [
+        date(2026, 8, 20), date(2026, 8, 21),
+    ]
