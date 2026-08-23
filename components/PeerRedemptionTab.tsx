@@ -78,7 +78,9 @@ const REDEMPTION_GROUPS: RedemptionGroup[] = [
       { ticker: '00990A', name: '元大AI新經濟', source: 'yuanta',  key: '00990A' },  // 元大投信
       { ticker: '00997A', name: '群益美國增長', source: 'capital', key: '502'    },  // 群益 fundNo（海外 → 公告 +2）
       { ticker: '00402A', name: '安聯美國科技', source: 'allianz', key: 'E0003'  },  // 安聯投信 FundNo
-      { ticker: '00998A', name: '復華全球金融', source: 'cmoney',  key: '00998A' },  // 復華無官方申贖 → CMoney 推算
+      // 復華官方 PCF 有回 actBuyValDate（2026-08-23 實測 ETF24 完整）→ 改吃官方，不再用 CMoney 推算。
+      // CMoney 的規模序列以公告日標記，海外檔會整整錯位 2 個交易日，推出來的淨申贖是假的。
+      { ticker: '00998A', name: '復華全球金融', source: 'fhtrust', key: 'ETF24'  },  // 復華 fundID
       { ticker: '00983A', name: '中信ARK創新',  source: 'ctbc',    key: 'E0034'  },  // 中信投信 FID
       { ticker: '00986A', name: '台新全球龍頭', source: 'tsit',    key: '00986A' },  // 台新投信（HTML）
       // 00409A 成立 2026/08/20、掛牌 2026/09/02：掛牌前沒有申購買回清單（fhtrust ETFPcf 全 null，

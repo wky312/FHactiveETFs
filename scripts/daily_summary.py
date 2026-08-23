@@ -303,7 +303,9 @@ PEER_ETFS = [
     {'ticker': '00988A', 'name': '統一全球創新', 'source': 'ezmoney', 'key': '61YTW',  'group': 'overseas'},
     {'ticker': '00990A', 'name': '元大AI新經濟', 'source': 'yuanta',  'key': '00990A', 'group': 'overseas'},
     {'ticker': '00997A', 'name': '群益美國增長', 'source': 'capital', 'key': '502',    'group': 'overseas'},
-    {'ticker': '00998A', 'name': '復華全球金融', 'source': 'cmoney',  'key': '00998A', 'group': 'overseas'},
+    # 復華官方 PCF 現在有回 actBuyValDate（2026-08-23 實測 ETF24 完整），不必再用 CMoney 推算
+    # （CMoney 用「規模÷淨值」還原單位數，有 ±0.01 億取整噪音，且規模以公告日標記會錯位）。
+    {'ticker': '00998A', 'name': '復華全球金融', 'source': 'fhtrust', 'key': 'ETF24', 'group': 'overseas'},
     {'ticker': '00402A', 'name': '安聯美國科技', 'source': 'allianz', 'key': 'E0003',  'group': 'overseas'},
 ]
 
@@ -846,6 +848,36 @@ def fetch_cmoney_day(assign_id: str, transaction_date: date) -> dict | None:
         return None
 
 
+def fetch_fhtrust_day(fund_id: str, transaction_date: date) -> dict | None:
+    """復華官方申購買回清單（PCF）→ 指定交易日的 {netSub(億), aum(億)}，查無回 None。
+
+    netSub = (qDiff ÷ 每基數單位數) × actBuyVal
+           = 單位數淨變動換算成幾個申購買回基數 × 每基數實際申購總價金。
+
+    **交易日一律以 API 自報的 actBuyValDate 為準，不可用「公告日 − N」去推**：
+    台股檔（ETF23）的 actBuyValDate 落後公告日 1 個交易日，海外檔（ETF24）落後 2 個，
+    寫死推算會整檔對不上而靜靜回 None。這裡改成從交易日往後掃公告日候選、比對自報日期。
+    掃 8 個日曆日：T+2 個交易日跨週末就是 +4 天，再遇到連假還要更多。
+    """
+    target_str = date_to_api(transaction_date)
+    for offset in range(8):
+        pcf_date = date_to_api(transaction_date + timedelta(days=offset))
+        try:
+            url = f'{FHTRUST_PCF}?fundID={fund_id}&pcfDate={requests.utils.quote(pcf_date)}'
+            r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=20)
+            d = r.json()
+            d = (d.get('result') or [None])[0] if d.get('result') else d
+            if not d or str(d.get('actBuyValDate', '')) != target_str:
+                continue
+            return {
+                'netSub': parse_num(d.get('actBuyVal', 0)) * parse_num(d.get('qDiff', 0)) / 500000 / 1e8,
+                'aum':    parse_num(d.get('nav', 0)) / 1e8,
+            }
+        except Exception:
+            continue
+    return None
+
+
 def fetch_all_peer_data(transaction_date: date) -> list:
     """Fetch net subscription data for all peer ETFs on the given date."""
     # Build shared ezmoney session once for all ezmoney ETFs
@@ -883,28 +915,7 @@ def fetch_all_peer_data(transaction_date: date) -> list:
         elif etf['source'] == 'cmoney':
             data = fetch_cmoney_day(etf['key'], transaction_date)
         elif etf['source'] == 'fhtrust':
-            # For fhtrust, netSub comes from PCF DIFF_UNIT calculation
-            # Use fhtrust PCF API (same as etf-scale)
-            target_str = date_to_api(transaction_date)
-            for offset in range(5):
-                pcf_date = date_to_api(transaction_date + timedelta(days=offset))
-                try:
-                    url = f'{FHTRUST_PCF}?fundID={etf["key"]}&pcfDate={requests.utils.quote(pcf_date)}'
-                    r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=20)
-                    d = r.json()
-                    d = (d.get('result') or [None])[0] if d.get('result') else d
-                    if not d or str(d.get('actBuyValDate', '')) != target_str:
-                        continue
-                    act_buy_val = parse_num(d.get('actBuyVal', 0))
-                    q_diff      = parse_num(d.get('qDiff', 0))
-                    nav         = parse_num(d.get('nav', 0))
-                    data = {
-                        'netSub': act_buy_val * q_diff / 500000 / 1e8,
-                        'aum':    nav / 1e8,
-                    }
-                    break
-                except:
-                    continue
+            data = fetch_fhtrust_day(etf['key'], transaction_date)
         results.append({**etf, 'data': data})
     return results
 
@@ -1387,6 +1398,7 @@ async def process_peer_redemption(today: date):
 OVERSEAS_LOOKBACK_WEEKDAYS = 6
 
 _OVERSEAS_FETCHERS = {
+    'fhtrust': fetch_fhtrust_day,
     'ezmoney': fetch_ezmoney_day,
     'capital': fetch_capital_day,
     'ctbc':    fetch_ctbc_day,

@@ -7,6 +7,11 @@ on:
         description: 'Backfill start date (YYYY-MM-DD)'
         required: false
         default: '2025-12-08'
+      ignore_complete:
+        description: '已有完整資料的日期也重抓覆寫（換資料來源後用，例：00998A 由 CMoney 改吃官方）'
+        required: false
+        type: boolean
+        default: false
 
 jobs:
   backfill:
@@ -31,4 +36,5 @@ jobs:
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           START_DATE:           ${{ github.event.inputs.start_date }}
+          IGNORE_COMPLETE:      ${{ github.event.inputs.ignore_complete && '1' || '' }}
         run: python scripts/backfill_peer_redemption.py

@@ -333,7 +333,7 @@ export default function PeerPerformanceTab() {
               {/* Average row */}
               {avg && (
                 <tr style={{ background: '#F0EDE8', borderTop: `2px solid ${BORDER}` }}>
-                  <td colSpan={2} style={{ padding: '8px 10px', fontSize: '.78rem', color: SUB, fontWeight: 600, position: 'sticky', left: 0, zIndex: 1, background: '#F0EDE8' }}>同業等權平均<span style={{ fontWeight: 400 }}>（不含對照基準）</span></td>
+                  <td colSpan={2} style={{ padding: '8px 10px', fontSize: '.78rem', color: SUB, fontWeight: 600, position: 'sticky', left: 0, zIndex: 1, background: '#F0EDE8' }}>同業等權平均<span style={{ fontWeight: 400 }}>（{sorted.filter(r => !r.benchmark && !r.anomaly).length} 檔）</span></td>
                   <td style={{ padding: '8px 10px', textAlign: 'right', fontSize: '.78rem', color: SUB }}>—</td>
                   {appliedRange && (() => {
                     const vals = sorted.filter(r => !r.anomaly && !r.benchmark).map(r => r.pctCustom).filter((v): v is number => v !== null);
@@ -363,7 +363,10 @@ export default function PeerPerformanceTab() {
         <div style={{ marginTop: 10, fontSize: '.72rem', color: SUB, lineHeight: 1.8 }}>
           資料來源：Yahoo Finance（與 TWSE 即時交叉比對）　週初至今 = 上週五收盤至今　月初至今 = 上月底收盤至今　年初至今 = 去年底收盤至今　近N日為交易日<br />
           美股對照組：<b>NASDAQ綜合</b>與 <b>S&amp;P500</b> 採官方總報酬指數（^XCMP／^SP500TR，<b>已含息</b>）、<b>QQQ</b> 以還原收盤計亦<b>已含配息</b>；<b>費城半導體</b>在 Yahoo 只有價格指數（無含息版），故為<b>價格報酬</b>、與其餘欄位口徑略有差異。美股交易日與台股不同，資料日可能相差一日。<br />
-          <span style={{ color: RED }}>⚠ 數值異常</span> = 收盤後 Yahoo 仍缺最新交易日報價，績效不可信，已自動排除於等權平均　<b>尚無報價</b> = 該檔尚未掛牌或查無成交，同樣不納入平均
+          <span style={{ color: RED }}>⚠ 數值異常</span> = 收盤後 Yahoo 仍缺最新交易日報價，績效不可信，已自動排除於等權平均　<b>尚無報價</b> = 該檔尚未掛牌或查無成交，同樣不納入平均<br />
+          <b>同業等權平均</b>只計入互為競爭品項的標的；本組不納入的對照基準：{
+            sorted.filter(r => r.benchmark).map(r => r.ticker).join('、') || '（無）'
+          }
         </div>
       )}
     </div>

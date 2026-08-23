@@ -43,7 +43,17 @@ def trading_days(start: date, end: date):
 
 
 def get_complete_dates(start: date, end: date) -> set:
-    """Return dates that already have all 5 tickers stored."""
+    """Return dates that already have all 5 tickers stored.
+
+    IGNORE_COMPLETE=1 → 一律回空集合，把區間內每個交易日都重抓一次。
+    用在「某檔的資料來源換掉」時：既有列本身是完整的，完成度判斷會直接跳過，
+    舊的錯誤數字就永遠留在 DB（例：00998A 從 CMoney 推算改吃復華官方 PCF，
+    CMoney 那批不只有取整噪音，整條序列還錯位 2 個交易日）。upsert 以
+    (date,ticker) 為主鍵，重抓純粹是覆寫，冪等。
+    """
+    if os.environ.get('IGNORE_COMPLETE', '').strip() in ('1', 'true', 'True'):
+        print('IGNORE_COMPLETE=1 → 略過完成度判斷，區間內全部重抓覆寫。')
+        return set()
     try:
         from supabase import create_client
         client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
