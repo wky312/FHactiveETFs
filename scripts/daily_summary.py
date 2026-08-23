@@ -41,6 +41,10 @@ FHTRUST_PCF    = 'https://www.fhtrust.com.tw/api/ETFPcf'
 
 ETFS = [
     {'ticker': '00991A', 'name': '復華主動式ETF', 'fundId': 'ETF23', 'yfTicker': '00991A.TW'},
+    # 00409A 成立 2026/08/20、掛牌 2026/09/02。掛牌前復華每日持股 detail 是空的、PCF 全 null →
+    # find_trading_day_with_data 回 (None, None)、process_etf 直接 skip（不推播、不影響 00991A 的
+    # sent_any 判定）；資料一開始公布就會自己接上。
+    {'ticker': '00409A', 'name': '復華全球未來50主動式ETF', 'fundId': 'ETF26', 'yfTicker': '00409A.TW'},
 ]
 
 # 單位數注意商品：主管機關要求成立以來平均單位數不得低於發行時單位數之一半。
@@ -152,6 +156,11 @@ def fetch_holdings(date_str: str, fund_id: str):
         data = r.json()
         fund = (data.get('result') or [None])[0]
         if not fund:
+            return None
+        # 尚未公布的日期上游回的是 dDate=null、detail=[] 的空殼，不是錯誤。當成有效結果的話
+        # find_trading_day_with_data 會停在今天，build_diff_rows 拿空的今天對完整的昨天會把
+        # 每一檔算成清倉 → 推播一張全紅的假摘要。視同無資料才對。
+        if not fund.get('dDate') or not fund.get('detail'):
             return None
         holdings = [
             {

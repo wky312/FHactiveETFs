@@ -317,31 +317,27 @@ export default function Dashboard() {
   return (
     <div style={{ minHeight: '100vh', background: BG, fontFamily: SANS }}>
 
-      {/* ── Sticky Header ── */}
+      {/* ── Sticky Header ──
+           基金選單原本縮在右上角、只顯示代號，容易被忽略。改放到標題正下方（原副標題的位置），
+           選單本身就顯示「代號＋簡稱」，等於把副標題的資訊一起吃掉，不必再另外印一行。 */}
       <header className="site-header">
         <div style={{ minWidth: 0 }}>
           <h1 className="site-title">
             <span style={{ color: RED }}>復華</span>主動式ETF 持股資訊
           </h1>
-          <p className="site-sub">
-            {selectedEtf.ticker}&nbsp;{selectedEtf.name}
-          </p>
-        </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexShrink: 0 }}>
-          <span style={{ fontSize: '.78rem', color: SUB, fontWeight: 500 }}>基金</span>
-          <select
-            value={selectedEtf.ticker}
-            onChange={e => handleEtfChange(e.target.value)}
-            style={{
-              padding: '6px 10px', borderRadius: 6, border: `1px solid ${BORDER}`,
-              background: CARD, color: TEXT, fontSize: '.85rem',
-              cursor: 'pointer', fontFamily: SANS,
-            }}
-          >
-            {ETF_LIST.map(e => (
-              <option key={e.ticker} value={e.ticker}>{e.ticker}</option>
-            ))}
-          </select>
+          <div className="site-fundpick">
+            <span className="site-fundpick-label">基金</span>
+            <select
+              className="site-fundpick-select"
+              aria-label="選擇基金"
+              value={selectedEtf.ticker}
+              onChange={e => handleEtfChange(e.target.value)}
+            >
+              {ETF_LIST.map(e => (
+                <option key={e.ticker} value={e.ticker}>{e.ticker}　{e.short}</option>
+              ))}
+            </select>
+          </div>
         </div>
       </header>
 

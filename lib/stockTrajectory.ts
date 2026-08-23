@@ -88,7 +88,7 @@ async function fetchDay(date: string, fundId: string): Promise<{ date: string; h
 }
 
 // 粗掃每月一個日期，找出最早有資料的月份，避免對成立前日期大量浪費請求
-async function detectStartDate(fundId: string, end: string): Promise<string> {
+async function detectStartDate(fundId: string, end: string): Promise<string | null> {
   const floorStr = FETCH_FLOOR.replace(/-/g, '/');
   const probes: string[] = [];
   let cur = floorStr.replace(/\/\d{2}$/, '/15'); // 每月 15 號
@@ -100,7 +100,9 @@ async function detectStartDate(fundId: string, end: string): Promise<string> {
   }
   const results = await Promise.all(probes.map(async p => ({ p, ok: (await fetchDay(p, fundId)) !== null })));
   const earliest = results.find(r => r.ok);
-  if (!earliest) return floorStr; // 都沒資料 → 退回下限（後續逐日掃也會全 null）
+  // 每個月都沒資料 → 這檔基金還沒開始公布逐檔持股（例：剛成立、尚未掛牌），
+  // 回 null 讓呼叫端直接放棄，不要再逐日空掃 400+ 個交易日。
+  if (!earliest) return null;
   // 從該月 1 號開始逐日掃，涵蓋月中上市的情況
   return earliest.p.replace(/\/15$/, '/01');
 }
@@ -153,7 +155,8 @@ export async function buildDayMap(fundId: string): Promise<DayMapResult> {
     const lastStored = Array.from(dayMap.keys()).sort((a, b) => a.localeCompare(b)).pop()!;
     await scan(addDays(lastStored, 1), end); // gap：存檔後到今天，通常 0–數天
   } else {
-    await scan(await detectStartDate(fundId, end), end); // fallback：完整即時掃描
+    const start = await detectStartDate(fundId, end);   // fallback：完整即時掃描
+    if (start) await scan(start, end);
   }
   const sortedDates = Array.from(dayMap.keys()).sort((a, b) => a.localeCompare(b));
   return { dayMap, sortedDates, end };

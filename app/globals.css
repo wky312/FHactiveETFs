@@ -83,13 +83,45 @@ button:hover:not(:disabled) { filter: brightness(0.93); }
   line-height: 1.25;
   font-family: var(--sans);
 }
-.site-sub {
-  margin: 2px 0 0;
-  font-size: .76rem;
+/* 基金選單：站在標題正下方（原副標題的位置），是全站唯一切換標的的入口，
+   所以刻意做得比一般表單控件重一點——白底、金色左邊條、粗體代號。 */
+.site-fundpick {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 5px;
+  max-width: 100%;
+}
+.site-fundpick-label {
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .5px;
   color: var(--text-sub);
+  flex-shrink: 0;
+}
+.site-fundpick-select {
+  min-width: 0;
+  max-width: 100%;
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--brand-gold);
+  border-radius: 6px;
+  background: var(--bg-card);
+  color: var(--text-main);
+  font-family: var(--sans);
+  font-size: .86rem;
+  font-weight: 600;
+  line-height: 1.3;
+  cursor: pointer;
+}
+.site-fundpick-select:hover { border-color: var(--brand-gold); }
+.site-fundpick-select:focus {
+  outline: none;
+  border-color: var(--brand-red);
+  box-shadow: 0 0 0 2px rgba(192, 0, 0, .12);
 }
 @media (max-width: 520px) {
   .site-header { padding: 8px 16px; min-height: 56px; gap: 8px; }
   .site-title { font-size: 1rem; }
-  .site-sub   { font-size: .68rem; }
+  .site-fundpick-select { font-size: .8rem; padding: 4px 8px; }
 }

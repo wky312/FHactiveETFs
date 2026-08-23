@@ -59,7 +59,8 @@ function fmtPct(v: number | null): string {
 }
 function fmtPrice(v: number | null): string {
   if (v === null) return '—';
-  return v.toFixed(2);
+  // 加入千分位——海外對照組的指數是五位數（如 32,315.96），沒有分隔號很難讀。
+  return v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
 function exportExcel(
@@ -70,8 +71,9 @@ function exportExcel(
   const headers = ['代號', '名稱', '收盤價', ...customLabel,
     '當日%', '週初至今%', '月初至今%', '年初至今%', '近5日%', '近1月%', '近3月%', '近6月%', '近一年%'];
   const data = rows.map(r => {
-    const n = (v: number | null) => r.anomaly ? '數值異常' : (v !== null ? parseFloat(v.toFixed(2)) : '');
-    const customVal = appliedRange ? [r.anomaly ? '數值異常' : (r.pctCustom !== null ? parseFloat(r.pctCustom.toFixed(2)) : '')] : [];
+    const bad = r.anomalyReason === '無報價' ? '尚無報價' : '數值異常';
+    const n = (v: number | null) => r.anomaly ? bad : (v !== null ? parseFloat(v.toFixed(2)) : '');
+    const customVal = appliedRange ? [r.anomaly ? bad : (r.pctCustom !== null ? parseFloat(r.pctCustom.toFixed(2)) : '')] : [];
     return [r.ticker, r.name, r.price ?? '', ...customVal,
       n(r.pct1d), n(r.pctWTD), n(r.pctMTD), n(r.pctYTD),
       n(r.pct5d), n(r.pct1m), n(r.pct3m), n(r.pct6m), n(r.pct1y)];
@@ -169,7 +171,7 @@ export default function PeerPerformanceTab() {
   const avg = useMemo(() => {
     if (!sorted.length) return null;
     const result: Partial<Record<SortKey, number | null>> = {};
-    const valid = sorted.filter(r => !r.anomaly);   // 數值異常者不納入平均
+    const valid = sorted.filter(r => !r.anomaly && !r.benchmark);   // 數值異常者、對照基準都不納入平均
     for (const col of PERF_COLS) {
       const vals = valid.map(r => r[col.key] as number | null).filter(v => v !== null) as number[];
       result[col.key] = vals.length ? vals.reduce((s, v) => s + v, 0) / vals.length : null;
@@ -300,8 +302,13 @@ export default function PeerPerformanceTab() {
                   {r.anomaly ? (
                     <td colSpan={(appliedRange ? 1 : 0) + PERF_COLS.length}
                       title={r.anomalyReason ?? '數值異常'}
-                      style={{ padding: '8px 10px', textAlign: 'center', fontSize: '.8rem', fontWeight: 700, color: RED, background: '#fff0f0', letterSpacing: '.5px' }}>
-                      ⚠ 數值異常
+                      style={{
+                        padding: '8px 10px', textAlign: 'center', fontSize: '.8rem', letterSpacing: '.5px',
+                        fontWeight: r.anomalyReason === '無報價' ? 400 : 700,
+                        color: r.anomalyReason === '無報價' ? SUB : RED,
+                        background: r.anomalyReason === '無報價' ? '#FAFAF9' : '#fff0f0',
+                      }}>
+                      {r.anomalyReason === '無報價' ? '尚無報價（未掛牌或無成交）' : '⚠ 數值異常'}
                     </td>
                   ) : (
                     <>
@@ -326,10 +333,10 @@ export default function PeerPerformanceTab() {
               {/* Average row */}
               {avg && (
                 <tr style={{ background: '#F0EDE8', borderTop: `2px solid ${BORDER}` }}>
-                  <td colSpan={2} style={{ padding: '8px 10px', fontSize: '.78rem', color: SUB, fontWeight: 600, position: 'sticky', left: 0, zIndex: 1, background: '#F0EDE8' }}>等權平均</td>
+                  <td colSpan={2} style={{ padding: '8px 10px', fontSize: '.78rem', color: SUB, fontWeight: 600, position: 'sticky', left: 0, zIndex: 1, background: '#F0EDE8' }}>同業等權平均<span style={{ fontWeight: 400 }}>（不含對照基準）</span></td>
                   <td style={{ padding: '8px 10px', textAlign: 'right', fontSize: '.78rem', color: SUB }}>—</td>
                   {appliedRange && (() => {
-                    const vals = sorted.filter(r => !r.anomaly).map(r => r.pctCustom).filter((v): v is number => v !== null);
+                    const vals = sorted.filter(r => !r.anomaly && !r.benchmark).map(r => r.pctCustom).filter((v): v is number => v !== null);
                     const v = vals.length ? vals.reduce((s, x) => s + x, 0) / vals.length : null;
                     return (
                       <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.78rem', fontWeight: 700, color: perfColor(v), background: perfBg(v) }}>
@@ -355,7 +362,8 @@ export default function PeerPerformanceTab() {
       {data && (
         <div style={{ marginTop: 10, fontSize: '.72rem', color: SUB, lineHeight: 1.8 }}>
           資料來源：Yahoo Finance（與 TWSE 即時交叉比對）　週初至今 = 上週五收盤至今　月初至今 = 上月底收盤至今　年初至今 = 去年底收盤至今　近N日為交易日<br />
-          <span style={{ color: RED }}>⚠ 數值異常</span> = 收盤後 Yahoo 仍缺最新交易日報價（或無報價），績效不可信，已自動排除於等權平均
+          美股對照組：<b>NASDAQ綜合</b>與 <b>S&amp;P500</b> 採官方總報酬指數（^XCMP／^SP500TR，<b>已含息</b>）、<b>QQQ</b> 以還原收盤計亦<b>已含配息</b>；<b>費城半導體</b>在 Yahoo 只有價格指數（無含息版），故為<b>價格報酬</b>、與其餘欄位口徑略有差異。美股交易日與台股不同，資料日可能相差一日。<br />
+          <span style={{ color: RED }}>⚠ 數值異常</span> = 收盤後 Yahoo 仍缺最新交易日報價，績效不可信，已自動排除於等權平均　<b>尚無報價</b> = 該檔尚未掛牌或查無成交，同樣不納入平均
         </div>
       )}
     </div>

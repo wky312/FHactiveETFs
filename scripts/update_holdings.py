@@ -18,8 +18,10 @@ import requests
 FHTRUST_ASSETS = 'https://www.fhtrust.com.tw/api/assets'
 HEADERS = {'User-Agent': 'Mozilla/5.0'}
 
-# 對應 lib/etfList.ts（00991A→ETF23、00998A→ETF24）
-FUND_IDS = ['ETF23', 'ETF24']
+# 對應 lib/etfList.ts（00991A→ETF23、00998A→ETF24、00409A→ETF26）
+# ETF26 成立 2026/08/20、掛牌 2026/09/02，掛牌前復華每日持股 detail 是空的 → fetch_day 回 None、
+# 自動跳過，等官網開始公布逐檔持股就會自己接上（idempotent，不用改程式）。
+FUND_IDS = ['ETF23', 'ETF24', 'ETF26']
 
 # CMoney（pocket.tw 代理）來源：投信官網只給最新一天，CMoney 保留逐日歷史。
 # fundId → CMoney AssignID（對齊 lib/cmoneyHoldings.ts 的 CMONEY_FUNDS）
@@ -45,6 +47,11 @@ CMONEY_DTNO = '59449513'  # M722：日期/標的代號/標的名稱/權重(%)/�
 
 # 主動式 ETF 最早約 2025-05 上市，全回補的掃描下限（成立前的日期會回 null、自動跳過）
 FLOOR = date(2025, 5, 1)
+
+# 個別基金的回補下限（成立日）。晚成立的基金若沿用 FLOOR，每天都要空掃幾百個交易日才知道沒資料。
+FUND_FLOORS = {
+    'ETF26': date(2026, 8, 20),   # 00409A 復華全球未來50，成立 2026/08/20、掛牌 2026/09/02
+}
 
 OUT_DIR = os.path.join(os.path.dirname(__file__), '..', 'data', 'holdings')
 
@@ -137,7 +144,7 @@ def update_fund(fund_id: str) -> int:
         last = max(api_to_date(k) for k in data['days'])
         start = last + timedelta(days=1)
     else:
-        start = FLOOR
+        start = FUND_FLOORS.get(fund_id, FLOOR)
 
     added = 0
     for d in weekdays(start, today):

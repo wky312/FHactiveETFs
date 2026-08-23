@@ -39,6 +39,13 @@ export async function fetchHoldings(
 
   const detail: unknown[] = fund.detail ?? [];
 
+  /* 尚未公布的日期上游不會回錯誤，而是回一個 dDate=null、detail=[] 的空殼。照單全收的話
+     當日摘要會拿「空的今天」去 diff「完整的昨天」，把每一檔都畫成清倉——所以視同無資料。
+     （新成立、尚未掛牌的基金如 00409A/ETF26 也是這個形狀。） */
+  if (!fund.dDate || detail.length === 0) {
+    throw new Error(`${date} 持股尚未公布（復華通常於收盤後陸續更新），請稍後再試或改選前一交易日`);
+  }
+
   const holdings: Holding[] = (detail as Record<string, unknown>[]).map((item) => ({
     stockid: String(item.stockid ?? ''),
     stockname: String(item.stockname ?? ''),

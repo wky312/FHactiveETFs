@@ -5,6 +5,9 @@ export interface PeerItem {
   ticker: string;
   yfTicker: string;
   name: string;
+  /* true = 這一列是「對照基準」而非同業標的（大盤指數、被動對標 ETF）。
+     只影響表格最下方的等權平均——把 +104% 的費半指數算進「同業平均」會讓那個數字失去意義。 */
+  benchmark?: boolean;
 }
 
 export const PEER_GROUPS: Record<string, { label: string; items: PeerItem[] }> = {
@@ -28,9 +31,9 @@ export const PEER_GROUPS: Record<string, { label: string; items: PeerItem[] }> =
       { ticker: '00401A', yfTicker: '00401A.TW', name: '主動摩根台灣鑫收' },
       { ticker: '00403A', yfTicker: '00403A.TW', name: '主動統一升級50' },
       { ticker: '00405A', yfTicker: '00405A.TW', name: '主動富邦台灣龍耀' },
-      { ticker: '0050',   yfTicker: '0050.TW',   name: '元大台灣50' },
-      { ticker: '^TWII',  yfTicker: '^TWII',     name: '台灣加權指數' },
-      { ticker: '^TWOII', yfTicker: '^TWOII',    name: '台灣OTC指數' },
+      { ticker: '0050',   yfTicker: '0050.TW',   name: '元大台灣50',   benchmark: true },
+      { ticker: '^TWII',  yfTicker: '^TWII',     name: '台灣加權指數', benchmark: true },
+      { ticker: '^TWOII', yfTicker: '^TWOII',    name: '台灣OTC指數',  benchmark: true },
     ],
   },
   overseas: {
@@ -44,6 +47,18 @@ export const PEER_GROUPS: Record<string, { label: string; items: PeerItem[] }> =
       { ticker: '00997A', yfTicker: '00997A.TW', name: '主動群益美國增長' },
       { ticker: '00998A', yfTicker: '00998A.TWO', name: '主動復華全球金融' },
       { ticker: '00402A', yfTicker: '00402A.TW', name: '主動安聯美國科技' },
+      { ticker: '00409A', yfTicker: '00409A.TW', name: '主動復華全球50' },
+      /* 美股對照組。要「還原權息」就得挑對 Yahoo 代號——一般指數（^IXIC/^GSPC）是價格指數，
+         adjClose 等於 close、配息完全沒算進去，所以改用官方總報酬指數：
+           ^XCMP    = NASDAQ Composite Total Return
+           ^SP500TR = S&P 500 (TR)
+         QQQ 是 ETF，Yahoo 的 adjClose 本來就已還原配息。
+         費半只有價格指數：^SOXTR / ^SPSIST 在 Yahoo 都查無此代號（2026-08 實測），
+         所以 ^SOX 是價格報酬，已在分頁註腳標明。 */
+      { ticker: '^XCMP',    yfTicker: '^XCMP',    name: 'NASDAQ綜合(含息)', benchmark: true },
+      { ticker: 'QQQ',      yfTicker: 'QQQ',      name: 'QQQ 那斯達克100',  benchmark: true },
+      { ticker: '^SOX',     yfTicker: '^SOX',     name: '費城半導體(價格)', benchmark: true },
+      { ticker: '^SP500TR', yfTicker: '^SP500TR', name: 'S&P500(含息)',     benchmark: true },
     ],
   },
   tw50: {
@@ -66,8 +81,8 @@ export const PEER_GROUPS: Record<string, { label: string; items: PeerItem[] }> =
       { ticker: '00912',  yfTicker: '00912.TW',  name: '中信臺灣智慧50' },
       { ticker: '009816', yfTicker: '009816.TW', name: '凱基台灣TOP50' },
       { ticker: '00403A', yfTicker: '00403A.TW', name: '主動統一升級50' },
-      { ticker: '^TWII',  yfTicker: '^TWII',     name: '台灣加權指數' },
-      { ticker: '^TWOII', yfTicker: '^TWOII',    name: '台灣OTC指數' },
+      { ticker: '^TWII',  yfTicker: '^TWII',     name: '台灣加權指數', benchmark: true },
+      { ticker: '^TWOII', yfTicker: '^TWOII',    name: '台灣OTC指數',  benchmark: true },
     ],
   },
 };

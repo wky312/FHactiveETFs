@@ -81,6 +81,9 @@ const REDEMPTION_GROUPS: RedemptionGroup[] = [
       { ticker: '00998A', name: '復華全球金融', source: 'cmoney',  key: '00998A' },  // 復華無官方申贖 → CMoney 推算
       { ticker: '00983A', name: '中信ARK創新',  source: 'ctbc',    key: 'E0034'  },  // 中信投信 FID
       { ticker: '00986A', name: '台新全球龍頭', source: 'tsit',    key: '00986A' },  // 台新投信（HTML）
+      // 00409A 成立 2026/08/20、掛牌 2026/09/02：掛牌前沒有申購買回清單（fhtrust ETFPcf 全 null，
+      // CMoney 也還沒有規模/淨值序列）→ 先不接來源，該欄顯示「—」，掛牌後再補 source。
+      { ticker: '00409A', name: '復華全球未來50' },
     ],
   },
 ];

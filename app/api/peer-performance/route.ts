@@ -72,12 +72,17 @@ function exactMonthsAgo(n: number): Date {
   return d;
 }
 
+// 台股標的（.TW / .TWO）才查得到 TWSE 上市日與 MIS 即時報價。美股 ETF／美股指數一律排除：
+// 拿 'QQQ' 去問 isin 會在錯誤頁上比對到任意一個日期、被當成上市日，把所有區間報酬 gate 成 null；
+// 塞進 MIS 的 ex_ch 也只是白白汙染批次查詢。
+const isTwListed = (yfTicker: string): boolean => /\.TWO?$/.test(yfTicker);
+
 // ── TWSE listing date lookup ──────────────────────────────────────────────────
 
 const listingDateCache = new Map<string, Date | null>();
 
 async function fetchListingDate(yfTicker: string): Promise<Date | null> {
-  if (yfTicker.startsWith('^')) return null; // indices have no listing date
+  if (!isTwListed(yfTicker)) return null; // 指數與美股標的都沒有 TWSE 上市日
   const code = yfTicker.replace('.TW', '');
   if (listingDateCache.has(code)) return listingDateCache.get(code)!;
   try {
@@ -97,10 +102,10 @@ async function fetchListingDate(yfTicker: string): Promise<Date | null> {
 
 // ── TWSE 即時報價（MIS）：取各檔「已成交的最新交易日」，作為偵測 Yahoo 破值/缺價的真相來源 ──
 // 一次批量查詢全部上市標的；只有當盤中有實際成交價(z 為數字)時，才把該日 d 視為「已成交交易日」，
-// 這樣放假日(z='-') 不會被誤判成 Yahoo 落後。index(^) 不在 MIS，略過。
+// 這樣放假日(z='-') 不會被誤判成 Yahoo 落後。指數與美股標的不在 MIS，略過。
 async function fetchTwseLatestTraded(items: PeerItem[]): Promise<Map<string, string>> {
   const map = new Map<string, string>(); // ticker -> 'YYYY-MM-DD'
-  const codes = items.filter(i => !i.yfTicker.startsWith('^')).map(i => i.ticker);
+  const codes = items.filter(i => isTwListed(i.yfTicker)).map(i => i.ticker);
   if (!codes.length) return map;
   try {
     const ex = codes.map(c => `tse_${c}.tw`).join('|');

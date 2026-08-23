@@ -121,7 +121,7 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
   // 此分頁可獨立選基金：沿用全域所選復華 ETF，或改查其他投信 ETF（資料源 = CMoney/pocket；
-  // 復華 00998A 走 fhtrust）。海外檔持股為外國股，軌跡以 Yahoo 中間價當成本基準。
+  // 復華 00998A/00409A 走 fhtrust）。海外檔持股為外國股，軌跡以 Yahoo 中間價當成本基準。
   const OVERRIDE_FUNDS: { fundId: string; ticker: string; name: string }[] = [
     { fundId: '00981A', ticker: '00981A', name: '統一台股增長' },
     { fundId: '00983A', ticker: '00983A', name: '中信ARK創新（海外）' },
@@ -129,11 +129,13 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
     { fundId: '00988A', ticker: '00988A', name: '統一全球創新（海外）' },
     { fundId: '00990A', ticker: '00990A', name: '元大AI新經濟（海外）' },
     { fundId: 'ETF24',  ticker: '00998A', name: '復華全球金融（海外）' },
+    { fundId: 'ETF26',  ticker: '00409A', name: '復華全球未來50（海外）' },
     { fundId: '00402A', ticker: '00402A', name: '安聯美國科技（海外）' },
   ];
   const [fundOverride, setFundOverride] = useState('');
   const fund = OVERRIDE_FUNDS.find(f => f.fundId === fundOverride) ?? selectedEtf;
-  const isCmoney = fundOverride !== '' && fundOverride !== 'ETF24';
+  // 復華自家基金的 fundId 一律是 ETFxx（走 fhtrust），其餘投信是以股票代號當 fundId（走 CMoney）。
+  const isCmoney = fundOverride !== '' && !fundOverride.startsWith('ETF');
 
   const search = useCallback(async () => {
     if (!query.trim()) { setError('請輸入股票代碼或名稱'); return; }
@@ -291,7 +293,9 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
 
       {data && data.notHeld && (
         <div style={{ padding: '24px', textAlign: 'center', color: SUB, fontSize: '.88rem' }}>
-          {fund.ticker} 期間內未持有「{query.trim()}」，或查無此股票。
+          {data.scannedDays === 0
+            ? `${fund.ticker} 目前還沒有每日持股資料——新成立的基金要等投信開始公布逐檔持股（通常自掛牌日起）才會有軌跡。`
+            : `${fund.ticker} 期間內未持有「${query.trim()}」，或查無此股票。`}
         </div>
       )}
 
@@ -396,7 +400,7 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
           </div>
 
           <div style={{ marginTop: 12, fontSize: '.72rem', color: SUB, lineHeight: 1.8 }}>
-            <b>持股 (張)</b>＝{isCmoney ? '統一' : '復華'}公告股數 ÷ 1000　<b>當日增減</b>＝較前一交易日張數變化（紅色加碼、綠色減碼）<br />
+            <b>持股 (張)</b>＝{isCmoney ? '投信' : '復華'}公告股數 ÷ 1000　<b>當日增減</b>＝較前一交易日張數變化（紅色加碼、綠色減碼）<br />
             <b>成交均價</b>＝當日 成交金額 ÷ 成交股數（≈當日VWAP，台股 TWSE／TPEx）　<b>中間價</b>＝(最高＋最低) ÷ 2（Yahoo，海外股用）<br />
             <b>預估均價</b>＝以加碼日成本基準價估算的移動平均持倉成本（元/股）；成本基準＝台股取成交均價、海外股取中間價<br />
             <b>說明：</b>均價為<u>推估值</u>——台股以當日真實成交均價為基準較貼近實際成交；海外股無此資料，仍以中間價近似。減碼採移動平均成本法（賣出不影響均價）。<br />
