@@ -1,7 +1,12 @@
 'use client';
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import PlotlyWrapper from './PlotlyWrapper';
+import { UNIVERSE_NAMES } from '@/lib/twseUniverse';
+
+// 常見大型股代碼（沿用既有 UNIVERSE_NAMES 清單）——自動完成同分時優先排前面，
+// 讓打「台」這種一個字會先看到台積電這類熟悉的權值股，而不是純照代碼排序。
+const PROMINENT_CODES = new Set(Object.keys(UNIVERSE_NAMES));
 
 const CHART_ID = 'trajectory-chart';
 
@@ -115,33 +120,55 @@ interface Props {
   selectedEtf: { fundId: string; ticker: string; name: string };
 }
 
+interface UniverseStock { code: string; name: string; market: string }
+
 export default function StockTrajectoryTab({ selectedEtf }: Props) {
   const [query,   setQuery]   = useState('');
   const [data,    setData]    = useState<TrajectoryResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error,   setError]   = useState('');
+
+  // 股票代碼/名稱自動完成：全台股（上市+上櫃）清單，進分頁時抓一次，之後純前端過濾。
+  const [universe, setUniverse] = useState<UniverseStock[]>([]);
+  const [showSug,  setShowSug]  = useState(false);
+  const blurTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  useEffect(() => {
+    fetch('/api/stock-universe')
+      .then(r => r.ok ? r.json() : [])
+      .then(setUniverse)
+      .catch(() => {});
+  }, []);
+  const q = query.trim();
+  const qU = q.toUpperCase();
+  const suggestions: UniverseStock[] = q
+    ? (() => {
+        const byProminence = (a: UniverseStock, b: UniverseStock) =>
+          Number(PROMINENT_CODES.has(b.code)) - Number(PROMINENT_CODES.has(a.code));
+        const codeHits = universe.filter(s => s.code.startsWith(qU));
+        const nameHits = universe.filter(s => !s.code.startsWith(qU) && s.name.includes(q)).sort(byProminence);
+        return [...codeHits, ...nameHits].slice(0, 10);
+      })()
+    : [];
   // 此分頁可獨立選基金：沿用全域所選復華 ETF，或改查其他投信 ETF（資料源 = CMoney/pocket；
   // 復華 00998A/00409A 走 fhtrust）。海外檔持股為外國股，軌跡以 Yahoo 中間價當成本基準。
+  // 選單只保留這幾檔重點觀察標的（2026-08-24 依需求精簡，其餘投信/海外檔先移除）。
   const OVERRIDE_FUNDS: { fundId: string; ticker: string; name: string }[] = [
     { fundId: '00981A', ticker: '00981A', name: '統一台股增長' },
-    { fundId: '00983A', ticker: '00983A', name: '中信ARK創新（海外）' },
-    { fundId: '00986A', ticker: '00986A', name: '台新全球龍頭（海外）' },
     { fundId: '00988A', ticker: '00988A', name: '統一全球創新（海外）' },
-    { fundId: '00990A', ticker: '00990A', name: '元大AI新經濟（海外）' },
     { fundId: 'ETF24',  ticker: '00998A', name: '復華全球金融（海外）' },
     { fundId: 'ETF26',  ticker: '00409A', name: '復華全球未來50（海外）' },
-    { fundId: '00402A', ticker: '00402A', name: '安聯美國科技（海外）' },
   ];
   const [fundOverride, setFundOverride] = useState('');
   const fund = OVERRIDE_FUNDS.find(f => f.fundId === fundOverride) ?? selectedEtf;
   // 復華自家基金的 fundId 一律是 ETFxx（走 fhtrust），其餘投信是以股票代號當 fundId（走 CMoney）。
   const isCmoney = fundOverride !== '' && !fundOverride.startsWith('ETF');
 
-  const search = useCallback(async () => {
-    if (!query.trim()) { setError('請輸入股票代碼或名稱'); return; }
+  const search = useCallback(async (qOverride?: string) => {
+    const q = (qOverride ?? query).trim();
+    if (!q) { setError('請輸入股票代碼或名稱'); return; }
     setLoading(true); setError(''); setData(null);
     try {
-      const url = `/api/stock-trajectory?fundId=${encodeURIComponent(fund.fundId)}&q=${encodeURIComponent(query.trim())}`;
+      const url = `/api/stock-trajectory?fundId=${encodeURIComponent(fund.fundId)}&q=${encodeURIComponent(q)}`;
       const res  = await fetch(url);
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
@@ -152,6 +179,14 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
       setLoading(false);
     }
   }, [query, fund.fundId]);
+
+  // 從自動完成清單點選：帶純代碼進查詢框並立即查詢
+  const pickSuggestion = useCallback((s: UniverseStock) => {
+    if (blurTimer.current) clearTimeout(blurTimer.current);
+    setQuery(s.code);
+    setShowSug(false);
+    search(s.code);
+  }, [search]);
 
   // 圖表資料（升冪）
   const dates   = data?.series.map(p => p.date) ?? [];
@@ -252,19 +287,40 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
             ))}
           </select>
         </div>
-        <div>
+        <div style={{ position: 'relative' }}>
           <label style={{ display: 'block', fontSize: '.78rem', color: SUB, marginBottom: 4, fontWeight: 500 }}>
             股票代碼或名稱
           </label>
           <input
-            type="text" value={query}
-            onChange={e => setQuery(e.target.value)}
-            onKeyDown={e => { if (e.key === 'Enter') search(); }}
-            placeholder="例：國巨 或 2327"
+            type="text" value={query} autoComplete="off"
+            onChange={e => { setQuery(e.target.value); setShowSug(true); }}
+            onFocus={() => setShowSug(true)}
+            onBlur={() => { blurTimer.current = setTimeout(() => setShowSug(false), 150); }}
+            onKeyDown={e => { if (e.key === 'Enter') { setShowSug(false); search(); } if (e.key === 'Escape') setShowSug(false); }}
+            placeholder="例：國巨 或 2327 或 台"
             style={{ padding: '7px 12px', border: `1px solid ${BORDER}`, borderRadius: 6, fontSize: '.87rem', color: TEXT, background: '#fff', fontFamily: SANS, width: 200 }}
           />
+          {showSug && suggestions.length > 0 && (
+            <ul style={{
+              position: 'absolute', top: '100%', left: 0, marginTop: 4, width: 220, zIndex: 10,
+              background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 6, listStyle: 'none',
+              padding: '4px 0', boxShadow: '0 4px 14px rgba(0,0,0,.08)', maxHeight: 260, overflowY: 'auto',
+            }}>
+              {suggestions.map(s => (
+                <li key={s.code}
+                  onMouseDown={() => pickSuggestion(s)}
+                  style={{ padding: '6px 12px', fontSize: '.83rem', color: TEXT, cursor: 'pointer', display: 'flex', gap: 8, alignItems: 'baseline' }}
+                  onMouseEnter={e => { (e.currentTarget as HTMLElement).style.background = '#FAFAF9'; }}
+                  onMouseLeave={e => { (e.currentTarget as HTMLElement).style.background = 'transparent'; }}
+                >
+                  <span style={{ fontFamily: MONO, color: SUB, fontSize: '.78rem', flexShrink: 0 }}>{s.code}</span>
+                  <span>{s.name}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
-        <button onClick={search} disabled={loading}
+        <button onClick={() => search()} disabled={loading}
           style={{ padding: '8px 22px', background: loading ? '#999' : RED, color: '#fff', border: 'none', borderRadius: 6,
             cursor: loading ? 'not-allowed' : 'pointer', fontSize: '.88rem', fontWeight: 600, fontFamily: SANS }}>
           {loading ? '查詢中…' : '查詢'}
