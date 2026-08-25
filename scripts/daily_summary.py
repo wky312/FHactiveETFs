@@ -575,9 +575,16 @@ def _ann_days(transaction_date: date, n: int = 5) -> list:
 
 def fetch_tsit_day(ticker: str, transaction_date: date) -> dict | None:
     """台新投信 00986A：GET HTML（<th>label</th><td>value</td>）。
-    DataDate 是**公告日**；資料日藏在「YYYY/M/D每基數實際申購總價金」標籤前綴。"""
+    DataDate 是**公告日**；資料日藏在「YYYY/M/D每基數實際申購總價金」標籤前綴。
+
+    台新的頁面不像其他 5 家投信會另外帶一個「預估發行受益權單位數」欄位——它只有單一一組
+    數字，用 DataDate 往回推 2 個交易日當資料日。但實測這個 DataDate 可以查到「還沒到」的
+    未來日期（例如今天查明天），也就是說要湊到 transaction_date 對得上，有時得查一個還沒
+    真正發生的公告日——這種情況下這筆數字還沒經過真正的「今天」，穩妥起見一併標記
+    is_estimate=True（即使實測過從未被事後修正，仍比照其他 5 家的謹慎作法處理）。"""
     try:
         import re
+        today_tw = datetime.now(TZ).date()
         for ann in _ann_days(transaction_date):
             url = (f'https://www.tsit.com.tw/ETF/Home/Pcf/{ticker}'
                    f'?FundType=&DataDate={ann.isoformat()}')
@@ -598,7 +605,7 @@ def fetch_tsit_day(ticker: str, transaction_date: date) -> dict | None:
             pnav = _pcf_num(field('每受益權單位淨資產價值'))
             if nav == 0 or pnav == 0:
                 return None
-            return {'netSub': (diff * pnav) / 1e8, 'aum': nav / 1e8}
+            return {'netSub': (diff * pnav) / 1e8, 'aum': nav / 1e8, 'is_estimate': ann > today_tw}
         return None
     except Exception as e:
         print(f'  tsit {ticker} {transaction_date}: {e}')
