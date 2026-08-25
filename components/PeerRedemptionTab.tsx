@@ -86,6 +86,9 @@ const REDEMPTION_GROUPS: RedemptionGroup[] = [
       // 00409A 成立 2026/08/20、掛牌 2026/09/02：掛牌前沒有申購買回清單（fhtrust ETFPcf 全 null，
       // CMoney 也還沒有規模/淨值序列）→ 先不接來源，該欄顯示「—」，掛牌後再補 source。
       { ticker: '00409A', name: '復華全球未來50' },
+      // 2026-08-26 補：原本漏掉是沒試過，不是真的沒來源——摩根投信一樣有 CMoney 規模/淨值序列
+      // （實測 AssignID=00989A 抓得到），規模約 12 億，是這組裡最小的一檔。
+      { ticker: '00989A', name: '摩根美國科技', source: 'cmoney', key: '00989A' },
     ],
   },
 ];

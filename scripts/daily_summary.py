@@ -307,6 +307,8 @@ PEER_ETFS = [
     # （CMoney 用「規模÷淨值」還原單位數，有 ±0.01 億取整噪音，且規模以公告日標記會錯位）。
     {'ticker': '00998A', 'name': '復華全球金融', 'source': 'fhtrust', 'key': 'ETF24', 'group': 'overseas'},
     {'ticker': '00402A', 'name': '安聯美國科技', 'source': 'allianz', 'key': 'E0003',  'group': 'overseas'},
+    # 2026-08-26 補：原本漏掉是沒試過，不是真的沒來源——摩根投信一樣有 CMoney 規模/淨值序列。
+    {'ticker': '00989A', 'name': '摩根美國科技', 'source': 'cmoney',  'key': '00989A', 'group': 'overseas'},
 ]
 
 EZMONEY_HOST = 'www.ezmoney.com.tw'

@@ -401,7 +401,7 @@ export default function SectorExposureTab() {
       {loading && <p style={{ color: SUB, fontSize: '.85rem' }}>載入全市場持股中…</p>}
       {error && <p style={{ color: RED, fontSize: '.85rem' }}>{error}</p>}
       {!loading && !error && !codes.length && (
-        <p style={{ color: SUB, fontSize: '.85rem' }}>選一個內建產業族群，或自行複選個股，看{market === 'tw' ? '全市場' : '海外'} {data?.nFunds ?? (market === 'tw' ? 20 : 7)} 檔主動式 ETF 對它們的持有比例。</p>
+        <p style={{ color: SUB, fontSize: '.85rem' }}>選一個內建產業族群，或自行複選個股，看{market === 'tw' ? '全市場' : '海外'} {data?.nFunds ?? (market === 'tw' ? 20 : 9)} 檔主動式 ETF 對它們的持有比例。</p>
       )}
 
       {result && (

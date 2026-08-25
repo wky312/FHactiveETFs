@@ -10,7 +10,7 @@ import { ConsensusResult, ConsensusHolder, ConsensusStock, ConsensusFund } from 
    market-agnostic 的純函式，只要餵對形狀就行）。
    ──────────────────────────────────────────────────────────────────
    跟國內版最大的差異：國內版資料源是共用 Supabase（單一查詢即可拿到全部 20 檔），海外版
-   目前程式裡「已知能抓到持股」的只有 7 檔（見 lib/overseasFunds.ts），且分兩種抓法：
+   目前程式裡「已知能抓到持股」的有 9 檔（見 lib/overseasFunds.ts），且分兩種抓法：
    - 復華自家（00998A/00409A）：lib/fhtrust.ts，需要明確日期、沒有「給我最新」的既有 helper，
      這裡自己往回找（今天起最多回溯 7 天，抓到就停；剛掛牌、尚未公布持股的基金如 00409A
      會 7 天都拿不到，視同這次沒資料——holdingDate: null，不是錯誤）。
