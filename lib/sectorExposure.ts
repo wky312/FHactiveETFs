@@ -65,11 +65,12 @@ export function resolveStockName(code: string, consensusName?: string): string {
   return STOCK_NAMES[code] || code;
 }
 
-/** 海外版：邏輯同 resolveStockName，內建名稱退回讀 CSV 轉換來的 STOCK_NAMES_OVERSEAS。 */
+/** 海外版：優先順序跟 resolveStockName 相反——CMoney/fhtrust 回傳的海外股名常中英夾雜
+    （如「Alphabet公司 Class A」、「英飛凌科技股份有限公司」），拿來當欄位標題會讓表格很亂；
+    CSV 轉換來的 STOCK_NAMES_OVERSEAS 是手動整理過的乾淨中文名，優先採用，查不到才退回
+    即時資料的股名，最後才退回代碼本身。 */
 export function resolveStockNameOverseas(code: string, consensusName?: string): string {
-  const n = (consensusName ?? '').trim();
-  if (n) return n;
-  return STOCK_NAMES_OVERSEAS[code] || code;
+  return STOCK_NAMES_OVERSEAS[code] || (consensusName ?? '').trim() || code;
 }
 
 export function buildSectorMatrix(

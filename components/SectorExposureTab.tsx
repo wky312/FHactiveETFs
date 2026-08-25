@@ -292,11 +292,11 @@ export default function SectorExposureTab() {
             onFocus={() => setGroupFocused(true)}
             onBlur={() => setGroupFocused(false)}
             placeholder="搜尋並加入族群…"
-            style={{ ...toolBtn, cursor: 'text', width: 200, color: TEXT }} />
+            style={{ ...toolBtn, cursor: 'text', width: 240, color: TEXT }} />
           {groupFocused && (
             <div onMouseDown={e => e.preventDefault()}
               style={{ position: 'absolute', top: '100%', left: 0, zIndex: 10, background: CARD, border: `1px solid ${BORDER}`,
-                borderRadius: 6, marginTop: 4, boxShadow: '0 6px 18px rgba(0,0,0,.08)', minWidth: 220, maxHeight: 300, overflowY: 'auto' }}>
+                borderRadius: 6, marginTop: 4, boxShadow: '0 6px 18px rgba(0,0,0,.08)', minWidth: 340, maxHeight: 300, overflowY: 'auto', overflowX: 'auto' }}>
               {groupMatches.custom.length === 0 && groupMatches.builtin.length === 0 && (
                 <div style={{ padding: '8px 10px', fontSize: '.78rem', color: SUB }}>查無符合的族群</div>
               )}
@@ -305,7 +305,7 @@ export default function SectorExposureTab() {
                   <div style={{ padding: '5px 10px 3px', fontSize: '.68rem', color: SUB, fontWeight: 600 }}>我的族群</div>
                   {groupMatches.custom.map(g => (
                     <div key={g.name} onClick={() => { pickGroup(g); setGroupQuery(''); }}
-                      style={{ padding: '6px 10px', cursor: 'pointer', fontSize: '.8rem' }}>
+                      style={{ padding: '6px 10px', cursor: 'pointer', fontSize: '.8rem', whiteSpace: 'nowrap' }}>
                       {g.name}<span style={{ color: SUB, marginLeft: 6 }}>（{g.codes.length}）</span>
                       {appliedGroups.includes(g.name) && <span style={{ color: GOLD, marginLeft: 6 }}>✓ 已套用</span>}
                     </div>
@@ -317,7 +317,7 @@ export default function SectorExposureTab() {
                   <div style={{ padding: '5px 10px 3px', fontSize: '.68rem', color: SUB, fontWeight: 600 }}>內建產業族群</div>
                   {groupMatches.builtin.map(g => (
                     <div key={g.name} onClick={() => { pickGroup(g); setGroupQuery(''); }}
-                      style={{ padding: '6px 10px', cursor: 'pointer', fontSize: '.8rem' }}>
+                      style={{ padding: '6px 10px', cursor: 'pointer', fontSize: '.8rem', whiteSpace: 'nowrap' }}>
                       {g.name}<span style={{ color: SUB, marginLeft: 6 }}>（{g.codes.length}）</span>
                       {appliedGroups.includes(g.name) && <span style={{ color: GOLD, marginLeft: 6 }}>✓ 已套用</span>}
                     </div>
