@@ -17,7 +17,7 @@ const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 // 申贖資料來源：每檔 ETF 對應一個投信爬蟲與其 key（fundId / fundCode / stkId）。
 // source 為 undefined 代表該家投信申贖爬蟲尚未接通 → 該欄一律顯示「—」。
 type RedemptionSource = 'fhtrust' | 'ezmoney' | 'capital' | 'fubon' | 'tsit' | 'ctbc' | 'allianz'
-                      | 'yuanta' | 'cmoney' | 'nomura' | 'cathay' | 'kgi';
+                      | 'yuanta' | 'cmoney' | 'nomura' | 'cathay' | 'kgi' | 'jpmorgan';
 interface RedemptionEtf {
   ticker: string;
   name: string;
@@ -86,9 +86,10 @@ const REDEMPTION_GROUPS: RedemptionGroup[] = [
       // 00409A 成立 2026/08/20、掛牌 2026/09/02：掛牌前沒有申購買回清單（fhtrust ETFPcf 全 null，
       // CMoney 也還沒有規模/淨值序列）→ 先不接來源，該欄顯示「—」，掛牌後再補 source。
       { ticker: '00409A', name: '復華全球未來50' },
-      // 2026-08-26 補：原本漏掉是沒試過，不是真的沒來源——摩根投信一樣有 CMoney 規模/淨值序列
-      // （實測 AssignID=00989A 抓得到），規模約 12 億，是這組裡最小的一檔。
-      { ticker: '00989A', name: '摩根美國科技', source: 'cmoney', key: '00989A' },
+      // 2026-08-26 補：摩根投信官網其實有官方 PCF（product-data API），不用只靠 CMoney 反推——
+      // 只是這支 API 沒有依日期查詢的能力，只回「目前最新一筆」，區間內其餘天數仍用 CMoney
+      // 頂著（見 lib/jpmorganScale.ts）。規模約 12 億，是這組裡最小的一檔。
+      { ticker: '00989A', name: '摩根美國科技', source: 'jpmorgan', key: 'TW00000989A5' },
     ],
   },
 ];
@@ -282,6 +283,7 @@ export default function PeerRedemptionTab() {
         case 'cathay':  url = `/api/cathay-scale?key=${enc(e.key!)}&startDate=${enc(sdDash)}&endDate=${enc(edDash)}`; break;
         case 'kgi':     url = `/api/kgi-scale?key=${enc(e.key!)}&startDate=${enc(sdDash)}&endDate=${enc(edDash)}`; break;
         case 'cmoney':  url = `/api/cmoney-scale?key=${enc(e.key!)}&startDate=${enc(sdDash)}&endDate=${enc(edDash)}`; break;
+        case 'jpmorgan': url = `/api/jpmorgan-scale?key=${enc(e.key!)}&startDate=${enc(sdDash)}&endDate=${enc(edDash)}`; break;
       }
       const r = await fetch(url);
       return { ticker: e.ticker, data: r.ok ? (await r.json() as ScaleDay[]) : [] };

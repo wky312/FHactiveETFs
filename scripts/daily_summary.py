@@ -308,7 +308,10 @@ PEER_ETFS = [
     {'ticker': '00998A', 'name': '復華全球金融', 'source': 'fhtrust', 'key': 'ETF24', 'group': 'overseas'},
     {'ticker': '00402A', 'name': '安聯美國科技', 'source': 'allianz', 'key': 'E0003',  'group': 'overseas'},
     # 2026-08-26 補：原本漏掉是沒試過，不是真的沒來源——摩根投信一樣有 CMoney 規模/淨值序列。
-    {'ticker': '00989A', 'name': '摩根美國科技', 'source': 'cmoney',  'key': '00989A', 'group': 'overseas'},
+    # 2026-08-26 修：摩根投信官網其實有官方 PCF(product-data API)，不用只靠 CMoney 反推——
+    # 只是這支 API 沒有依日期查詢的能力，只回「目前最新一筆」，抓不到時才退回 CMoney
+    # 反推頂著(見 fetch_jpmorgan_estimate，標記 is_estimate=True)。
+    {'ticker': '00989A', 'name': '摩根美國科技', 'source': 'jpmorgan', 'key': 'TW00000989A5', 'group': 'overseas'},
 ]
 
 EZMONEY_HOST = 'www.ezmoney.com.tw'
@@ -834,8 +837,8 @@ def fetch_yuanta_day(ticker: str, transaction_date: date) -> dict | None:
 # 的最新總單位數。用它減掉已確定的「已發行受益權單位總數」、乘上最新一筆已知的
 # 每受益權單位淨資產價值，可以在正式值公告前先抓出一個概算的淨申贖，回傳的 dict 帶
 # is_estimate=True 標記；正式值出來後 process_overseas_estimate_confirm() 會覆蓋掉它。
-# 台新(tsit) PCF 頁面沒有這個欄位、cmoney(00989A) 本身就是即時規模推算(無固定公告落差)、
-# fhtrust(00998A/00409A) 官方 PCF 目前也沒發現對應欄位，這三種來源不做預估。
+# 台新(tsit)、摩根(jpmorgan) 的官方 PCF 頁面沒有這個欄位，改用 CMoney 規模/淨值反推頂著
+# （fetch_jpmorgan_estimate）；復華(fhtrust) 的官方 PCF 目前也沒發現對應欄位，不做預估。
 
 def _parse_flex_slash_date(s: str) -> date | None:
     """解析 'YYY/MM/DD' 格式日期，年份可能是民國(如 115/08/24)或西元(如 2026/08/24)。"""
@@ -1010,12 +1013,88 @@ def fetch_capital_estimate(fund_id: str) -> dict | None:
         return None
 
 
+def fetch_jpmorgan_day(cusip: str, transaction_date: date) -> dict | None:
+    """摩根投信 00989A：官方 PCF（product-data API）沒有依日期查詢的參數，只回「目前最新
+    一筆」正式公告的資料——資料日藏在 fundData.breakdowns.m12Details.data 陣列裡
+    「YYYY/MM/DD 每受益權單位淨資產價值(元)」欄位的 name 前綴（跟台新同一種標籤前綴慣例，
+    只是這裡是 JSON 不是 HTML）。沒有「查未來日期」的疑慮（沒有日期參數可查），最新一筆
+    只可能是已經真正發生的資料日，或還沒公告；只要不等於 transaction_date 就代表還沒公告。
+    """
+    try:
+        url = ('https://am.jpmorgan.com/FundsMarketingHandler/product-data'
+               f'?cusip={cusip}&country=tw&role=twetf&language=zh&userLoggedIn=false')
+        r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=20)
+        if r.status_code != 200:
+            return None
+        rows = ((r.json().get('fundData') or {}).get('breakdowns') or {}).get('m12Details', {}).get('data') or []
+        if not rows:
+            return None
+        by_name = {row.get('name'): row.get('displayValue') for row in rows}
+        pnav = None
+        for row in rows:
+            m = re.match(r'^(\d{4})/(\d{1,2})/(\d{1,2})\s*每受益權單位淨資產價值', row.get('name') or '')
+            if m:
+                if date(int(m.group(1)), int(m.group(2)), int(m.group(3))) != transaction_date:
+                    return None  # 最新一筆不是要的那天 → 還沒公告
+                pnav = _pcf_num(row.get('displayValue'))
+        if pnav is None or pnav == 0:
+            return None
+        diff = _pcf_num(by_name.get('與前日已發行單位差異數'))
+        nav  = _pcf_num(by_name.get('基金淨資產價值(元)'))
+        if nav == 0:
+            return None
+        return {'netSub': (diff * pnav) / 1e8, 'aum': nav / 1e8}
+    except Exception as e:
+        print(f'  jpmorgan {cusip} {transaction_date}: {e}')
+        return None
+
+
+# cusip → CMoney AssignID（給 fetch_jpmorgan_estimate 用；目前只有 00989A 一檔）。
+JPMORGAN_CUSIP_TO_TICKER = {'TW00000989A5': '00989A'}
+
+
+def fetch_jpmorgan_estimate(cusip: str) -> dict | None:
+    """摩根 00989A：官方 PCF 沒有依日期查詢的能力，抓不到「還沒公告那天」的正式值時，
+    用 CMoney 規模/淨值反推最新一個交易日的概算值頂著（邏輯同 fetch_cmoney_day，但這裡
+    要的是「最新一筆」而非「指定某天」），標記 is_estimate=True。等 fetch_jpmorgan_day
+    之後跟上進度、抓到同一天的正式值，process_overseas_estimate_confirm 會自動覆蓋掉。"""
+    try:
+        assign_id = JPMORGAN_CUSIP_TO_TICKER.get(cusip, cusip)
+        import urllib.parse
+        api = 'https://www.pocket.tw/api/cm/MobileService/ashx/GetDtnoData.ashx'
+        def series(dtno, major):
+            mj = f';MajorTable={major}' if major else ''
+            ps = f'AssignID={assign_id};DTRange=10;MTPeriod=0;DTMode=0;DTOrder=1{mj}'
+            url = f'{api}?action=getdtnodata&DtNo={dtno}&ParamStr={urllib.parse.quote(ps)}&FilterNo=0'
+            r = _get_lax(url, timeout=20)
+            return (r.json() or {}).get('Data', []) if r.status_code == 200 else []
+        aum_by = {str(x[0]): parse_num(x[7]) for x in series('60465380', '')}
+        nav_by = {str(x[0]): parse_num(x[2]) for x in series('61498322', 'M708')}
+        dates = sorted(d for d in aum_by if d in nav_by and nav_by[d] > 0)
+        if len(dates) < 2:
+            return None
+        target, prev = dates[-1], dates[-2]
+        nav = nav_by[target]
+        units_t = aum_by[target] * 1e8 / nav
+        units_p = aum_by[prev] * 1e8 / nav_by[prev]
+        return {
+            'date': date(int(target[:4]), int(target[4:6]), int(target[6:8])),
+            'netSub': ((units_t - units_p) * nav) / 1e8,
+            'aum': aum_by[target],
+            'is_estimate': True,
+        }
+    except Exception as e:
+        print(f'  jpmorgan-estimate {cusip}: {e}')
+        return None
+
+
 _OVERSEAS_ESTIMATE_FETCHERS = {
-    'ctbc':    fetch_ctbc_estimate,
-    'ezmoney': fetch_ezmoney_estimate,
-    'yuanta':  fetch_yuanta_estimate,
-    'allianz': fetch_allianz_estimate,
-    'capital': fetch_capital_estimate,
+    'ctbc':     fetch_ctbc_estimate,
+    'ezmoney':  fetch_ezmoney_estimate,
+    'yuanta':   fetch_yuanta_estimate,
+    'allianz':  fetch_allianz_estimate,
+    'capital':  fetch_capital_estimate,
+    'jpmorgan': fetch_jpmorgan_estimate,
 }
 
 
@@ -1123,6 +1202,8 @@ def fetch_all_peer_data(transaction_date: date) -> list:
             data = fetch_kgi_day(etf['key'], transaction_date)
         elif etf['source'] == 'cmoney':
             data = fetch_cmoney_day(etf['key'], transaction_date)
+        elif etf['source'] == 'jpmorgan':
+            data = fetch_jpmorgan_day(etf['key'], transaction_date)
         elif etf['source'] == 'fhtrust':
             data = fetch_fhtrust_day(etf['key'], transaction_date)
         results.append({**etf, 'data': data})
@@ -1608,14 +1689,15 @@ async def process_peer_redemption(today: date):
 OVERSEAS_LOOKBACK_WEEKDAYS = 6
 
 _OVERSEAS_FETCHERS = {
-    'fhtrust': fetch_fhtrust_day,
-    'ezmoney': fetch_ezmoney_day,
-    'capital': fetch_capital_day,
-    'ctbc':    fetch_ctbc_day,
-    'tsit':    fetch_tsit_day,
-    'allianz': fetch_allianz_day,
-    'yuanta':  fetch_yuanta_day,
-    'cmoney':  fetch_cmoney_day,
+    'fhtrust':  fetch_fhtrust_day,
+    'ezmoney':  fetch_ezmoney_day,
+    'capital':  fetch_capital_day,
+    'ctbc':     fetch_ctbc_day,
+    'tsit':     fetch_tsit_day,
+    'allianz':  fetch_allianz_day,
+    'yuanta':   fetch_yuanta_day,
+    'cmoney':   fetch_cmoney_day,
+    'jpmorgan': fetch_jpmorgan_day,
 }
 
 
