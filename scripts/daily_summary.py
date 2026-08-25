@@ -1013,40 +1013,82 @@ def fetch_capital_estimate(fund_id: str) -> dict | None:
         return None
 
 
+def _xlsx_sheet1_label_values(content: bytes) -> dict:
+    """最小 xlsx 讀取器（只用 stdlib zipfile/xml，不加 openpyxl 依賴）：讀第一個工作表
+    A/B 兩欄組成的 label→value 字典。摩根 PCF 的 excel 匯出裡數字也是走 sharedStrings
+    存字串，不需要另外分辨型別。"""
+    import io
+    import zipfile
+    import xml.etree.ElementTree as ElementTree
+    ns = '{http://schemas.openxmlformats.org/spreadsheetml/2006/main}'
+    def safe_parse(xml_bytes: bytes):
+        # 這裡解析的是我們自己向摩根投信官網請求來的 xlsx（信任來源，不是使用者上傳內容），
+        # 但還是擋掉 DOCTYPE/ENTITY 宣告當一道低成本保險，避免 XXE／entity expansion——
+        # 正常的 xlsx sheet XML 本來就不會有這兩種宣告。
+        if b'<!DOCTYPE' in xml_bytes[:500] or b'<!ENTITY' in xml_bytes[:500]:
+            raise ValueError('unexpected DOCTYPE/ENTITY in xlsx XML part')
+        return ElementTree.fromstring(xml_bytes)
+
+    z = zipfile.ZipFile(io.BytesIO(content))
+    shared: list[str] = []
+    if 'xl/sharedStrings.xml' in z.namelist():
+        root = safe_parse(z.read('xl/sharedStrings.xml'))
+        for si in root.findall(f'{ns}si'):
+            shared.append(''.join(t.text or '' for t in si.iter(f'{ns}t')))
+    sheet = safe_parse(z.read('xl/worksheets/sheet1.xml'))
+    out: dict[str, str] = {}
+    for row in sheet.iter(f'{ns}row'):
+        a = b = None
+        for c in row.findall(f'{ns}c'):
+            col = ''.join(ch for ch in (c.get('r') or '') if ch.isalpha())
+            v = c.find(f'{ns}v')
+            if v is None or v.text is None:
+                continue
+            val = shared[int(v.text)] if c.get('t') == 's' else v.text
+            if col == 'A':
+                a = val
+            elif col == 'B':
+                b = val
+        if a is not None and b is not None:
+            out[a] = b
+    return out
+
+
 def fetch_jpmorgan_day(cusip: str, transaction_date: date) -> dict | None:
-    """摩根投信 00989A：官方 PCF（product-data API）沒有依日期查詢的參數，只回「目前最新
-    一筆」正式公告的資料——資料日藏在 fundData.breakdowns.m12Details.data 陣列裡
-    「YYYY/MM/DD 每受益權單位淨資產價值(元)」欄位的 name 前綴（跟台新同一種標籤前綴慣例，
-    只是這裡是 JSON 不是 HTML）。沒有「查未來日期」的疑慮（沒有日期參數可查），最新一筆
-    只可能是已經真正發生的資料日，或還沒公告；只要不等於 transaction_date 就代表還沒公告。
-    """
-    try:
-        url = ('https://am.jpmorgan.com/FundsMarketingHandler/product-data'
-               f'?cusip={cusip}&country=tw&role=twetf&language=zh&userLoggedIn=false')
-        r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=20)
-        if r.status_code != 200:
-            return None
-        rows = ((r.json().get('fundData') or {}).get('breakdowns') or {}).get('m12Details', {}).get('data') or []
-        if not rows:
-            return None
-        by_name = {row.get('name'): row.get('displayValue') for row in rows}
-        pnav = None
-        for row in rows:
-            m = re.match(r'^(\d{4})/(\d{1,2})/(\d{1,2})\s*每受益權單位淨資產價值', row.get('name') or '')
-            if m:
-                if date(int(m.group(1)), int(m.group(2)), int(m.group(3))) != transaction_date:
-                    return None  # 最新一筆不是要的那天 → 還沒公告
-                pnav = _pcf_num(row.get('displayValue'))
-        if pnav is None or pnav == 0:
-            return None
-        diff = _pcf_num(by_name.get('與前日已發行單位差異數'))
-        nav  = _pcf_num(by_name.get('基金淨資產價值(元)'))
-        if nav == 0:
-            return None
-        return {'netSub': (diff * pnav) / 1e8, 'aum': nav / 1e8}
-    except Exception as e:
-        print(f'  jpmorgan {cusip} {transaction_date}: {e}')
-        return None
+    """摩根投信 00989A：官方申購買回清單「歷史資料查詢下載」excel 端點（頁面上「公告日期
+    (點選最近一個月日期下載歷史資料)」那個功能，同網域另一支端點，可依日期查詢——比原本
+    以為的 product-data API(無日期參數)更好用），資料日一樣藏在「YYYY/MM/DD 每受益權單位
+    淨資產價值(元)」標籤前綴。實測固定是查詢日往回推 2 個交易日，但跟其他家一律用
+    _ann_days() 逐一試候選查詢日、比對回應裡的資料日，不寫死位移。只保留約一個月內的資料，
+    更早查詢會 404（頁面上「最近一個月」字樣屬實）。"""
+    for ann in _ann_days(transaction_date):
+        try:
+            url = ('https://am.jpmorgan.com/FundsMarketingHandler/excel'
+                   f'?type=m12_pcf&cusip={cusip}&country=tw&role=twetf&locale=zh-TW&date={ann.isoformat()}')
+            r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=20)
+            if r.status_code != 200:
+                continue
+            pairs = _xlsx_sheet1_label_values(r.content)
+            pnav = None
+            matched = False
+            for k, v in pairs.items():
+                m = re.match(r'^(\d{4})/(\d{1,2})/(\d{1,2})\s*每受益權單位淨資產價值', k)
+                if m:
+                    if date(int(m.group(1)), int(m.group(2)), int(m.group(3))) == transaction_date:
+                        pnav = _pcf_num(v)
+                        matched = True
+                    break
+            if not matched or pnav is None or pnav == 0:
+                continue
+            diff = _pcf_num(pairs.get('與前日已發行單位差異數'))
+            nav  = _pcf_num(pairs.get('基金淨資產價值(元)'))
+            if nav == 0:
+                continue
+            return {'netSub': (diff * pnav) / 1e8, 'aum': nav / 1e8}
+        except Exception as e:
+            print(f'  jpmorgan {cusip} {ann}: {e}')
+            continue
+    return None
 
 
 # cusip → CMoney AssignID（給 fetch_jpmorgan_estimate 用；目前只有 00989A 一檔）。
