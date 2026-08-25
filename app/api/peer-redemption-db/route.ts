@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
     const supabase = getSupabase();
     const { data, error } = await supabase
       .from('peer_redemption')
-      .select('date, ticker, net_sub, aum')
+      .select('date, ticker, net_sub, aum, is_estimate')
       .eq('group', group)
       .gte('date', startDate)
       .lte('date', endDate)
@@ -31,15 +31,17 @@ export async function GET(request: NextRequest) {
 
     if (error) throw new Error(error.message);
 
-    // Transform flat rows → DayRow[]  { date, data: { ticker: {netSub, aum} } }
+    // Transform flat rows → DayRow[]  { date, data: { ticker: {netSub, aum, isEstimate} } }
     // Columns are driven by the client's group definition, so we only emit the
     // tickers that actually have data; the frontend renders '—' for the rest.
-    const dayMap = new Map<string, Record<string, { netSub: number; aum: number } | null>>();
+    // isEstimate: 正式公告出來前，從申購買回清單的「預估發行受益權單位數」概算的暫定值
+    // （見 scripts/daily_summary.py 的 fetch_*_estimate），之後會被正式值覆蓋。
+    const dayMap = new Map<string, Record<string, { netSub: number; aum: number; isEstimate: boolean } | null>>();
 
     for (const row of (data ?? [])) {
       const d = (row.date as string).slice(0, 10); // ensure YYYY-MM-DD
       if (!dayMap.has(d)) dayMap.set(d, {});
-      dayMap.get(d)![row.ticker] = { netSub: row.net_sub, aum: row.aum };
+      dayMap.get(d)![row.ticker] = { netSub: row.net_sub, aum: row.aum, isEstimate: !!row.is_estimate };
     }
 
     const rows = Array.from(dayMap.entries())

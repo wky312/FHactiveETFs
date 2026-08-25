@@ -820,6 +820,198 @@ def fetch_yuanta_day(ticker: str, transaction_date: date) -> dict | None:
         return None
 
 
+# ── 海外主動式ETF 申贖『預估值』fetchers ─────────────────────────────────────
+# 官方申購買回清單除了「已正式確定」的那一天，通常還會多帶一個「預估發行受益權單位數」
+# 欄位（各家命名不同：中信/統一 PRE_OUT_UNIT、元大 preunit、安聯 CAnceTotalIssuesT1、
+# 群益 totUnita），連同它自己的日期戳一起發布——這代表「目前為止已知、還沒正式定案」
+# 的最新總單位數。用它減掉已確定的「已發行受益權單位總數」、乘上最新一筆已知的
+# 每受益權單位淨資產價值，可以在正式值公告前先抓出一個概算的淨申贖，回傳的 dict 帶
+# is_estimate=True 標記；正式值出來後 process_overseas_estimate_confirm() 會覆蓋掉它。
+# 台新(tsit) PCF 頁面沒有這個欄位、cmoney(00989A) 本身就是即時規模推算(無固定公告落差)、
+# fhtrust(00998A/00409A) 官方 PCF 目前也沒發現對應欄位，這三種來源不做預估。
+
+def _parse_flex_slash_date(s: str) -> date | None:
+    """解析 'YYY/MM/DD' 格式日期，年份可能是民國(如 115/08/24)或西元(如 2026/08/24)。"""
+    s = (s or '').strip()
+    m = re.match(r'^(\d{2,4})/(\d{1,2})/(\d{1,2})', s)
+    if not m:
+        return None
+    y = int(m.group(1))
+    if y < 1000:
+        y += 1911
+    try:
+        return date(y, int(m.group(2)), int(m.group(3)))
+    except ValueError:
+        return None
+
+
+def fetch_ctbc_estimate(fid: str) -> dict | None:
+    """中信投信 00406A/00983A：查今天，讀「預估發行受益權單位數(DATE)」概算尚未定案那天。"""
+    try:
+        import urllib.parse
+        base = 'https://www.ctbcinvestments.com.tw/API'
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+            'Content-Type': 'application/json; charset=utf-8',
+            'Referer': 'https://www.ctbcinvestments.com.tw/Etf/Buyback',
+        }
+        tr = requests.post(f'{base}/home/AuthToken?token=www.ctbcinvestments.com',
+                           json={'token': 'www.ctbcinvestments.com'}, headers=headers, timeout=20)
+        token = tr.json().get('Data', {}).get('token')
+        if not token:
+            return None
+        et = urllib.parse.quote(token, safe='')
+        r = requests.post(f'{base}/etf/Buyback?token={et}',
+                          json={'FID': fid, 'StartDate': date.today().isoformat()},
+                          headers=headers, timeout=20)
+        if r.status_code != 200:
+            return None
+        rows = r.json().get('Data', {}).get('Data') or []
+        if not rows:
+            return None
+        row = rows[0]
+        est_date = _parse_flex_slash_date(row.get('預估發行受益權單位數DATE'))
+        pnav = _pcf_num(row.get('每受益權單位淨資產價值'))
+        if not est_date or pnav == 0:
+            return None
+        est_units = _pcf_num(row.get('預估發行受益權單位數'))
+        cur_units = _pcf_num(row.get('已發行受益權單位總數'))
+        return {'date': est_date, 'netSub': (est_units - cur_units) * pnav / 1e8,
+                'aum': est_units * pnav / 1e8, 'is_estimate': True}
+    except Exception as e:
+        print(f'  ctbc-estimate {fid}: {e}')
+        return None
+
+
+def fetch_ezmoney_estimate(fund_code: str, session: requests.Session | None = None) -> dict | None:
+    """統一投信 00988A：GetPCF 裡的 PRE_OUT_UNIT 概算尚未定案那天。"""
+    try:
+        s = session or _get_ezmoney_session(fund_code)
+        announce = date.today()
+        payload = {'fundCode': fund_code, 'date': _roc_date(announce), 'specificDate': True}
+        r = s.post(f'https://{EZMONEY_HOST}/ETF/Transaction/GetPCF', json=payload,
+                   headers={'X-Requested-With': 'XMLHttpRequest',
+                            'Referer': f'https://{EZMONEY_HOST}/ETF/Transaction/PCF?fundCode={fund_code}'},
+                   timeout=25)
+        if r.status_code != 200 or 'application/json' not in r.headers.get('content-type', ''):
+            return None
+        pcf = r.json().get('pcf', [])
+        if not pcf:
+            return None
+        get = lambda code: next((p for p in pcf if p.get('PCFCode', '').upper() == code), None)
+        pre = get('PRE_OUT_UNIT')
+        if not pre:
+            return None
+        est_date = _parse_flex_slash_date(pre.get('ValueDate'))
+        pnav = parse_num((get('P_UNIT') or {}).get('Amount', 0))
+        if not est_date or pnav == 0:
+            return None
+        est_units = parse_num(pre.get('Amount', 0))
+        cur_units = parse_num((get('OUT_UNIT') or {}).get('Amount', 0))
+        return {'date': est_date, 'netSub': (est_units - cur_units) * pnav / 1e8,
+                'aum': est_units * pnav / 1e8, 'is_estimate': True}
+    except Exception as e:
+        print(f'  ezmoney-estimate {fund_code}: {e}')
+        return None
+
+
+def fetch_yuanta_estimate(ticker: str) -> dict | None:
+    """元大投信 00990A：查今天，讀 preunit/predate 概算尚未定案那天。"""
+    try:
+        ann = date.today()
+        url = ('https://etfapi.yuantaetfs.com/ectranslation/api/bridge'
+               f'?APIType=ETFAPI&CompanyName=YUANTAFUNDS&FuncId=PCF/Daily'
+               f'&ticker={ticker}&date={ann.strftime("%Y%m%d")}')
+        r = _get_lax(url, timeout=20)
+        if r.status_code != 200:
+            return None
+        pcf = (r.json() or {}).get('PCF')
+        if not pcf:
+            return None
+        predate_raw = str(pcf.get('predate') or '')
+        if len(predate_raw) != 8:
+            return None
+        est_date = date(int(predate_raw[:4]), int(predate_raw[4:6]), int(predate_raw[6:8]))
+        nav = parse_num(pcf.get('nav', 0) or 0)
+        if nav == 0:
+            return None
+        est_units = parse_num(pcf.get('preunit', 0) or 0)
+        cur_units = parse_num(pcf.get('osunit', 0) or 0)
+        return {'date': est_date, 'netSub': (est_units - cur_units) * nav / 1e8,
+                'aum': est_units * nav / 1e8, 'is_estimate': True}
+    except Exception as e:
+        print(f'  yuanta-estimate {ticker}: {e}')
+        return None
+
+
+def fetch_allianz_estimate(fund_no: str) -> dict | None:
+    """安聯投信 00402A：查今天，讀 CAnceTotalIssuesT1(Date) 概算尚未定案那天。"""
+    try:
+        base = 'https://etf.allianzgi.com.tw/webapi/api'
+        s = requests.Session()
+        s.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+        s.get(f'{base}/AntiForgery/GetAntiForgeryToken', timeout=20)
+        token = s.cookies.get('X-XSRF-TOKEN')
+        if not token:
+            return None
+        r = s.post(f'{base}/Fund/GetFundTradeInfo',
+                   json={'FundNo': fund_no, 'Date': date.today().isoformat()},
+                   headers={'X-XSRF-TOKEN': token, 'Content-Type': 'application/json'}, timeout=20)
+        if r.status_code != 200:
+            return None
+        j = r.json()
+        if j.get('StatusCode') != 0:
+            return None
+        e = j.get('Entries') or {}
+        est_date_raw = str(e.get('CAnceTotalIssuesT1Date') or '')[:10]
+        nav = parse_num(e.get('CAnceNav', 0) or 0)
+        if not est_date_raw or nav == 0:
+            return None
+        est_date = date.fromisoformat(est_date_raw)
+        est_units = parse_num(e.get('CAnceTotalIssuesT1', 0) or 0)
+        cur_units = parse_num(e.get('CAnceTotalIssues', 0) or 0)
+        return {'date': est_date, 'netSub': (est_units - cur_units) * nav / 1e8,
+                'aum': est_units * nav / 1e8, 'is_estimate': True}
+    except Exception as e:
+        print(f'  allianz-estimate {fund_no}: {e}')
+        return None
+
+
+def fetch_capital_estimate(fund_id: str) -> dict | None:
+    """群益投信 00997A：查今天，讀 totUnita/date3 概算尚未定案那天。"""
+    try:
+        s = requests.Session()
+        s.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+        s.get(f'https://{CAPITAL_HOST}/', timeout=15)
+        r = s.post(f'https://{CAPITAL_HOST}/CFWeb/api/etf/buyback',
+                  json={'fundId': fund_id, 'date': str(date.today())},
+                  headers={'Referer': f'https://{CAPITAL_HOST}/etf/transaction/buyback'}, timeout=20)
+        if r.status_code != 200:
+            return None
+        pcf = (r.json().get('data') or {}).get('pcf') or {}
+        date3 = pcf.get('date3')
+        pnav = parse_num(pcf.get('pUnit', 0))
+        if not date3 or pnav == 0:
+            return None
+        est_date = date.fromisoformat(date3)
+        est_units = parse_num(pcf.get('totUnita', 0))
+        cur_units = parse_num(pcf.get('totUnit', 0))
+        return {'date': est_date, 'netSub': (est_units - cur_units) * pnav / 1e8,
+                'aum': est_units * pnav / 1e8, 'is_estimate': True}
+    except Exception as e:
+        print(f'  capital-estimate {fund_id}: {e}')
+        return None
+
+
+_OVERSEAS_ESTIMATE_FETCHERS = {
+    'ctbc':    fetch_ctbc_estimate,
+    'ezmoney': fetch_ezmoney_estimate,
+    'yuanta':  fetch_yuanta_estimate,
+    'allianz': fetch_allianz_estimate,
+    'capital': fetch_capital_estimate,
+}
+
+
 def fetch_cmoney_day(assign_id: str, transaction_date: date) -> dict | None:
     """復華 00998A 無官方申贖 → CMoney 規模/淨值序列推算 netSub = Δunits × nav。"""
     try:
@@ -1299,6 +1491,7 @@ def write_peer_to_supabase(peer_results: list, transaction_date: date):
                 'net_sub': round(float(etf['data']['netSub']), 6),
                 'aum':     round(float(etf['data']['aum']),    6),
                 'group':   etf.get('group', 'tw_active'),
+                'is_estimate': bool(etf['data'].get('is_estimate', False)),
             }
             for etf in peer_results
             if etf.get('data')
@@ -1442,7 +1635,83 @@ def process_overseas_redemption(today: date) -> int:
                 break
         else:
             print(f'  {etf["ticker"]}: 近 {OVERSEAS_LOOKBACK_WEEKDAYS} 個工作日查無已公告資料')
+
+        # 正式值查無資料時（或即使查得到，還有更新一天的預估值時），補一筆「預估」列——
+        # 用申購買回清單裡的「預估發行受益權單位數」概算，標記 is_estimate=True。
+        # 不能蓋掉已經是正式值的列，只在該日期還沒有資料、或該日期原本也是估計值時才寫入。
+        est_fetcher = _OVERSEAS_ESTIMATE_FETCHERS.get(etf['source'])
+        if est_fetcher:
+            est = est_fetcher(etf['key'])
+            if est and est.get('netSub') is not None and est.get('aum') is not None:
+                existing = _fetch_existing_peer_row(str(est['date']), etf['ticker'])
+                if existing is None or existing.get('is_estimate'):
+                    write_peer_to_supabase([{**etf, 'data': est}], est['date'])
+                    print(f'  {etf["ticker"]} {est["date"]} (預估): netSub={est["netSub"]:+.2f}億 aum={est["aum"]:.2f}億')
+                    written += 1
     return written
+
+
+def _fetch_existing_peer_row(date_str: str, ticker: str) -> dict | None:
+    """讀單一 (date,ticker) 列的 is_estimate 狀態；查不到或 Supabase 未設定回 None。"""
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        return None
+    try:
+        from supabase import create_client
+        client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+        res = (client.table('peer_redemption').select('is_estimate')
+               .eq('date', date_str).eq('ticker', ticker).limit(1).execute())
+        return res.data[0] if res.data else None
+    except Exception as e:
+        print(f'  讀取既有列失敗 {ticker} {date_str}: {e}')
+        return None
+
+
+ESTIMATE_CONFIRM_LOOKBACK_DAYS = 21   # 日曆天，寬鬆涵蓋連假；只挑目前還標 is_estimate 的列覆核
+
+
+def process_overseas_estimate_confirm(today: date) -> int:
+    """把還標 is_estimate=true 的列，重試正式來源；正式值出來就覆蓋掉估計值
+    （upsert 以 (date,ticker) 為主鍵，天然冪等）。"""
+    print('\n[海外同業申贖：估計值 → 正式值 覆核]')
+    if not SUPABASE_URL or not SUPABASE_SERVICE_KEY:
+        print('  Supabase credentials not set, skipping.')
+        return 0
+    try:
+        from supabase import create_client
+        client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
+        start = today - timedelta(days=ESTIMATE_CONFIRM_LOOKBACK_DAYS)
+        res = (client.table('peer_redemption').select('date, ticker')
+               .eq('is_estimate', True).gte('date', str(start)).execute())
+        pending = res.data or []
+    except Exception as e:
+        print(f'  讀取待覆核列表失敗（{e}），略過')
+        return 0
+    if not pending:
+        print('  目前沒有待覆核的估計值。')
+        return 0
+
+    by_ticker: dict = {}
+    for row in pending:
+        by_ticker.setdefault(row['ticker'], []).append(row['date'])
+
+    confirmed = 0
+    for etf in PEER_ETFS:
+        dates = by_ticker.get(etf['ticker'])
+        if not dates:
+            continue
+        fetcher = _OVERSEAS_FETCHERS.get(etf['source'])
+        if fetcher is None:
+            continue
+        for d_str in dates:
+            d = date.fromisoformat(d_str)
+            data = fetcher(etf['key'], d)
+            if data and data.get('netSub') is not None and data.get('aum') is not None:
+                write_peer_to_supabase([{**etf, 'data': {**data, 'is_estimate': False}}], d)
+                print(f'  {etf["ticker"]} {d}: 估計值 → 正式值 netSub={data["netSub"]:+.2f}億')
+                confirmed += 1
+    if not confirmed:
+        print(f'  {len(pending)} 筆估計值仍未有正式值公告。')
+    return confirmed
 
 
 # ── 近期補洞 ────────────────────────────────────────────────────────────────
@@ -1577,6 +1846,13 @@ async def main():
         process_unit_watch(today)
     except Exception as e:
         print(f'  Unit watch ERROR: {e}')
+        import traceback; traceback.print_exc()
+
+    # 先試著把還沒公告的估計值覆核成正式值，再抓當天的最新資料（含新的估計值）。
+    try:
+        process_overseas_estimate_confirm(today)
+    except Exception as e:
+        print(f'  Overseas estimate confirm ERROR: {e}')
         import traceback; traceback.print_exc()
 
     # 海外檔的公告落後當天，必須另外補（不推播，只寫 DB 給網頁分頁用）。

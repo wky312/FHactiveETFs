@@ -173,9 +173,11 @@ function fmtAumDiff(v: number | null) {
 }
 
 // Unified row type
+// isEstimate：正式公告出來前，從申購買回清單「預估發行受益權單位數」概算的暫定值
+// （見 scripts/daily_summary.py 的 fetch_*_estimate）；只有 DB 來源會有，即時查詢一律 false。
 interface DayRow {
   date: string;
-  data: Record<string, { netSub: number; aum: number } | null>;
+  data: Record<string, { netSub: number; aum: number; isEstimate?: boolean } | null>;
 }
 
 const norm = (d: string) => d.replace(/\//g, '-'); // → YYYY-MM-DD
@@ -190,7 +192,7 @@ function mergeDays(perTicker: Map<string, ScaleDay[]>, tickers: string[]): DayRo
     const data: DayRow['data'] = {};
     for (const ticker of tickers) {
       const d = (perTicker.get(ticker) ?? []).find(x => norm(x.date) === date);
-      data[ticker] = d ? { netSub: d.netSub, aum: d.aum } : null;
+      data[ticker] = d ? { netSub: d.netSub, aum: d.aum, isEstimate: false } : null;
     }
     rows.push({ date, data });
   }
@@ -507,7 +509,12 @@ export default function PeerRedemptionTab() {
           {/* 申贖金額表 */}
           <div ref={subsRef} style={{ background: '#fff', marginBottom: 20 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8 }}>
-            <span style={{ fontSize: '.78rem', color: SUB }}>單位：億元　正值 = 淨申購（紅）　負值 = 淨贖回（綠）</span>
+            <span style={{ fontSize: '.78rem', color: SUB }}>
+              單位：億元　正值 = 淨申購（紅）　負值 = 淨贖回（綠）
+              {rows.some(r => Object.values(r.data).some(d => d?.isEstimate)) && (
+                <> ／ <span style={{ color: '#B08F6E' }}>斜體+*</span> = 正式公告前的預估值，公告後會自動改成正式值</>
+              )}
+            </span>
             <button onClick={() => saveImage(subsRef, `同業淨申贖_${currentGroup.label}_${endDate}.png`)}
               style={{ padding: '4px 12px', background: '#fff', border: `1px solid ${BORDER}`, borderRadius: 6, cursor: 'pointer', fontSize: '.78rem', color: SUB }}>
               儲存 / 分享
@@ -535,8 +542,10 @@ export default function PeerRedemptionTab() {
                     {allTickers.map(t => {
                       const d = row.data[t];
                       return (
-                        <td key={t} style={{ padding: '7px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', fontWeight: 600, color: subColor(d?.netSub ?? null) }}>
-                          {d ? fmtSub(d.netSub) : <span style={{ color: '#CCC' }}>—</span>}
+                        <td key={t} title={d?.isEstimate ? '預估值：正式公告出來前的概算，之後會自動改成正式值' : undefined}
+                          style={{ padding: '7px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', fontWeight: 600, color: subColor(d?.netSub ?? null),
+                            fontStyle: d?.isEstimate ? 'italic' : 'normal', opacity: d?.isEstimate ? 0.75 : 1 }}>
+                          {d ? <>{fmtSub(d.netSub)}{d.isEstimate && <span style={{ color: '#B08F6E' }}>*</span>}</> : <span style={{ color: '#CCC' }}>—</span>}
                         </td>
                       );
                     })}
@@ -592,8 +601,10 @@ export default function PeerRedemptionTab() {
                     {allTickers.map(t => {
                       const d = row.data[t];
                       return (
-                        <td key={t} style={{ padding: '7px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', color: SUB }}>
-                          {d ? fmtAum(d.aum) : <span style={{ color: '#CCC' }}>—</span>}
+                        <td key={t} title={d?.isEstimate ? '預估值：正式公告出來前的概算，之後會自動改成正式值' : undefined}
+                          style={{ padding: '7px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', color: SUB,
+                            fontStyle: d?.isEstimate ? 'italic' : 'normal', opacity: d?.isEstimate ? 0.75 : 1 }}>
+                          {d ? <>{fmtAum(d.aum)}{d.isEstimate && <span style={{ color: '#B08F6E' }}>*</span>}</> : <span style={{ color: '#CCC' }}>—</span>}
                         </td>
                       );
                     })}
