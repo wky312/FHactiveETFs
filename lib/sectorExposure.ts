@@ -1,4 +1,5 @@
 import { STOCK_NAMES } from './sectorGroups';
+import { STOCK_NAMES_OVERSEAS } from './sectorGroupsOverseas';
 
 /* 族群曝險 —— 把 /api/consensus 的一包資料組成「ETF × 個股」權重矩陣。
    ──────────────────────────────────────────────────────────────────
@@ -64,7 +65,18 @@ export function resolveStockName(code: string, consensusName?: string): string {
   return STOCK_NAMES[code] || code;
 }
 
-export function buildSectorMatrix(consensus: ConsensusResult, rawCodes: string[]): SectorExposureResult {
+/** 海外版：邏輯同 resolveStockName，內建名稱退回讀 CSV 轉換來的 STOCK_NAMES_OVERSEAS。 */
+export function resolveStockNameOverseas(code: string, consensusName?: string): string {
+  const n = (consensusName ?? '').trim();
+  if (n) return n;
+  return STOCK_NAMES_OVERSEAS[code] || code;
+}
+
+export function buildSectorMatrix(
+  consensus: ConsensusResult,
+  rawCodes: string[],
+  nameResolver: (code: string, consensusName?: string) => string = resolveStockName,
+): SectorExposureResult {
   const codes = [...new Set(rawCodes.map(c => c.trim()).filter(Boolean))];
   const byId = new Map(consensus.stocks.map(s => [s.stockid, s]));
 
@@ -103,7 +115,7 @@ export function buildSectorMatrix(consensus: ConsensusResult, rawCodes: string[]
     }
     return {
       stockid: c,
-      stockname: resolveStockName(c, s?.stockname),
+      stockname: nameResolver(c, s?.stockname),
       heldBy: m.size,
       sumWeight,
       equalAvg: nFunds > 0 ? sumWeight / nFunds : 0,
