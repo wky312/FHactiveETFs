@@ -1059,10 +1059,17 @@ def fetch_fhtrust_day(fund_id: str, transaction_date: date) -> dict | None:
     台股檔（ETF23）的 actBuyValDate 落後公告日 1 個交易日，海外檔（ETF24）落後 2 個，
     寫死推算會整檔對不上而靜靜回 None。這裡改成從交易日往後掃公告日候選、比對自報日期。
     掃 8 個日曆日：T+2 個交易日跨週末就是 +4 天，再遇到連假還要更多。
+
+    ETF24（海外）實測：查詢的 pcfDate 可以是「還沒真正發生」的未來日期（例如今天查明天，
+    就能拿到「昨天」的正式值）——這種情況下數字還沒經過真正的「今天」，比照 fetch_tsit_day
+    標記 is_estimate=True。ETF23（台股）不會踩到這個情況（今天查今天就夠、查明天永遠是
+    None），所以這條判斷對它是無害的 no-op。
     """
     target_str = date_to_api(transaction_date)
+    today_tw = datetime.now(TZ).date()
     for offset in range(8):
-        pcf_date = date_to_api(transaction_date + timedelta(days=offset))
+        pcf_date_obj = transaction_date + timedelta(days=offset)
+        pcf_date = date_to_api(pcf_date_obj)
         try:
             url = f'{FHTRUST_PCF}?fundID={fund_id}&pcfDate={requests.utils.quote(pcf_date)}'
             r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=20)
@@ -1073,6 +1080,7 @@ def fetch_fhtrust_day(fund_id: str, transaction_date: date) -> dict | None:
             return {
                 'netSub': parse_num(d.get('actBuyVal', 0)) * parse_num(d.get('qDiff', 0)) / 500000 / 1e8,
                 'aum':    parse_num(d.get('nav', 0)) / 1e8,
+                'is_estimate': pcf_date_obj > today_tw,
             }
         except Exception:
             continue

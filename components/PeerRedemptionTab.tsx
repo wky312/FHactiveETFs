@@ -217,7 +217,7 @@ function exportExcel(rows: DayRow[], tickers: string[], groupLabel: string, star
 export default function PeerRedemptionTab() {
   const today    = new Date();
   const defEnd   = localStr(prevWeekday(today));
-  const defStart = localStr(new Date(new Date(defEnd.replace(/\//g,'-')).setDate(new Date(defEnd.replace(/\//g,'-')).getDate() - 13)));
+  const defStart = localStr(new Date(new Date(defEnd.replace(/\//g,'-')).setDate(new Date(defEnd.replace(/\//g,'-')).getDate() - 4)));
 
   const [group,        setGroup]        = useState('tw_active');
   const [startDate,    setStartDate]    = useState(defStart.replace(/\//g, '-'));
@@ -472,7 +472,7 @@ export default function PeerRedemptionTab() {
 
       {/* Quick range */}
       <div style={{ display: 'flex', gap: 6, marginBottom: 16, flexWrap: 'wrap' }}>
-        {[{ label: '近10日', days: 10 }, { label: '近20日', days: 20 }, { label: '近30日', days: 30 }].map(p => (
+        {[{ label: '近5日', days: 5 }, { label: '近10日', days: 10 }, { label: '近20日', days: 20 }, { label: '近30日', days: 30 }].map(p => (
           <button key={p.days} onClick={() => setRange(p.days)}
             style={{ padding: '4px 12px', border: `1px solid ${BORDER}`, borderRadius: 20, background: '#fff', color: SUB, cursor: 'pointer', fontSize: '.78rem' }}>
             {p.label}
