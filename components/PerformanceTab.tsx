@@ -61,13 +61,16 @@ function exportExcel(
   date: string, ticker: string,
   appliedRange: { start: string; end: string } | null,
   customMap: Map<string, number | null>,
+  benchIds: Set<string> = new Set(),
 ) {
   const customLabel = appliedRange ? [`自訂區間%(${appliedRange.start}→${appliedRange.end})`] : [];
   const headers = ['代碼', '名稱', '佔比%', '現價', ...customLabel, '今日%', '近3日%', '近5日%', '近一月%', '近三月%', 'YTD%'];
   const rows = results.map(r => {
     const customVal = appliedRange ? [fmtNum(customMap.get(r.stockid) ?? null)] : [];
+    const isBench = benchIds.has(r.stockid);
     return [
-      r.stockid, r.stockname, fmtNum(r.prate, 3), r.currentPrice ?? '',
+      r.stockid, isBench ? `${r.stockname}（基準）` : r.stockname,
+      isBench ? '' : fmtNum(r.prate, 3), r.currentPrice ?? '',
       ...customVal,
       fmtNum(r.today), fmtNum(r.d3), fmtNum(r.d5),
       fmtNum(r.m1), fmtNum(r.m3), fmtNum(r.ytd),
@@ -141,13 +144,25 @@ export default function PerformanceTab({
     setCustomError('');
   };
 
+  // 基準（0050/加權指數，或美股四大指數）不置頂，直接跟個股一起排序——這樣一眼就看得出
+  // 哪些持股贏過指數、哪些落後。列本身仍用黃底＋「基準」標籤區隔，排到哪裡都認得出來。
+  const benchIds = useMemo(
+    () => new Set((benchmarks ?? []).map(b => b.stockid)),
+    [benchmarks],
+  );
   const sorted = useMemo(() => {
-    return [...results].sort((a, b) => {
+    return [...results, ...(benchmarks ?? [])].sort((a, b) => {
       const av = (sortKey === 'pctCustom' ? (customMap.get(a.stockid) ?? null) : a[sortKey]) ?? -Infinity;
       const bv = (sortKey === 'pctCustom' ? (customMap.get(b.stockid) ?? null) : b[sortKey]) ?? -Infinity;
+      // 佔比排序時基準沒有佔比可比，一律沉到最後，不要卡在中間干擾持股排名
+      if (sortKey === 'prate') {
+        const ab = benchIds.has(a.stockid) ? 1 : 0;
+        const bb = benchIds.has(b.stockid) ? 1 : 0;
+        if (ab !== bb) return ab - bb;
+      }
       return sortAsc ? av - bv : bv - av;
     });
-  }, [results, sortKey, sortAsc, customMap]);
+  }, [results, benchmarks, benchIds, sortKey, sortAsc, customMap]);
 
   const toggleSort = (key: SortKey) => {
     if (key === sortKey) setSortAsc(p => !p);
@@ -187,7 +202,7 @@ export default function PerformanceTab({
           <span>股價來源：Yahoo Finance{priceAsOfStr ? `（報價截至 ${priceAsOfStr}）` : '（延遲）'}</span>
         </div>
         <button
-          onClick={() => exportExcel(sorted, date, etfTicker, appliedRange, customMap)}
+          onClick={() => exportExcel(sorted, date, etfTicker, appliedRange, customMap, benchIds)}
           style={{
             padding: '6px 16px', background: '#fff', border: `1px solid ${BORDER}`,
             borderRadius: 6, cursor: 'pointer', fontSize: '.8rem', color: SUB,
@@ -299,50 +314,28 @@ export default function PerformanceTab({
             </tr>
           </thead>
           <tbody>
-            {/* 基準列置頂供相對強弱對照：台股基金＝0050(含息)＋加權指數，海外基金＝美股四大指數 */}
-            {(benchmarks ?? []).map(b => {
-              const cv = customMap.get(b.stockid) ?? null;
-              return (
-                <tr key={`bench-${b.stockid}`} style={{ background: '#FFF8E6', borderBottom: `1px solid #F2D98A` }}>
-                  <td style={{ padding: '8px 12px', textAlign: 'center', fontSize: '.78rem', fontFamily: MONO, color: SUB, position: 'sticky', left: 0, zIndex: 1, background: '#FFF8E6' }}>{b.stockid}</td>
-                  <td style={{ padding: '8px 12px', fontSize: '.84rem', color: TEXT, fontWeight: 700, position: 'sticky', left: 76, zIndex: 1, background: '#FFF8E6' }}>
-                    {b.stockname}
-                    <span style={{ marginLeft: 6, fontSize: '.62rem', fontWeight: 700, color: '#92620A', background: '#F5E2A8', padding: '1px 6px', borderRadius: 4 }}>基準</span>
-                  </td>
-                  <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: SUB }}>—</td>
-                  <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: SUB }}>
-                    {b.currentPrice !== null
-                      ? b.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-                      : '—'}
-                  </td>
-                  {appliedRange && (
-                    <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', fontWeight: 700, color: perfColor(cv), background: perfBg(cv) }}>
-                      {customLoading ? '…' : fmtPct(cv)}
-                    </td>
-                  )}
-                  {PERF_COLS.map(c => {
-                    const v = b[c.key];
-                    return (
-                      <td key={c.key} style={{ padding: '8px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', fontWeight: 700, color: perfColor(v), background: perfBg(v) }}>
-                        {fmtPct(v)}
-                      </td>
-                    );
-                  })}
-                </tr>
-              );
-            })}
             {sorted.map((r, i) => {
-              const rowBg = i % 2 === 0 ? '#fff' : '#FAFAF9';
+              const isBench = benchIds.has(r.stockid);
+              const rowBg = isBench ? '#FFF8E6' : (i % 2 === 0 ? '#fff' : '#FAFAF9');
               return (
               <tr key={`${r.stockid}-${i}`} style={{
                 background: rowBg,
-                borderBottom: `1px solid ${BORDER}`,
+                borderBottom: `1px solid ${isBench ? '#F2D98A' : BORDER}`,
               }}>
                 <td style={{ padding: '8px 12px', textAlign: 'center', fontSize: '.8rem', fontFamily: MONO, color: SUB, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{r.stockid || '—'}</td>
-                <td style={{ padding: '8px 12px', fontSize: '.86rem', color: TEXT, maxWidth: 180, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', position: 'sticky', left: 76, zIndex: 1, background: rowBg }}>{r.stockname}</td>
-                <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', color: TEXT, fontWeight: 500 }}>{r.prate.toFixed(3)}%</td>
+                <td style={{ padding: '8px 12px', fontSize: '.86rem', color: TEXT, maxWidth: 180, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', position: 'sticky', left: 76, zIndex: 1, background: rowBg, fontWeight: isBench ? 700 : 400 }}>
+                  {r.stockname}
+                  {isBench && (
+                    <span style={{ marginLeft: 6, fontSize: '.62rem', fontWeight: 700, color: '#92620A', background: '#F5E2A8', padding: '1px 6px', borderRadius: 4 }}>基準</span>
+                  )}
+                </td>
+                <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', color: isBench ? SUB : TEXT, fontWeight: 500 }}>
+                  {isBench ? '—' : `${r.prate.toFixed(3)}%`}
+                </td>
                 <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: SUB }}>
-                  {r.currentPrice !== null ? r.currentPrice.toFixed(2) : '—'}
+                  {r.currentPrice !== null
+                    ? r.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                    : '—'}
                 </td>
                 {appliedRange && (() => {
                   const v = customMap.get(r.stockid) ?? null;
