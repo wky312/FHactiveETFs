@@ -1606,14 +1606,25 @@ async def screenshot_html(html: str) -> bytes:
 
 # ── Pushover ──────────────────────────────────────────────────────────────────
 
-def send_email(subject: str, message: str, image_bytes: bytes | None = None) -> bool:
-    """把同一則通知寄一份 email 副本。未設定 Gmail/收件者就靜默略過，回 False。
+# 三則通知各自推 Pushover（手機通知一則一件事比較合理），但 email 合併成一封寄出——
+# 同一分鐘收到三封機器人信太吵。各段先進 buffer，main() 收尾時再一次寄。
+_EMAIL_SECTIONS: list = []
 
-    message 沿用 Pushover 的格式（`html=1`，含 <b> 之類的標籤、以 \n 斷行），
-    這裡把換行轉成 <br> 後直接當 HTML body；截圖以 CID 內嵌，收信時就看得到圖。
+
+def queue_email_section(title: str, message: str, image_bytes: bytes | None = None):
+    """把一則通知排進當日的 email 摘要（不立刻寄）。"""
+    _EMAIL_SECTIONS.append({'title': title, 'message': message, 'image': image_bytes})
+
+
+def send_email_digest(subject: str, sections: list) -> bool:
+    """把多段通知寄成一封 email。未設定 Gmail/收件者就靜默略過，回 False。
+
+    各段 message 沿用 Pushover 的格式（`html=1`，含 <b> 之類的標籤、以 \n 斷行），
+    換行轉 <br> 後直接當 HTML；截圖以 CID 內嵌（每段一個獨立 cid），
+    另附純文字 part 當退路。
     """
     recipients = [a.strip() for a in REPORT_EMAIL_TO.split(',') if a.strip()]
-    if not (GMAIL_USER and GMAIL_APP_PASSWORD and recipients):
+    if not (GMAIL_USER and GMAIL_APP_PASSWORD and recipients and sections):
         return False
     try:
         import smtplib, ssl
@@ -1623,31 +1634,40 @@ def send_email(subject: str, message: str, image_bytes: bytes | None = None) -> 
         msg['Subject'] = subject
         msg['From'] = f'復華主動式ETF 每日摘要 <{GMAIL_USER}>'
         msg['To'] = ', '.join(recipients)
-        msg.set_content(re.sub(r'<[^>]+>', '', message))   # 純文字退路
-        img_html = '<p><img src="cid:report" style="max-width:100%;"></p>' if image_bytes else ''
+
+        plain, html = [], []
+        for i, sec in enumerate(sections):
+            plain.append(f'{sec["title"]}\n{re.sub(r"<[^>]+>", "", sec["message"])}')
+            img = f'<p><img src="cid:report{i}" style="max-width:100%;"></p>' if sec.get('image') else ''
+            html.append(
+                f'<h2 style="font-size:16px;border-left:4px solid #C00000;padding-left:10px;'
+                f'margin:28px 0 10px;">{sec["title"]}</h2>'
+                f'<div style="font-size:14px;line-height:1.8;">{sec["message"].replace(chr(10), "<br>")}</div>'
+                f'{img}'
+            )
+        msg.set_content('\n\n────────────\n\n'.join(plain))
         msg.add_alternative(
-            f'<html><body style="font-family:\'Noto Sans TC\',\'Segoe UI\',Arial,sans-serif;'
-            f'color:#1C1C1E;">'
-            f'<h2 style="font-size:16px;border-left:4px solid #C00000;padding-left:10px;">{subject}</h2>'
-            f'<div style="font-size:14px;line-height:1.8;">{message.replace(chr(10), "<br>")}</div>'
-            f'{img_html}</body></html>',
+            '<html><body style="font-family:\'Noto Sans TC\',\'Segoe UI\',Arial,sans-serif;color:#1C1C1E;">'
+            + '<hr style="border:none;border-top:1px solid #E8E3DF;margin:24px 0;">'.join(html)
+            + '</body></html>',
             subtype='html',
         )
-        if image_bytes:
-            # add_related 要掛在 html 那個 part 上，否則 cid 參照不到
-            msg.get_payload()[-1].add_related(
-                image_bytes, maintype='image', subtype='png', cid='<report>', filename='summary.png')
+        # add_related 要掛在 html 那個 part 上，否則 cid 參照不到、收信是空框
+        html_part = msg.get_payload()[-1]
+        for i, sec in enumerate(sections):
+            if sec.get('image'):
+                html_part.add_related(sec['image'], maintype='image', subtype='png',
+                                      cid=f'<report{i}>', filename=f'section{i}.png')
 
-        with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=ssl.create_default_context(), timeout=45) as smtp:
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=ssl.create_default_context(), timeout=60) as smtp:
             smtp.login(GMAIL_USER, GMAIL_APP_PASSWORD)
             smtp.send_message(msg)
-        print(f'  ✓ Email sent: {subject} → {", ".join(recipients)}')
+        print(f'  ✓ Email sent: {subject}（{len(sections)} 段）→ {", ".join(recipients)}')
         return True
     except Exception as e:
-        # email 失敗絕不能影響主流程（Pushover 已經送出去了）
+        # email 失敗絕不能影響主流程（Pushover 早就個別送出去了）
         print(f'  email send error: {e}')
         # 534 5.7.9 = 拿一般登入密碼去登入開了兩階段驗證的帳號；535 5.7.8 = 應用程式密碼本身錯。
-        # 這兩個很容易混淆，直接把下一步印出來，不用回頭翻 Google 的錯誤碼。
         if '5.7.9' in str(e) or 'Application-specific password' in str(e):
             print('  ↳ GMAIL_APP_PASSWORD 目前不是「應用程式密碼」。請到 '
                   'https://myaccount.google.com/apppasswords 產生 16 碼密碼後重設此 secret。')
@@ -1656,13 +1676,24 @@ def send_email(subject: str, message: str, image_bytes: bytes | None = None) -> 
         return False
 
 
+def flush_email_digest(today: date) -> bool:
+    """把本輪累積的通知寄成一封 email；沒有任何段落就跳過。"""
+    if not _EMAIL_SECTIONS:
+        return False
+    warn = any(sec['title'].lstrip().startswith('⚠️') for sec in _EMAIL_SECTIONS)
+    subject = f'{"⚠️ " if warn else ""}復華主動式ETF 每日摘要 {today:%m/%d}'
+    ok = send_email_digest(subject, list(_EMAIL_SECTIONS))
+    _EMAIL_SECTIONS.clear()
+    return ok
+
+
 def notify(title: str, message: str, image_bytes: bytes | None = None, priority: int = 0):
-    """一則通知同時走 Pushover 與 email。Pushover 為主（失敗照舊往上拋），email 為副本。"""
+    """Pushover 立刻送出（主通道）；email 那份先排進摘要，等 main() 收尾一次寄。"""
     if image_bytes is not None:
         send_pushover(title, message, image_bytes, priority)
     else:
         send_pushover_text(title, message, priority)
-    send_email(title, message, image_bytes)
+    queue_email_section(title, message, image_bytes)
 
 
 def send_pushover(title: str, message: str, image_bytes: bytes, priority: int = 0):
@@ -2209,6 +2240,7 @@ async def main():
         test_date = datetime.strptime(test_date_raw, '%Y-%m-%d').date()
         print(f'TEST_DATE (TST): {test_date}')
         await process_etf(ETFS[0], test_date)
+        flush_email_digest(test_date)
         return
 
     today = datetime.now(TZ).date()
@@ -2275,6 +2307,15 @@ async def main():
             f'可至 GitHub Actions 手動重新觸發 daily_summary。',
             priority=1,
         )
+
+    # 收尾：把本輪所有通知合併成一封 email 寄出（Pushover 早已個別送達，這裡失敗不影響）。
+    try:
+        flush_email_digest(today)
+    except Exception as e:
+        print(f'  Email digest ERROR: {e}')
+        import traceback; traceback.print_exc()
+
+    if not sent_any:
         sys.exit('No data produced this run — see logs above.')
 
 

@@ -238,68 +238,106 @@ def _fake_smtp(monkeypatch, sent: dict):
     monkeypatch.setattr(smtplib, 'SMTP_SSL', FakeSMTP)
 
 
-def test_send_email_skips_when_unconfigured(monkeypatch):
+def test_send_email_digest_skips_when_unconfigured(monkeypatch):
     """沒設 Gmail/收件者時要靜默回 False，不能拋例外把 Pushover 流程拖下水。"""
     monkeypatch.setattr(ds, 'GMAIL_USER', '')
     monkeypatch.setattr(ds, 'GMAIL_APP_PASSWORD', '')
     monkeypatch.setattr(ds, 'REPORT_EMAIL_TO', '')
-    assert ds.send_email('標題', '內文', b'png') is False
+    assert ds.send_email_digest('標題', [{'title': 'a', 'message': 'b', 'image': b'png'}]) is False
 
 
-def test_send_email_builds_message_with_inline_image(monkeypatch):
-    sent: dict = {}
-    _fake_smtp(monkeypatch, sent)
+def _configure_mail(monkeypatch, to='a@x.edu'):
     monkeypatch.setattr(ds, 'GMAIL_USER', 'bot@gmail.com')
     monkeypatch.setattr(ds, 'GMAIL_APP_PASSWORD', 'pw')
-    monkeypatch.setattr(ds, 'REPORT_EMAIL_TO', 'a@x.edu, b@y.edu')
+    monkeypatch.setattr(ds, 'REPORT_EMAIL_TO', to)
 
-    assert ds.send_email('當日摘要 08/26', '第一行\n<b>第二行</b>', b'\x89PNGfake') is True
+
+def test_send_email_digest_embeds_one_image_per_section(monkeypatch):
+    """三段各自內嵌自己的圖，cid 必須各自獨立、且都掛在 html part 底下。"""
+    sent: dict = {}
+    _fake_smtp(monkeypatch, sent)
+    _configure_mail(monkeypatch, 'a@x.edu, b@y.edu')
+
+    sections = [
+        {'title': '00991A 當日摘要 08/27', 'message': '第一行\n<b>第二行</b>', 'image': b'png1'},
+        {'title': '同業申贖觀測 2026-08-27', 'message': '內文', 'image': b'png2'},
+        {'title': '海外主動式ETF 申購買回 08/27', 'message': '內文', 'image': b'png3'},
+    ]
+    assert ds.send_email_digest('復華主動式ETF 每日摘要 08/27', sections) is True
 
     msg = sent['msg']
-    assert msg['Subject'] == '當日摘要 08/26'
+    assert msg['Subject'] == '復華主動式ETF 每日摘要 08/27'
     assert msg['To'] == 'a@x.edu, b@y.edu'
-    # 圖必須掛在 html part 底下，否則 cid:report 參照不到、收信是空框
-    assert '<report>' in [p.get('Content-ID') for p in msg.walk() if p.get('Content-ID')]
+    cids = [p.get('Content-ID') for p in msg.walk() if p.get('Content-ID')]
+    assert cids == ['<report0>', '<report1>', '<report2>']
     html = next(p for p in msg.walk() if p.get_content_type() == 'text/html').get_content()
-    assert '第一行<br>' in html and 'cid:report' in html
+    for i, sec in enumerate(sections):
+        assert sec['title'] in html and f'cid:report{i}' in html
+    assert '第一行<br>' in html
 
 
-def test_send_email_without_image_still_sends(monkeypatch):
+def test_send_email_digest_section_without_image(monkeypatch):
     sent: dict = {}
     _fake_smtp(monkeypatch, sent)
-    monkeypatch.setattr(ds, 'GMAIL_USER', 'bot@gmail.com')
-    monkeypatch.setattr(ds, 'GMAIL_APP_PASSWORD', 'pw')
-    monkeypatch.setattr(ds, 'REPORT_EMAIL_TO', 'a@x.edu')
-    assert ds.send_email('告警', '資料源連不到', None) is True
+    _configure_mail(monkeypatch)
+    assert ds.send_email_digest('摘要', [{'title': '告警', 'message': '資料源連不到', 'image': None}]) is True
     html = next(p for p in sent['msg'].walk() if p.get_content_type() == 'text/html').get_content()
     assert 'cid:report' not in html
 
 
-def test_send_email_swallows_smtp_failure(monkeypatch):
-    """SMTP 掛掉不能往上拋——Pushover 已經送出去了，email 只是副本。"""
+def test_send_email_digest_swallows_smtp_failure(monkeypatch):
+    """SMTP 掛掉不能往上拋——Pushover 早就個別送出去了。"""
     import smtplib
-    monkeypatch.setattr(ds, 'GMAIL_USER', 'bot@gmail.com')
-    monkeypatch.setattr(ds, 'GMAIL_APP_PASSWORD', 'pw')
-    monkeypatch.setattr(ds, 'REPORT_EMAIL_TO', 'a@x.edu')
+    _configure_mail(monkeypatch)
 
     def boom(*a, **k):
         raise OSError('connection refused')
 
     monkeypatch.setattr(smtplib, 'SMTP_SSL', boom)
-    assert ds.send_email('標題', '內文', b'png') is False
+    assert ds.send_email_digest('摘要', [{'title': 't', 'message': 'm', 'image': None}]) is False
 
 
-def test_notify_sends_both_channels(monkeypatch):
-    """notify 要同時走 Pushover 與 email，且圖片有無都要正確分流。"""
+def test_notify_pushes_now_but_queues_email(monkeypatch):
+    """notify 立刻推 Pushover，email 只進 buffer（三則要合併成一封）。"""
     calls = []
-    monkeypatch.setattr(ds, 'send_pushover', lambda t, m, i, p=0: calls.append(('push', t, bool(i))))
-    monkeypatch.setattr(ds, 'send_pushover_text', lambda t, m, p=0: calls.append(('push_text', t, False)))
-    monkeypatch.setattr(ds, 'send_email', lambda t, m, i=None: calls.append(('mail', t, bool(i))))
+    monkeypatch.setattr(ds, 'send_pushover', lambda t, m, i, p=0: calls.append(('push', t)))
+    monkeypatch.setattr(ds, 'send_pushover_text', lambda t, m, p=0: calls.append(('push_text', t)))
+    ds._EMAIL_SECTIONS.clear()
 
     ds.notify('有圖', '內文', b'png')
     ds.notify('無圖', '內文', None, priority=1)
 
-    assert calls == [
-        ('push', '有圖', True), ('mail', '有圖', True),
-        ('push_text', '無圖', False), ('mail', '無圖', False),
-    ]
+    assert calls == [('push', '有圖'), ('push_text', '無圖')]
+    assert [s['title'] for s in ds._EMAIL_SECTIONS] == ['有圖', '無圖']
+    assert [bool(s['image']) for s in ds._EMAIL_SECTIONS] == [True, False]
+    ds._EMAIL_SECTIONS.clear()
+
+
+def test_flush_email_digest_combines_and_clears(monkeypatch):
+    sent: dict = {}
+    monkeypatch.setattr(ds, 'send_email_digest', lambda subj, secs: sent.update(subject=subj, n=len(secs)) or True)
+    ds._EMAIL_SECTIONS.clear()
+    ds.queue_email_section('a', 'm', b'p')
+    ds.queue_email_section('b', 'm', b'p')
+
+    assert ds.flush_email_digest(date(2026, 8, 27)) is True
+    assert sent['subject'] == '復華主動式ETF 每日摘要 08/27' and sent['n'] == 2
+    assert ds._EMAIL_SECTIONS == []          # 寄完要清空，避免下一輪重複
+
+
+def test_flush_email_digest_marks_warning_subject(monkeypatch):
+    """任一段是告警 → 主旨掛 ⚠️，手機掃一眼就知道要看。"""
+    sent: dict = {}
+    monkeypatch.setattr(ds, 'send_email_digest', lambda subj, secs: sent.update(subject=subj) or True)
+    ds._EMAIL_SECTIONS.clear()
+    ds.queue_email_section('00991A 當日摘要 08/27', 'm', b'p')
+    ds.queue_email_section('⚠️ 每日摘要無資料', 'm', None)
+
+    ds.flush_email_digest(date(2026, 8, 27))
+    assert sent['subject'].startswith('⚠️ ')
+    ds._EMAIL_SECTIONS.clear()
+
+
+def test_flush_email_digest_noop_when_empty():
+    ds._EMAIL_SECTIONS.clear()
+    assert ds.flush_email_digest(date(2026, 8, 27)) is False
