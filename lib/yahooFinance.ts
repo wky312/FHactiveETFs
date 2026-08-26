@@ -69,7 +69,7 @@ async function tryQuote(ticker: string): Promise<QuoteResult | null> {
   }
 }
 
-async function tryFetch(ticker: string, from: Date, today: Date): Promise<FetchResult | null> {
+async function tryFetch(ticker: string, from: Date, today: Date, interval: '1d' | '1wk' = '1d'): Promise<FetchResult | null> {
   try {
     // period2 is exclusive in Yahoo Finance API, so add 1 day to include today's bar
     const period2 = new Date(today);
@@ -77,7 +77,7 @@ async function tryFetch(ticker: string, from: Date, today: Date): Promise<FetchR
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const result: any = await yf.chart(
       ticker,
-      { period1: from, period2, interval: '1d' },
+      { period1: from, period2, interval },
       { validateResult: false }
     );
     const rawQuotes = result?.quotes ?? result;
@@ -132,6 +132,35 @@ export async function fetchDailyBars(
     const h = high ?? close;
     const l = low ?? close;
     bars.push({ date: twDateKey(new Date(q.date)), high: h, low: l, mid: (h + l) / 2, close });
+  }
+  bars.sort((a, b) => a.date.localeCompare(b.date));
+  return bars;
+}
+
+export interface CloseBar {
+  date: string;    // 台灣時區日期字串 YYYY/MM/DD（該根 K 棒的時間戳換算）
+  close: number;   // 還原權息收盤（adjClose，見 adj()）
+}
+
+/* 抓某檔標的區間內的還原收盤序列，供族群相對強度(RRG)用——interval 可選日線/週線。
+   primary 失敗才試 fallback（同 fetchDailyBars）。 */
+export async function fetchAdjCloseSeries(
+  yfTicker: string,
+  from: Date,
+  to: Date,
+  interval: '1d' | '1wk',
+  fallbackTicker?: string,
+): Promise<CloseBar[]> {
+  let data = await tryFetch(yfTicker, from, to, interval);
+  if (!data && fallbackTicker) data = await tryFetch(fallbackTicker, from, to, interval);
+  if (!data) return [];
+
+  const bars: CloseBar[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const q of data.quotes as any[]) {
+    const close = adj(q);
+    if (close == null) continue;
+    bars.push({ date: twDateKey(new Date(q.date)), close });
   }
   bars.sort((a, b) => a.date.localeCompare(b.date));
   return bars;

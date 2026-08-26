@@ -1,10 +1,10 @@
 import fs from 'fs';
 import path from 'path';
-import { createClient } from '@supabase/supabase-js';
 import {
   isOrdinary, fetchTwseLatest, fetchTpexLatest, fetchTwseShares, fetchTpexShares, sanitizeShares,
 } from './marketCapRanking';
 import { fetchStockPerformance } from './yahooFinance';
+import { taipeiDateStr, readPageCache, writePageCache } from './pageCache';
 
 /* 2025/12/31 市值前300大，追蹤至今的還原權息報酬 + 市值排名變化。
    ──────────────────────────────────────────────────────────────────
@@ -73,42 +73,6 @@ let _memCache: { ts: number; dateKey: string; data: Top300YtdResult } | null = n
 
 function loadBaseline(): BaselineFile {
   return JSON.parse(fs.readFileSync(BASELINE_PATH, 'utf-8'));
-}
-
-// 台北時區的今天日期字串 YYYY-MM-DD，當作 Supabase 快取的 key（同一天只算一次）
-function taipeiDateStr(): string {
-  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Taipei' }); // en-CA -> YYYY-MM-DD
-}
-
-function ownSupabase() {
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_SERVICE_KEY;
-  if (!url || !key) return null;
-  return createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false } });
-}
-
-async function readPageCache(cacheKey: string): Promise<Top300YtdResult | null> {
-  const db = ownSupabase();
-  if (!db) return null;
-  try {
-    const { data, error } = await db.from('page_cache').select('payload').eq('cache_key', cacheKey).maybeSingle();
-    if (error) { console.error('[top300Ytd] page_cache read failed:', error.message); return null; }
-    return (data?.payload as Top300YtdResult) ?? null;
-  } catch (err) {
-    console.error('[top300Ytd] page_cache read threw:', err); // 表還沒建、或連線失敗都當快取沒命中，照樣重算，不擋主流程
-    return null;
-  }
-}
-
-async function writePageCache(cacheKey: string, payload: Top300YtdResult): Promise<void> {
-  const db = ownSupabase();
-  if (!db) { console.warn('[top300Ytd] SUPABASE_URL/SUPABASE_SERVICE_KEY 未設定，跳過持久化快取寫入'); return; }
-  try {
-    const { error } = await db.from('page_cache').upsert({ cache_key: cacheKey, payload, updated_at: new Date().toISOString() });
-    if (error) console.error('[top300Ytd] page_cache write failed:', error.message);
-  } catch (err) {
-    console.error('[top300Ytd] page_cache write threw:', err); // 寫入失敗不影響本次回應，下次請求會再試一次
-  }
 }
 
 async function mapLimit<T, R>(items: T[], limit: number, fn: (x: T) => Promise<R>): Promise<R[]> {
@@ -227,7 +191,7 @@ export async function computeTop300Ytd(): Promise<Top300YtdResult> {
   }
 
   // L2：本專案 Supabase，跨 instance / cold start 共用，當天算過就不用重算
-  const cached = await readPageCache(cacheKey);
+  const cached = await readPageCache<Top300YtdResult>(cacheKey);
   if (cached) {
     _memCache = { ts: Date.now(), dateKey, data: cached };
     return { ...cached, cacheSource: 'supabase' };

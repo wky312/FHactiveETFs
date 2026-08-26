@@ -20,6 +20,7 @@ import RiskTab from './RiskTab';
 import TurnoverTab from './TurnoverTab';
 import ConsensusTab from './ConsensusTab';
 import SectorExposureTab from './SectorExposureTab';
+import SectorHeatmapTab from './SectorHeatmapTab';
 import UnitWatchTab from './UnitWatchTab';
 import MarketCapRankingTab from './MarketCapRankingTab';
 import NewHighTab from './NewHighTab';
@@ -38,7 +39,7 @@ const BORDER = '#E8E3DF';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'attribution' | 'risk' | 'turnover' | 'consensus' | 'sector' | 'unitwatch' | 'mktcap150' | 'newhigh150' | 'top300ytd';
+type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'attribution' | 'risk' | 'turnover' | 'consensus' | 'sector' | 'sectorheatmap' | 'unitwatch' | 'mktcap150' | 'newhigh150' | 'top300ytd';
 
 /* 頂部導覽分組（13 個分頁收進 4 個下拉選單；不改各分頁邏輯，只改呈現） */
 const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
@@ -67,6 +68,7 @@ const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
     { id: 'turnover',  label: '經理人換手率' },
     { id: 'consensus', label: '共識持股' },
     { id: 'sector',    label: '族群曝險' },
+    { id: 'sectorheatmap', label: '產業熱力圖' },
   ] },
   { label: '其他', items: [
     { id: 'unitwatch', label: '單位數注意商品' },
@@ -593,6 +595,12 @@ export default function Dashboard() {
         {activeTab === 'sector' && (
           <Card title="族群曝險（全市場主動式 ETF）">
             <SectorExposureTab />
+          </Card>
+        )}
+
+        {activeTab === 'sectorheatmap' && (
+          <Card title="產業熱力圖">
+            <SectorHeatmapTab />
           </Card>
         )}
 
