@@ -24,7 +24,7 @@ export const BUILTIN_GROUPS_OVERSEAS: SectorGroup[] = [
   { name: '軟體、資安與 AI 雲端服務 (SaaS & Security)', codes: ['PANW', 'SNOW', 'PLTR', 'NET', 'TWLO', '4180.T', 'CRWD', 'NOW', 'DDOG', 'ZS', 'CRM', 'NTSK'], builtin: true },
   { name: '高速傳輸與網通介面 (Transmission & Networking)', codes: ['CRDO', 'MRVL', '5801.T', 'ANET', 'ALAB', 'CSCO', '2379.TW', 'SMTC', '2345.TW'], builtin: true },
   { name: '被動元件與電子零組件 (Passive Components)', codes: ['009150.KS', '6981.T', '300408.SZ', '2327.TW', '6997.T', '6762.T', '6976.T', '2492.TW', '3026.TW', 'SITM'], builtin: true },
-  { name: 'AI 伺服器電源與散熱 (Power & Cooling)', codes: ['2308.TW', '3017.TW', '3324.TW', '3653.TW', '2301.TW', 'SMCI', '8996.TW', '2059.TW'], builtin: true },
+  { name: 'AI 伺服器電源與散熱 (Power & Cooling)', codes: ['2308.TW', '3017.TW', '3324.TW', '3653.TW', '2301.TW', 'SMCI', '8996.TW'], builtin: true },
   { name: '車用與功率半導體 (Power & Auto Chips)', codes: ['IFX.DE', 'MPWR', 'TXN', 'STM', 'ON', 'NXPI'], builtin: true },
   { name: '超級雲端巨頭 (Hyperscalers)', codes: ['MSFT', 'GOOGL', 'GOOG', 'AMZN', 'META', 'AAPL'], builtin: true },
   { name: '金融科技與數位支付 (FinTech & Payments)', codes: ['CRCL', 'V', 'MA', 'COIN', 'SQ'], builtin: true },
@@ -34,7 +34,9 @@ export const BUILTIN_GROUPS_OVERSEAS: SectorGroup[] = [
      ⚠ SMCI 仍留在「AI 伺服器電源與散熱」（原始 CSV 的分類），沒有搬到伺服器組——
      一檔股票只能屬於一組，搬動會改變既有那組的曝險數字，留待需要時再決定。 */
   { name: 'AI 算力租賃 (Neocloud)', codes: ['CRWV', 'NBIS', 'IREN', 'APLD', 'CIFR', 'WULF'], builtin: true },
-  { name: 'AI 伺服器與 ODM (Server & ODM)', codes: ['DELL', 'HPE', '6669.TW', '2382.TW', '3231.TW', '2376.TW'], builtin: true },
+  // 含整機/ODM 與機構件：川湖(滑軌)、勤誠(機殼)是伺服器機構件龍頭，不是散熱件——
+  // 2059 一度誤放在「電源與散熱」，2026-08-26 修正歸位。
+  { name: 'AI 伺服器整機與機構件 (Server, ODM & Mechanicals)', codes: ['DELL', 'HPE', '6669.TW', '2382.TW', '3231.TW', '2376.TW', '2059.TW', '8210.TW'], builtin: true },
   { name: '電動車、自駕與出行平台 (EV & Mobility)', codes: ['TSLA', 'UBER', '581A.T', 'RIVN', 'MBLY', 'XPEV', '7203.T'], builtin: true },
   { name: '量子運算 (Quantum Computing)', codes: ['IONQ', 'RGTI', 'QBTS', 'QUBT'], builtin: true },
 ];
@@ -46,6 +48,7 @@ export const STOCK_NAMES_OVERSEAS: Record<string, string> = {
   'CRWV': 'CoreWeave', 'NBIS': 'Nebius', 'IREN': 'IREN', 'APLD': 'Applied Digital',
   'CIFR': 'Cipher Mining', 'WULF': 'TeraWulf',
   'DELL': '戴爾', 'HPE': '慧與科技', '6669.TW': '緯穎', '2382.TW': '廣達', '3231.TW': '緯創', '2376.TW': '技嘉',
+  '8210.TW': '勤誠',
   'TSLA': '特斯拉', 'UBER': 'Uber', '581A.T': 'GO', 'RIVN': 'Rivian', 'MBLY': 'Mobileye',
   'XPEV': '小鵬汽車', '7203.T': '豐田汽車',
   'IONQ': 'IonQ', 'RGTI': 'Rigetti', 'QBTS': 'D-Wave Quantum', 'QUBT': 'Quantum Computing',
