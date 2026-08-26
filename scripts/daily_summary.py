@@ -58,7 +58,9 @@ PUSHOVER_USER      = os.environ.get('PUSHOVER_USER', '')
 # Email 副本（與 Pushover 同內容、同時機）。三個都設齊才會寄，缺任一個就靜默跳過，
 # 不影響 Pushover——email 是附加通道，不該讓它的設定問題把主推播拖下水。
 GMAIL_USER         = os.environ.get('GMAIL_USER', '')
-GMAIL_APP_PASSWORD = os.environ.get('GMAIL_APP_PASSWORD', '')
+# Google 產生的應用程式密碼是「abcd efgh ijkl mnop」這種帶空格的顯示格式，直接貼進 secret
+# 很常連空白一起帶進來 → 去掉所有空白字元（含不小心夾帶的換行）。
+GMAIL_APP_PASSWORD = re.sub(r'\s+', '', os.environ.get('GMAIL_APP_PASSWORD', ''))
 REPORT_EMAIL_TO    = os.environ.get('REPORT_EMAIL_TO', '')   # 可逗號分隔多個收件者
 SUPABASE_URL       = os.environ.get('SUPABASE_URL', '')
 SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_KEY', '')
@@ -1644,6 +1646,13 @@ def send_email(subject: str, message: str, image_bytes: bytes | None = None) -> 
     except Exception as e:
         # email 失敗絕不能影響主流程（Pushover 已經送出去了）
         print(f'  email send error: {e}')
+        # 534 5.7.9 = 拿一般登入密碼去登入開了兩階段驗證的帳號；535 5.7.8 = 應用程式密碼本身錯。
+        # 這兩個很容易混淆，直接把下一步印出來，不用回頭翻 Google 的錯誤碼。
+        if '5.7.9' in str(e) or 'Application-specific password' in str(e):
+            print('  ↳ GMAIL_APP_PASSWORD 目前不是「應用程式密碼」。請到 '
+                  'https://myaccount.google.com/apppasswords 產生 16 碼密碼後重設此 secret。')
+        elif '5.7.8' in str(e):
+            print('  ↳ 應用程式密碼被拒絕（可能已撤銷或打錯），請重新產生一組。')
         return False
 
 
