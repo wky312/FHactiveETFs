@@ -139,3 +139,76 @@ def test_pick_latest_point_never_downgrades_to_older_estimate():
     """預估值比正式值舊時不可勝出（否則會把已定案的數字換成過期估計）。"""
     stale_estimate = {**_EST, 'date': date(2026, 8, 22)}
     assert ds.pick_latest_point(_OFF, stale_estimate) is _OFF
+
+
+# ── 預估值：公告日候選要往後掃 ──────────────────────────────────────────────
+
+def test_announce_candidates_weekday():
+    """平日 → 今天 + 之後兩個營業日。"""
+    assert ds._announce_candidates(date(2026, 8, 26), 3) == [
+        date(2026, 8, 26), date(2026, 8, 27), date(2026, 8, 28),
+    ]
+
+
+def test_announce_candidates_crosses_weekend():
+    """週五 → 跳過週末。"""
+    assert ds._announce_candidates(date(2026, 8, 28), 3) == [
+        date(2026, 8, 28), date(2026, 8, 31), date(2026, 9, 1),
+    ]
+
+
+def test_announce_candidates_from_weekend_starts_next_biz_day():
+    """週日執行 → 今天不算公告日，從週一起算。"""
+    assert ds._announce_candidates(date(2026, 8, 23), 2) == [
+        date(2026, 8, 24), date(2026, 8, 25),
+    ]
+
+
+def test_newest_estimate_picks_latest_self_reported_date():
+    """今天的公告日只給 T-1，次一公告日給 T → 必須回 T 那筆。"""
+    by_ann = {
+        date(2026, 8, 26): {'date': date(2026, 8, 25), 'netSub': 1.0},
+        date(2026, 8, 27): {'date': date(2026, 8, 26), 'netSub': 2.0},
+    }
+    got = ds._newest_estimate(by_ann.get, today=date(2026, 8, 26))
+    assert got['date'] == date(2026, 8, 26) and got['netSub'] == 2.0
+
+
+def test_newest_estimate_stops_once_today_reached():
+    """抓到「今天」的預估就收工，不再多打後面的候選。"""
+    calls = []
+
+    def fetch_one(ann):
+        calls.append(ann)
+        return {'date': date(2026, 8, 26), 'netSub': 1.0}
+
+    ds._newest_estimate(fetch_one, today=date(2026, 8, 26))
+    assert calls == [date(2026, 8, 26)]
+
+
+def test_newest_estimate_survives_failing_candidate():
+    """某個公告日拋例外/回 None 不能中斷，後面的候選仍要試。"""
+    def fetch_one(ann):
+        if ann == date(2026, 8, 26):
+            raise RuntimeError('boom')
+        if ann == date(2026, 8, 27):
+            return None
+        return {'date': date(2026, 8, 25), 'netSub': 3.0}
+
+    got = ds._newest_estimate(fetch_one, today=date(2026, 8, 26))
+    assert got['netSub'] == 3.0
+
+
+def test_newest_estimate_all_fail_returns_none():
+    assert ds._newest_estimate(lambda ann: None, today=date(2026, 8, 26)) is None
+
+
+def test_newest_estimate_rejects_future_dated_estimate():
+    """投信若把「下一交易日」當快照日回來（群益 buyback 有前科），不可採用。"""
+    def fetch_one(ann):
+        if ann == date(2026, 8, 26):
+            return {'date': date(2026, 8, 25), 'netSub': 1.0}
+        return {'date': date(2026, 8, 27), 'netSub': 9.9}   # 未來日，要被擋掉
+
+    got = ds._newest_estimate(fetch_one, today=date(2026, 8, 26))
+    assert got['date'] == date(2026, 8, 25) and got['netSub'] == 1.0

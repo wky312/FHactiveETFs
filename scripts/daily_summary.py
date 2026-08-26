@@ -857,8 +857,56 @@ def _parse_flex_slash_date(s: str) -> date | None:
         return None
 
 
+ESTIMATE_ANNOUNCE_LOOKAHEAD = 3   # 含今天，往後掃幾個「公告日」
+
+
+def _announce_candidates(today: date, n: int = ESTIMATE_ANNOUNCE_LOOKAHEAD) -> list:
+    """公告日候選：今天 + 之後 n-1 個營業日（今天非平日就從下一個營業日起算）。"""
+    days = [today] if today.weekday() < 5 else []
+    d = today
+    while len(days) < n:
+        d = _next_biz_day(d)
+        days.append(d)
+    return days
+
+
+def _newest_estimate(fetch_one, today: date | None = None) -> dict | None:
+    """對每個公告日候選各抓一次，回「自報日期最新」的那筆預估。
+
+    ⚠️ 為什麼不能只查今天：各家投信在當天下午就會把**次一公告日**的清單掛出來，而那份
+    清單裡的預估欄位對應的才是**今天**。實測 2026-08-26 16:15——
+      元大 00990A：date=08/26 → predate=08/25；date=08/27 → predate=08/26（已經掛出來了）
+      統一 00411A：date=08/26 → ValueDate=08/25；date=08/27 當下還沒掛（約 17:00 後才有）
+    只查 today 的話，預估序列會**固定落後一個交易日**，永遠拿不到當天的數字。
+    抓到「今天」的預估就提早收工，不用把候選掃完。
+    """
+    today = today or date.today()
+    best = None
+    for ann in _announce_candidates(today):
+        try:
+            p = fetch_one(ann)
+        except Exception:
+            p = None
+        if not p or not p.get('date'):
+            continue
+        # 防未來日：實測 5 家都只到「次一公告日」為止、預估日不超過今天，但群益的
+        # buyback 就有過「date1 是下一交易日」的前科，寧可 clamp 也不要讓網站/推播跳未來日。
+        if p['date'] > today:
+            print(f'  ⚠ 預估日 {p["date"]} 超過今天 {today}，忽略（公告日候選 {ann}）')
+            continue
+        if best is None or p['date'] > best['date']:
+            best = p
+            if best['date'] >= today:   # 已是最新可能的一天，沒必要再往後掃
+                break
+    return best
+
+
 def fetch_ctbc_estimate(fid: str) -> dict | None:
-    """中信投信 00406A/00983A：查今天，讀「預估發行受益權單位數(DATE)」概算尚未定案那天。"""
+    """中信投信 00406A/00983A：讀「預估發行受益權單位數(DATE)」概算尚未定案那天。"""
+    return _newest_estimate(lambda ann: _ctbc_estimate_at(fid, ann))
+
+
+def _ctbc_estimate_at(fid: str, ann: date) -> dict | None:
     try:
         import urllib.parse
         base = 'https://www.ctbcinvestments.com.tw/API'
@@ -874,7 +922,7 @@ def fetch_ctbc_estimate(fid: str) -> dict | None:
             return None
         et = urllib.parse.quote(token, safe='')
         r = requests.post(f'{base}/etf/Buyback?token={et}',
-                          json={'FID': fid, 'StartDate': date.today().isoformat()},
+                          json={'FID': fid, 'StartDate': ann.isoformat()},
                           headers=headers, timeout=20)
         if r.status_code != 200:
             return None
@@ -896,11 +944,18 @@ def fetch_ctbc_estimate(fid: str) -> dict | None:
 
 
 def fetch_ezmoney_estimate(fund_code: str, session: requests.Session | None = None) -> dict | None:
-    """統一投信 00988A：GetPCF 裡的 PRE_OUT_UNIT 概算尚未定案那天。"""
+    """統一投信 00988A/00411A：GetPCF 裡的 PRE_OUT_UNIT 概算尚未定案那天。"""
     try:
         s = session or _get_ezmoney_session(fund_code)
-        announce = date.today()
-        payload = {'fundCode': fund_code, 'date': _roc_date(announce), 'specificDate': True}
+    except Exception as e:
+        print(f'  ezmoney-estimate {fund_code}: {e}')
+        return None
+    return _newest_estimate(lambda ann: _ezmoney_estimate_at(s, fund_code, ann))
+
+
+def _ezmoney_estimate_at(s: requests.Session, fund_code: str, ann: date) -> dict | None:
+    try:
+        payload = {'fundCode': fund_code, 'date': _roc_date(ann), 'specificDate': True}
         r = s.post(f'https://{EZMONEY_HOST}/ETF/Transaction/GetPCF', json=payload,
                    headers={'X-Requested-With': 'XMLHttpRequest',
                             'Referer': f'https://{EZMONEY_HOST}/ETF/Transaction/PCF?fundCode={fund_code}'},
@@ -928,9 +983,12 @@ def fetch_ezmoney_estimate(fund_code: str, session: requests.Session | None = No
 
 
 def fetch_yuanta_estimate(ticker: str) -> dict | None:
-    """元大投信 00990A：查今天，讀 preunit/predate 概算尚未定案那天。"""
+    """元大投信 00990A：讀 preunit/predate 概算尚未定案那天。"""
+    return _newest_estimate(lambda ann: _yuanta_estimate_at(ticker, ann))
+
+
+def _yuanta_estimate_at(ticker: str, ann: date) -> dict | None:
     try:
-        ann = date.today()
         url = ('https://etfapi.yuantaetfs.com/ectranslation/api/bridge'
                f'?APIType=ETFAPI&CompanyName=YUANTAFUNDS&FuncId=PCF/Daily'
                f'&ticker={ticker}&date={ann.strftime("%Y%m%d")}')
@@ -957,7 +1015,11 @@ def fetch_yuanta_estimate(ticker: str) -> dict | None:
 
 
 def fetch_allianz_estimate(fund_no: str) -> dict | None:
-    """安聯投信 00402A：查今天，讀 CAnceTotalIssuesT1(Date) 概算尚未定案那天。"""
+    """安聯投信 00402A：讀 CAnceTotalIssuesT1(Date) 概算尚未定案那天。"""
+    return _newest_estimate(lambda ann: _allianz_estimate_at(fund_no, ann))
+
+
+def _allianz_estimate_at(fund_no: str, ann: date) -> dict | None:
     try:
         base = 'https://etf.allianzgi.com.tw/webapi/api'
         s = requests.Session()
@@ -967,7 +1029,7 @@ def fetch_allianz_estimate(fund_no: str) -> dict | None:
         if not token:
             return None
         r = s.post(f'{base}/Fund/GetFundTradeInfo',
-                   json={'FundNo': fund_no, 'Date': date.today().isoformat()},
+                   json={'FundNo': fund_no, 'Date': ann.isoformat()},
                    headers={'X-XSRF-TOKEN': token, 'Content-Type': 'application/json'}, timeout=20)
         if r.status_code != 200:
             return None
@@ -990,13 +1052,17 @@ def fetch_allianz_estimate(fund_no: str) -> dict | None:
 
 
 def fetch_capital_estimate(fund_id: str) -> dict | None:
-    """群益投信 00997A：查今天，讀 totUnita/date3 概算尚未定案那天。"""
+    """群益投信 00997A：讀 totUnita/date3 概算尚未定案那天。"""
+    return _newest_estimate(lambda ann: _capital_estimate_at(fund_id, ann))
+
+
+def _capital_estimate_at(fund_id: str, ann: date) -> dict | None:
     try:
         s = requests.Session()
         s.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
         s.get(f'https://{CAPITAL_HOST}/', timeout=15)
         r = s.post(f'https://{CAPITAL_HOST}/CFWeb/api/etf/buyback',
-                  json={'fundId': fund_id, 'date': str(date.today())},
+                  json={'fundId': fund_id, 'date': str(ann)},
                   headers={'Referer': f'https://{CAPITAL_HOST}/etf/transaction/buyback'}, timeout=20)
         if r.status_code != 200:
             return None
