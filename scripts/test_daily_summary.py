@@ -110,3 +110,32 @@ def test_recent_trading_days_includes_day_when_twse_unreachable(monkeypatch):
     assert ds.recent_trading_days(date(2026, 8, 21), 2) == [
         date(2026, 8, 20), date(2026, 8, 21),
     ]
+
+
+# ── 海外申贖：正式值 vs 預估值 的取捨 ────────────────────────────────────────
+
+_OFF = {'date': date(2026, 8, 25), 'netSub': -0.15, 'aum': 372.0, 'is_estimate': False}
+_EST = {'date': date(2026, 8, 25), 'netSub': -0.15, 'aum': 365.0, 'is_estimate': True}
+
+
+def test_pick_latest_point_same_day_prefers_official():
+    """元大(T+1) 常常同一天正式值與預估值都拿得到 → 必須報正式值。"""
+    assert ds.pick_latest_point(_OFF, _EST) is _OFF
+
+
+def test_pick_latest_point_newer_estimate_wins():
+    """統一(T+2) 正式值停在 T-2、預估值已到 T-1 → 報比較新的預估值。"""
+    older_official = {**_OFF, 'date': date(2026, 8, 24)}
+    assert ds.pick_latest_point(older_official, _EST) is _EST
+
+
+def test_pick_latest_point_handles_missing_sides():
+    assert ds.pick_latest_point(None, _EST) is _EST
+    assert ds.pick_latest_point(_OFF, None) is _OFF
+    assert ds.pick_latest_point(None, None) is None
+
+
+def test_pick_latest_point_never_downgrades_to_older_estimate():
+    """預估值比正式值舊時不可勝出（否則會把已定案的數字換成過期估計）。"""
+    stale_estimate = {**_EST, 'date': date(2026, 8, 22)}
+    assert ds.pick_latest_point(_OFF, stale_estimate) is _OFF

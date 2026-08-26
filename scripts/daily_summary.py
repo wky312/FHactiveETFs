@@ -312,6 +312,8 @@ PEER_ETFS = [
     # 只是這支 API 沒有依日期查詢的能力，只回「目前最新一筆」，抓不到時才退回 CMoney
     # 反推頂著(見 fetch_jpmorgan_estimate，標記 is_estimate=True)。
     {'ticker': '00989A', 'name': '摩根美國科技', 'source': 'jpmorgan', 'key': 'TW00000989A5', 'group': 'overseas'},
+    # 2026/08/26 掛牌（統一投信，上櫃）。fundCode 由 ezmoney PCF 頁的 fundCode↔代號配對查得。
+    {'ticker': '00411A', 'name': '統一前沿科技', 'source': 'ezmoney', 'key': '64YTW',  'group': 'overseas'},
 ]
 
 EZMONEY_HOST = 'www.ezmoney.com.tw'
@@ -1743,10 +1745,27 @@ _OVERSEAS_FETCHERS = {
 }
 
 
-def process_overseas_redemption(today: date) -> int:
-    """補海外主動式ETF 的申贖（只寫 DB，不推播）。回傳成功寫入的檔數。"""
+def pick_latest_point(official: dict | None, estimate: dict | None) -> dict | None:
+    """在「正式值」與「預估值」之間挑一筆當作最新可得。
+
+    日期較新者勝；**同一天以正式值優先**——估計值本來就是要被正式值覆蓋的，
+    元大(T+1)常常同一天兩者都拿得到，這時報估計值會是無謂的降級。
+    """
+    if official is None:
+        return estimate
+    if estimate is None:
+        return official
+    return estimate if estimate['date'] > official['date'] else official
+
+
+def process_overseas_redemption(today: date) -> dict:
+    """補海外主動式ETF 的申贖（只寫 DB，不推播）。
+
+    回傳 {ticker: {'date','netSub','aum','is_estimate'}} —— 每檔「本輪取得的最新一筆」，
+    給 process_overseas_peer_push 共用；否則推播要再打一次各家投信 API，白白多一輪請求。
+    """
     print('\n[海外同業申贖：補最新已公告交易日]')
-    written = 0
+    latest: dict = {}
     for etf in PEER_ETFS:
         if etf.get('group') != 'overseas':
             continue
@@ -1763,6 +1782,7 @@ def process_overseas_redemption(today: date) -> int:
                 candidates.append(d)
             d -= timedelta(days=1)
 
+        official = None
         for d in candidates:
             if is_twse_trading_day(d) is False:   # None = TWSE 連不到，照抓
                 continue
@@ -1770,7 +1790,7 @@ def process_overseas_redemption(today: date) -> int:
             if data and data.get('netSub') is not None and data.get('aum') is not None:
                 write_peer_to_supabase([{**etf, 'data': data}], d)
                 print(f'  {etf["ticker"]} {d}: netSub={data["netSub"]:+.2f}億 aum={data["aum"]:.2f}億')
-                written += 1
+                official = {**data, 'date': d, 'is_estimate': False}
                 break
         else:
             print(f'  {etf["ticker"]}: 近 {OVERSEAS_LOOKBACK_WEEKDAYS} 個工作日查無已公告資料')
@@ -1778,16 +1798,21 @@ def process_overseas_redemption(today: date) -> int:
         # 正式值查無資料時（或即使查得到，還有更新一天的預估值時），補一筆「預估」列——
         # 用申購買回清單裡的「預估發行受益權單位數」概算，標記 is_estimate=True。
         # 不能蓋掉已經是正式值的列，只在該日期還沒有資料、或該日期原本也是估計值時才寫入。
+        est_point = None
         est_fetcher = _OVERSEAS_ESTIMATE_FETCHERS.get(etf['source'])
         if est_fetcher:
             est = est_fetcher(etf['key'])
             if est and est.get('netSub') is not None and est.get('aum') is not None:
+                est_point = est
                 existing = _fetch_existing_peer_row(str(est['date']), etf['ticker'])
                 if existing is None or existing.get('is_estimate'):
                     write_peer_to_supabase([{**etf, 'data': est}], est['date'])
                     print(f'  {etf["ticker"]} {est["date"]} (預估): netSub={est["netSub"]:+.2f}億 aum={est["aum"]:.2f}億')
-                    written += 1
-    return written
+
+        best = pick_latest_point(official, est_point)
+        if best:
+            latest[etf['ticker']] = best
+    return latest
 
 
 def _fetch_existing_peer_row(date_str: str, ticker: str) -> dict | None:
@@ -1851,6 +1876,98 @@ def process_overseas_estimate_confirm(today: date) -> int:
     if not confirmed:
         print(f'  {len(pending)} 筆估計值仍未有正式值公告。')
     return confirmed
+
+
+# ── 第三張表：海外主動式ETF 申購買回（Pushover）─────────────────────────────
+# ⚠️ 海外檔沒有「今天的今天」可抓：以統一 00411A 實測，今天(公告日)掛出來的清單裡，
+#    正式值 TranDate 是 T-2、預估值 ValueDate 是 T-1，T 日本身要等明天才會以預估值出現。
+#    所以這張表一律以「每檔各自最新可得的那一天」為準，並把資料日印在表上；
+#    預估值標 *，等正式值公告後 process_overseas_estimate_confirm 會覆蓋 DB。
+OVERSEAS_PUSH_TICKERS = ['00988A', '00990A', '00411A']
+
+
+def build_overseas_peer_html(points: dict, today: date) -> str:
+    """points = {ticker: {'date','netSub','aum','is_estimate'}}（process_overseas_redemption 回傳）"""
+    rows_html = ''
+    for tk in OVERSEAS_PUSH_TICKERS:
+        etf = next((e for e in PEER_ETFS if e['ticker'] == tk), None)
+        if etf is None:
+            continue
+        p = points.get(tk)
+        if p and p.get('netSub') is not None:
+            ns = p['netSub']
+            color = '#C00000' if ns > 0 else '#1A6B45' if ns < 0 else '#6B6460'
+            star = '<span style="color:#B08F6E;">*</span>' if p.get('is_estimate') else ''
+            ns_str  = f'{"+" if ns > 0 else ""}{ns:.2f}{star}'
+            aum_str = f'{p["aum"]:.2f} 億' if p.get('aum') is not None else '—'
+            date_str = str(p['date'])[5:]
+        else:
+            ns_str, color, aum_str, date_str = '—', '#BBBBBB', '—', '—'
+        rows_html += f'''
+        <tr style="border-bottom:1px solid #EEE9E4;">
+          <td style="padding:8px 14px;font-size:13px;color:#1C1C1E;font-weight:600;">{etf["ticker"]}</td>
+          <td style="padding:8px 14px;font-size:12px;color:#6B6460;">{etf["name"]}</td>
+          <td style="padding:8px 14px;text-align:center;font-family:monospace;font-size:12px;color:#6B6460;">{date_str}</td>
+          <td style="padding:8px 14px;text-align:right;font-family:monospace;font-size:13px;font-weight:700;color:{color};">{ns_str}</td>
+          <td style="padding:8px 14px;text-align:right;font-family:monospace;font-size:12px;color:#6B6460;">{aum_str}</td>
+        </tr>'''
+
+    return f'''<!DOCTYPE html>
+<html><head><meta charset="utf-8">
+<style>*{{margin:0;padding:0;box-sizing:border-box;}}body{{font-family:"Noto Sans TC","Segoe UI",Arial,sans-serif;background:#fff;padding:20px;width:560px;}}</style>
+</head><body>
+  <div style="border-left:4px solid #C00000;padding-left:12px;margin-bottom:16px;">
+    <div style="font-size:17px;font-weight:700;color:#1C1C1E;">海外主動式ETF 申購買回</div>
+    <div style="font-size:12px;color:#6B6460;margin-top:3px;">{today}　單位：億元</div>
+  </div>
+  <table style="width:100%;border-collapse:collapse;border:1px solid #E8E3DF;border-radius:8px;overflow:hidden;">
+    <thead>
+      <tr style="background:#1C1C1E;">
+        <th style="padding:9px 14px;color:#fff;font-size:11px;text-align:left;">代碼</th>
+        <th style="padding:9px 14px;color:#fff;font-size:11px;text-align:left;">名稱</th>
+        <th style="padding:9px 14px;color:#fff;font-size:11px;text-align:center;">資料日</th>
+        <th style="padding:9px 14px;color:#fff;font-size:11px;text-align:right;">淨申贖(億)</th>
+        <th style="padding:9px 14px;color:#fff;font-size:11px;text-align:right;">規模</th>
+      </tr>
+    </thead>
+    <tbody>{rows_html}</tbody>
+  </table>
+  <div style="margin-top:10px;font-size:11px;color:#6B6460;line-height:1.7;">
+    正值=淨申購（紅）　負值=淨贖回（綠）　<span style="color:#B08F6E;">*</span>=預估值（用申購買回清單的「預估發行受益權單位數」概算，正式公告後會更新）<br>
+    海外基金 PCF 為交易日 +1～+2 個交易日才公告，故資料日必然落後今天；各檔落差不同，以表上資料日為準。<br>
+    生成時間：{datetime.now(TZ).strftime('%Y/%m/%d %H:%M')} TST
+  </div>
+</body></html>'''
+
+
+async def process_overseas_peer_push(today: date, points: dict) -> bool:
+    """海外主動式ETF 申購買回推播。points 由 process_overseas_redemption 回傳，不重打 API。"""
+    print('\n[海外主動式ETF 申購買回：推播]')
+    usable = {tk: points[tk] for tk in OVERSEAS_PUSH_TICKERS
+              if points.get(tk) and points[tk].get('netSub') is not None}
+    if not usable:
+        print('  三檔都沒有可用資料，略過推播。')
+        return False
+
+    html = build_overseas_peer_html(points, today)
+    img  = await screenshot_html(html)
+
+    parts, dates = [], set()
+    for tk in OVERSEAS_PUSH_TICKERS:
+        p = points.get(tk)
+        if p and p.get('netSub') is not None:
+            parts.append(f'{tk} {p["netSub"]:+.2f}億{"*" if p.get("is_estimate") else ""}')
+            dates.add(str(p['date']))
+        else:
+            parts.append(f'{tk} —')
+    date_note = f'資料日 {sorted(dates)[0]}' if len(dates) == 1 else f'資料日 {sorted(dates)[0]}~{sorted(dates)[-1]}'
+    est_note = '\n* = 預估值（正式值公告後會更新）' if any(p.get('is_estimate') for p in usable.values()) else ''
+    send_pushover(
+        title       = f'海外主動式ETF 申購買回 {today.strftime("%m/%d")}',
+        message     = f'{date_note}\n' + '　'.join(parts) + est_note,
+        image_bytes = img,
+    )
+    return True
 
 
 # ── 近期補洞 ────────────────────────────────────────────────────────────────
@@ -1994,11 +2111,19 @@ async def main():
         print(f'  Overseas estimate confirm ERROR: {e}')
         import traceback; traceback.print_exc()
 
-    # 海外檔的公告落後當天，必須另外補（不推播，只寫 DB 給網頁分頁用）。
+    # 海外檔的公告落後當天，必須另外補（本身不推播，只寫 DB 給網頁分頁用）。
+    overseas_latest: dict = {}
     try:
-        process_overseas_redemption(today)
+        overseas_latest = process_overseas_redemption(today)
     except Exception as e:
         print(f'  Overseas redemption ERROR: {e}')
+        import traceback; traceback.print_exc()
+
+    # 第三張表：海外主動式ETF 申購買回（00988A/00990A/00411A）。直接用上一步的結果，不重打 API。
+    try:
+        sent_any = bool(await process_overseas_peer_push(today, overseas_latest)) or sent_any
+    except Exception as e:
+        print(f'  Overseas peer push ERROR: {e}')
         import traceback; traceback.print_exc()
 
     # 近期補洞：排程被 cancel、官網延遲公布、海外檔 T+1~T+2 公告，都會讓某個交易日永久留白。

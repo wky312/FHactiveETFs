@@ -90,6 +90,8 @@ const REDEMPTION_GROUPS: RedemptionGroup[] = [
       // 只是這支 API 沒有依日期查詢的能力，只回「目前最新一筆」，區間內其餘天數仍用 CMoney
       // 頂著（見 lib/jpmorganScale.ts）。規模約 12 億，是這組裡最小的一檔。
       { ticker: '00989A', name: '摩根美國科技', source: 'jpmorgan', key: 'TW00000989A5' },
+      // 2026/08/26 掛牌（統一投信）。ezmoney fundCode 由 PCF 頁上的 fundCode↔代號配對查得＝64YTW。
+      { ticker: '00411A', name: '統一前沿科技', source: 'ezmoney', key: '64YTW'  },
     ],
   },
 ];

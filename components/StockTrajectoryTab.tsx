@@ -155,6 +155,7 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
   const OVERRIDE_FUNDS: { fundId: string; ticker: string; name: string }[] = [
     { fundId: '00981A', ticker: '00981A', name: '統一台股增長' },
     { fundId: '00988A', ticker: '00988A', name: '統一全球創新（海外）' },
+    { fundId: '00411A', ticker: '00411A', name: '統一前沿科技（海外）' },
     { fundId: 'ETF24',  ticker: '00998A', name: '復華全球金融（海外）' },
     { fundId: 'ETF26',  ticker: '00409A', name: '復華全球未來50（海外）' },
   ];
