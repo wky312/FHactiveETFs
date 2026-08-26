@@ -54,4 +54,10 @@ jobs:
           SUPABASE_URL:        ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           TEST_DATE:           ${{ github.event.inputs.test_date }}
+          # Email 副本（與 Pushover 同內容、同時機）。GMAIL_APP_PASSWORD 是 Google 帳號的
+          # 「應用程式密碼」（非登入密碼），做法同 fantasy-baseball repo。
+          # 三個 env 沒設齊時 send_email() 會靜默略過，不影響 Pushover。
+          GMAIL_USER:          ${{ secrets.GMAIL_USER }}
+          GMAIL_APP_PASSWORD:  ${{ secrets.GMAIL_APP_PASSWORD }}
+          REPORT_EMAIL_TO:     107307017@g.nccu.edu.tw
         run: python scripts/daily_summary.py

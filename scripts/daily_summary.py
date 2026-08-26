@@ -55,6 +55,11 @@ UNIT_WATCH_PRODUCTS = [
 
 PUSHOVER_TOKEN     = os.environ.get('PUSHOVER_TOKEN', '')
 PUSHOVER_USER      = os.environ.get('PUSHOVER_USER', '')
+# Email 副本（與 Pushover 同內容、同時機）。三個都設齊才會寄，缺任一個就靜默跳過，
+# 不影響 Pushover——email 是附加通道，不該讓它的設定問題把主推播拖下水。
+GMAIL_USER         = os.environ.get('GMAIL_USER', '')
+GMAIL_APP_PASSWORD = os.environ.get('GMAIL_APP_PASSWORD', '')
+REPORT_EMAIL_TO    = os.environ.get('REPORT_EMAIL_TO', '')   # 可逗號分隔多個收件者
 SUPABASE_URL       = os.environ.get('SUPABASE_URL', '')
 SUPABASE_SERVICE_KEY = os.environ.get('SUPABASE_SERVICE_KEY', '')
 
@@ -1599,6 +1604,58 @@ async def screenshot_html(html: str) -> bytes:
 
 # ── Pushover ──────────────────────────────────────────────────────────────────
 
+def send_email(subject: str, message: str, image_bytes: bytes | None = None) -> bool:
+    """把同一則通知寄一份 email 副本。未設定 Gmail/收件者就靜默略過，回 False。
+
+    message 沿用 Pushover 的格式（`html=1`，含 <b> 之類的標籤、以 \n 斷行），
+    這裡把換行轉成 <br> 後直接當 HTML body；截圖以 CID 內嵌，收信時就看得到圖。
+    """
+    recipients = [a.strip() for a in REPORT_EMAIL_TO.split(',') if a.strip()]
+    if not (GMAIL_USER and GMAIL_APP_PASSWORD and recipients):
+        return False
+    try:
+        import smtplib, ssl
+        from email.message import EmailMessage
+
+        msg = EmailMessage()
+        msg['Subject'] = subject
+        msg['From'] = f'復華主動式ETF 每日摘要 <{GMAIL_USER}>'
+        msg['To'] = ', '.join(recipients)
+        msg.set_content(re.sub(r'<[^>]+>', '', message))   # 純文字退路
+        img_html = '<p><img src="cid:report" style="max-width:100%;"></p>' if image_bytes else ''
+        msg.add_alternative(
+            f'<html><body style="font-family:\'Noto Sans TC\',\'Segoe UI\',Arial,sans-serif;'
+            f'color:#1C1C1E;">'
+            f'<h2 style="font-size:16px;border-left:4px solid #C00000;padding-left:10px;">{subject}</h2>'
+            f'<div style="font-size:14px;line-height:1.8;">{message.replace(chr(10), "<br>")}</div>'
+            f'{img_html}</body></html>',
+            subtype='html',
+        )
+        if image_bytes:
+            # add_related 要掛在 html 那個 part 上，否則 cid 參照不到
+            msg.get_payload()[-1].add_related(
+                image_bytes, maintype='image', subtype='png', cid='<report>', filename='summary.png')
+
+        with smtplib.SMTP_SSL('smtp.gmail.com', 465, context=ssl.create_default_context(), timeout=45) as smtp:
+            smtp.login(GMAIL_USER, GMAIL_APP_PASSWORD)
+            smtp.send_message(msg)
+        print(f'  ✓ Email sent: {subject} → {", ".join(recipients)}')
+        return True
+    except Exception as e:
+        # email 失敗絕不能影響主流程（Pushover 已經送出去了）
+        print(f'  email send error: {e}')
+        return False
+
+
+def notify(title: str, message: str, image_bytes: bytes | None = None, priority: int = 0):
+    """一則通知同時走 Pushover 與 email。Pushover 為主（失敗照舊往上拋），email 為副本。"""
+    if image_bytes is not None:
+        send_pushover(title, message, image_bytes, priority)
+    else:
+        send_pushover_text(title, message, priority)
+    send_email(title, message, image_bytes)
+
+
 def send_pushover(title: str, message: str, image_bytes: bytes, priority: int = 0):
     data = {'token': PUSHOVER_TOKEN, 'user': PUSHOVER_USER,
              'title': title, 'message': message, 'html': '1'}
@@ -1673,7 +1730,7 @@ async def process_etf(etf: dict, today: date):
     cs    = str(cmp_data['date'])[5:]
     total = len(rows)
     stale_note = f'\n⚠️ 官網尚未更新，此為 {reported_date} 資料（最新交易日應為 {expected}）' if stale else ''
-    send_pushover(
+    notify(
         title   = f'{"⚠️ " if stale else ""}{etf["ticker"]} 當日摘要 {bs}',
         message = f'vs {cs}　共 {total} 筆異動{stale_note}',
         image_bytes = img,
@@ -1762,7 +1819,7 @@ async def process_peer_redemption(today: date):
     # → alert and skip rather than publish bad data. (None = TWSE unreachable → proceed.)
     if is_twse_trading_day(base_date) is False:
         print(f'  ⚠ TWSE 確認 {base_date} 非交易日，但資料源仍回傳資料 → 跳過並告警')
-        send_pushover_text(
+        notify(
             '⚠️ 同業申贖：偵測到非交易日資料',
             f'{base_date} 經 TWSE 官方行事曆確認為非交易日，但資料源仍回傳申贖資料，'
             f'已跳過寫入。請檢查對應爬蟲（很可能是某家官網回放前一交易日）。',
@@ -1779,7 +1836,7 @@ async def process_peer_redemption(today: date):
     html = build_peer_html(peer_results, base_date)
     img  = await screenshot_html(html)
     stale_note = f'\n⚠️ 官網尚未更新，此為 {base_date} 資料（最新交易日應為 {expected}）' if stale else ''
-    send_pushover(
+    notify(
         title       = f'{"⚠️ " if stale else ""}同業申贖觀測 {base_date}',
         message     = '淨申贖：' + '　'.join(
             f'{e["ticker"]} {e["data"]["netSub"]:+.2f}億' if e['data'] and e['data']['netSub'] is not None else f'{e["ticker"]} —'
@@ -2028,7 +2085,7 @@ async def process_overseas_peer_push(today: date, points: dict) -> bool:
             parts.append(f'{tk} —')
     date_note = f'資料日 {sorted(dates)[0]}' if len(dates) == 1 else f'資料日 {sorted(dates)[0]}~{sorted(dates)[-1]}'
     est_note = '\n* = 預估值（正式值公告後會更新）' if any(p.get('is_estimate') for p in usable.values()) else ''
-    send_pushover(
+    notify(
         title       = f'海外主動式ETF 申購買回 {today.strftime("%m/%d")}',
         message     = f'{date_note}\n' + '　'.join(parts) + est_note,
         image_bytes = img,
@@ -2203,7 +2260,7 @@ async def main():
     if not sent_any:
         # Every section produced nothing (e.g. all data sources unreachable). Don't let
         # this be a silent green build — alert, and exit non-zero so the run shows red.
-        send_pushover_text(
+        notify(
             '⚠️ 每日摘要無資料',
             f'{today} 排程已執行但未取得任何資料（資料源可能暫時無法連線）。'
             f'可至 GitHub Actions 手動重新觸發 daily_summary。',

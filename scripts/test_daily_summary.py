@@ -212,3 +212,94 @@ def test_newest_estimate_rejects_future_dated_estimate():
 
     got = ds._newest_estimate(fetch_one, today=date(2026, 8, 26))
     assert got['date'] == date(2026, 8, 25) and got['netSub'] == 1.0
+
+
+# ── Email 副本 ──────────────────────────────────────────────────────────────
+
+def _fake_smtp(monkeypatch, sent: dict):
+    import smtplib
+
+    class FakeSMTP:
+        def __init__(self, *a, **k):
+            pass
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *a):
+            return False
+
+        def login(self, user, pw):
+            sent['login'] = (user, pw)
+
+        def send_message(self, msg):
+            sent['msg'] = msg
+
+    monkeypatch.setattr(smtplib, 'SMTP_SSL', FakeSMTP)
+
+
+def test_send_email_skips_when_unconfigured(monkeypatch):
+    """沒設 Gmail/收件者時要靜默回 False，不能拋例外把 Pushover 流程拖下水。"""
+    monkeypatch.setattr(ds, 'GMAIL_USER', '')
+    monkeypatch.setattr(ds, 'GMAIL_APP_PASSWORD', '')
+    monkeypatch.setattr(ds, 'REPORT_EMAIL_TO', '')
+    assert ds.send_email('標題', '內文', b'png') is False
+
+
+def test_send_email_builds_message_with_inline_image(monkeypatch):
+    sent: dict = {}
+    _fake_smtp(monkeypatch, sent)
+    monkeypatch.setattr(ds, 'GMAIL_USER', 'bot@gmail.com')
+    monkeypatch.setattr(ds, 'GMAIL_APP_PASSWORD', 'pw')
+    monkeypatch.setattr(ds, 'REPORT_EMAIL_TO', 'a@x.edu, b@y.edu')
+
+    assert ds.send_email('當日摘要 08/26', '第一行\n<b>第二行</b>', b'\x89PNGfake') is True
+
+    msg = sent['msg']
+    assert msg['Subject'] == '當日摘要 08/26'
+    assert msg['To'] == 'a@x.edu, b@y.edu'
+    # 圖必須掛在 html part 底下，否則 cid:report 參照不到、收信是空框
+    assert '<report>' in [p.get('Content-ID') for p in msg.walk() if p.get('Content-ID')]
+    html = next(p for p in msg.walk() if p.get_content_type() == 'text/html').get_content()
+    assert '第一行<br>' in html and 'cid:report' in html
+
+
+def test_send_email_without_image_still_sends(monkeypatch):
+    sent: dict = {}
+    _fake_smtp(monkeypatch, sent)
+    monkeypatch.setattr(ds, 'GMAIL_USER', 'bot@gmail.com')
+    monkeypatch.setattr(ds, 'GMAIL_APP_PASSWORD', 'pw')
+    monkeypatch.setattr(ds, 'REPORT_EMAIL_TO', 'a@x.edu')
+    assert ds.send_email('告警', '資料源連不到', None) is True
+    html = next(p for p in sent['msg'].walk() if p.get_content_type() == 'text/html').get_content()
+    assert 'cid:report' not in html
+
+
+def test_send_email_swallows_smtp_failure(monkeypatch):
+    """SMTP 掛掉不能往上拋——Pushover 已經送出去了，email 只是副本。"""
+    import smtplib
+    monkeypatch.setattr(ds, 'GMAIL_USER', 'bot@gmail.com')
+    monkeypatch.setattr(ds, 'GMAIL_APP_PASSWORD', 'pw')
+    monkeypatch.setattr(ds, 'REPORT_EMAIL_TO', 'a@x.edu')
+
+    def boom(*a, **k):
+        raise OSError('connection refused')
+
+    monkeypatch.setattr(smtplib, 'SMTP_SSL', boom)
+    assert ds.send_email('標題', '內文', b'png') is False
+
+
+def test_notify_sends_both_channels(monkeypatch):
+    """notify 要同時走 Pushover 與 email，且圖片有無都要正確分流。"""
+    calls = []
+    monkeypatch.setattr(ds, 'send_pushover', lambda t, m, i, p=0: calls.append(('push', t, bool(i))))
+    monkeypatch.setattr(ds, 'send_pushover_text', lambda t, m, p=0: calls.append(('push_text', t, False)))
+    monkeypatch.setattr(ds, 'send_email', lambda t, m, i=None: calls.append(('mail', t, bool(i))))
+
+    ds.notify('有圖', '內文', b'png')
+    ds.notify('無圖', '內文', None, priority=1)
+
+    assert calls == [
+        ('push', '有圖', True), ('mail', '有圖', True),
+        ('push_text', '無圖', False), ('mail', '無圖', False),
+    ]
