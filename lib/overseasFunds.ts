@@ -26,4 +26,6 @@ export const OVERSEAS_FUNDS: OverseasFundConfig[] = [
   { ticker: '00990A', name: '主動元大AI新經濟',   source: 'cmoney',  fundId: '00990A' },
   { ticker: '00997A', name: '主動群益美國增長',   source: 'cmoney',  fundId: '00997A' },
   { ticker: '00402A', name: '主動安聯美國科技',   source: 'cmoney',  fundId: '00402A' },
+  // 2026/08/26 掛牌（統一投信，上櫃）。CMoney 自 2026/08/24 起就有逐日持股。
+  { ticker: '00411A', name: '主動統一前沿科技',   source: 'cmoney',  fundId: '00411A' },
 ];

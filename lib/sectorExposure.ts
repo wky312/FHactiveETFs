@@ -73,19 +73,30 @@ export function resolveStockNameOverseas(code: string, consensusName?: string): 
   return STOCK_NAMES_OVERSEAS[code] || (consensusName ?? '').trim() || code;
 }
 
+/** 族群代碼／持股代碼的共同比對鍵：剝掉台股的 .TW/.TWO 後綴。
+    只吃 .TW 與 .TWO——日股的 .T、韓股 .KS、深圳 .SZ 都不會被誤剝。 */
+export function canonicalCode(code: string): string {
+  return code.replace(/\.TWO?$/i, '');
+}
+
 export function buildSectorMatrix(
   consensus: ConsensusResult,
   rawCodes: string[],
   nameResolver: (code: string, consensusName?: string) => string = resolveStockName,
 ): SectorExposureResult {
   const codes = [...new Set(rawCodes.map(c => c.trim()).filter(Boolean))];
-  const byId = new Map(consensus.stocks.map(s => [s.stockid, s]));
+  // 海外族群清單裡台股寫成 2330.TW / 4979.TWO（熱力圖要拿它當 Yahoo ticker 查價，不能拿掉），
+  // 但海外基金回報台股是**裸 4 碼** 2330 / 4979——stockidToYfTicker() 只在遇到彭博後綴
+  // （ TT / US / JP）時才補尾碼，台股沒帶後綴就原樣輸出。兩邊純字串比對永遠 miss，
+  // 結果是台積電、聯發科這些明明被 4 檔基金持有的成分股在海外族群曝險一律顯示 0.00%。
+  // → 配對時兩邊都剝掉 .TW/.TWO 再比（.T 日股不受影響，正則要求至少 TW 兩個字元）。
+  const byId = new Map(consensus.stocks.map(s => [canonicalCode(s.stockid), s]));
 
   // ticker → 佔比，只建所選個股的部分
   const weightOf = new Map<string, Map<string, number>>();
   for (const c of codes) {
     const m = new Map<string, number>();
-    for (const h of byId.get(c)?.holders ?? []) m.set(h.ticker, h.w);
+    for (const h of byId.get(canonicalCode(c))?.holders ?? []) m.set(h.ticker, h.w);
     weightOf.set(c, m);
   }
 
@@ -106,7 +117,7 @@ export function buildSectorMatrix(
 
   const nFunds = consensus.funds.length;
   const stocks: SectorStockCol[] = codes.map(c => {
-    const s = byId.get(c);
+    const s = byId.get(canonicalCode(c));
     const m = weightOf.get(c)!;
     const sumWeight = [...m.values()].reduce((a, b) => a + b, 0);
     let mkt = 0;

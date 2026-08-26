@@ -2,7 +2,8 @@ import { SectorGroup } from './sectorGroups';
 
 /* 海外科技股產業族群 —— 一次性轉換自使用者提供的觀察清單 CSV（原始檔存於
    data/global_tech_stocks_watchlist.csv），15 組、122 檔（原始 122 筆排除 SpaceX、
-   加入南亞科 2408——代號 SPCX 未上市，不會出現在任何基金持股裡，join 不到，故不列入）。
+   加入南亞科 2408）。⚠ 2026-08-26 更正：當時排除 SPCX 的理由是「未上市、join 不到」，但
+   00411A 實際持有 SPCX US 4.07%、Yahoo 也查得到報價，故已補回「低軌衛星與太空科技」。
    代號沿用 CSV 的 Yahoo Finance 格式（AMD、2454.TW、IFX.DE、300308.SZ…），
    是海外族群曝險（lib/consensusOverseas.ts）拿真實持股比對的 join key，勿改格式。
 
@@ -12,24 +13,45 @@ import { SectorGroup } from './sectorGroups';
    快照日期 2026-08-25，2026-08-26 加南亞科、清理中英夾雜名稱。 */
 
 export const BUILTIN_GROUPS_OVERSEAS: SectorGroup[] = [
-  { name: '算力與 IC 設計 (CPU / GPU / ASIC / IP)', codes: ['AMD', '2454.TW', 'ARM', 'INTC', 'NVDA', 'QCOM', 'AVGO', '3661.TW', '3443.TW'], builtin: true },
-  { name: 'AI 資料中心電力、燃料電池與核能基建', codes: ['BE', 'PLUG', 'FCEL', 'VRT', 'ETN', 'GEV', 'CEG', 'VST', 'OKLO', 'SMR'], builtin: true },
-  { name: '低軌衛星與太空科技 (LEO Satellite & Aerospace)', codes: ['ASTS', 'RKLB', 'IRDM', 'SATS', 'GSAT', 'PL', '3491.TWO', '6285.TW'], builtin: true },
+  { name: '算力與 IC 設計 (CPU / GPU / ASIC / IP)', codes: ['AMD', '2454.TW', 'ARM', 'INTC', 'NVDA', 'QCOM', 'AVGO', '3661.TW', '3443.TW', 'CDNS', 'CBRS'], builtin: true },
+  { name: 'AI 資料中心電力、燃料電池與核能基建', codes: ['BE', 'PLUG', 'FCEL', 'VRT', 'ETN', 'GEV', 'CEG', 'VST', 'OKLO', 'SMR', '6508.T'], builtin: true },
+  { name: '低軌衛星與太空科技 (LEO Satellite & Aerospace)', codes: ['ASTS', 'RKLB', 'IRDM', 'SATS', 'GSAT', 'PL', '3491.TWO', '6285.TW', 'SPCX'], builtin: true },
   { name: '半導體設備、測試與探針卡', codes: ['6223.TWO', '6871.T', 'TER', 'FORM', 'AIXA.DE', 'AEHR', '095340.KS', 'ASML', 'AMAT', 'LRCX', 'KLAC', '8035.T', '6857.T', '6515.TW'], builtin: true },
-  { name: '晶圓代工與封測製造 (Foundry & OSAT)', codes: ['2330.TW', 'TSEM', '3711.TW', 'GFS', '2303.TW', 'AMKR', '2449.TW'], builtin: true },
+  { name: '晶圓代工與封測製造 (Foundry & OSAT)', codes: ['2330.TW', 'TSM', 'TSEM', '3711.TW', 'GFS', '2303.TW', 'AMKR', '2449.TW'], builtin: true },
   { name: '光通訊與矽光子 / CPO (Optical & CPO)', codes: ['LITE', 'COHR', '300308.SZ', '4979.TWO', 'FN', 'CIEN', '6442.TW', '3363.TWO', '3081.TWO'], builtin: true },
-  { name: '載板與高階 PCB / 材料 (Substrates & PCB)', codes: ['3037.TW', '2383.TW', '301377.SZ', '8046.TW', '3189.TW', '4062.T', '6967.T', '2368.TW'], builtin: true },
-  { name: '記憶體與高容量儲存 (Memory & Storage)', codes: ['MU', '285A.T', 'STX', 'WDC', '000660.KS', '005930.KS', 'PSTG', '8299.TWO', '2408.TW'], builtin: true },
-  { name: '軟體、資安與 AI 雲端服務 (SaaS & Security)', codes: ['PANW', 'SNOW', 'PLTR', 'NET', 'TWLO', '4180.T', 'CRWD', 'NOW', 'DDOG', 'ZS', 'CRM'], builtin: true },
-  { name: '高速傳輸與網通介面 (Transmission & Networking)', codes: ['CRDO', 'MRVL', '5801.T', 'ANET', 'ALAB', 'CSCO', '2379.TW'], builtin: true },
-  { name: '被動元件與電子零組件 (Passive Components)', codes: ['009150.KS', '6981.T', '300408.SZ', '2327.TW', '6997.T', '6762.T', '6976.T', '2492.TW'], builtin: true },
-  { name: 'AI 伺服器電源與散熱 (Power & Cooling)', codes: ['2308.TW', '3017.TW', '3324.TW', '3653.TW', '2301.TW', 'SMCI'], builtin: true },
+  { name: '載板與高階 PCB / 材料 (Substrates & PCB)', codes: ['3037.TW', '2383.TW', '301377.SZ', '8046.TW', '3189.TW', '4062.T', '6967.T', '2368.TW', '6274.TW'], builtin: true },
+  { name: '記憶體與高容量儲存 (Memory & Storage)', codes: ['MU', '285A.T', 'STX', 'WDC', '000660.KS', '005930.KS', 'PSTG', '8299.TWO', '2408.TW', 'SNDK'], builtin: true },
+  { name: '軟體、資安與 AI 雲端服務 (SaaS & Security)', codes: ['PANW', 'SNOW', 'PLTR', 'NET', 'TWLO', '4180.T', 'CRWD', 'NOW', 'DDOG', 'ZS', 'CRM', 'NTSK'], builtin: true },
+  { name: '高速傳輸與網通介面 (Transmission & Networking)', codes: ['CRDO', 'MRVL', '5801.T', 'ANET', 'ALAB', 'CSCO', '2379.TW', 'SMTC', '2345.TW'], builtin: true },
+  { name: '被動元件與電子零組件 (Passive Components)', codes: ['009150.KS', '6981.T', '300408.SZ', '2327.TW', '6997.T', '6762.T', '6976.T', '2492.TW', '3026.TW', 'SITM'], builtin: true },
+  { name: 'AI 伺服器電源與散熱 (Power & Cooling)', codes: ['2308.TW', '3017.TW', '3324.TW', '3653.TW', '2301.TW', 'SMCI', '8996.TW', '2059.TW'], builtin: true },
   { name: '車用與功率半導體 (Power & Auto Chips)', codes: ['IFX.DE', 'MPWR', 'TXN', 'STM', 'ON', 'NXPI'], builtin: true },
-  { name: '超級雲端巨頭 (Hyperscalers)', codes: ['MSFT', 'GOOGL', 'AMZN', 'META', 'AAPL'], builtin: true },
+  { name: '超級雲端巨頭 (Hyperscalers)', codes: ['MSFT', 'GOOGL', 'GOOG', 'AMZN', 'META', 'AAPL'], builtin: true },
   { name: '金融科技與數位支付 (FinTech & Payments)', codes: ['CRCL', 'V', 'MA', 'COIN', 'SQ'], builtin: true },
+  /* 以下 4 組為 2026-08-26 新增：原始 CSV 是「零組件供應鏈」視角，接不住主動式ETF 實際
+     押的幾條主線（算力租賃、伺服器整機、電動車/自駕、量子）。成分股取自 00411A 與
+     00988A 的實際持股，再各補同業補齊族群輪廓。
+     ⚠ SMCI 仍留在「AI 伺服器電源與散熱」（原始 CSV 的分類），沒有搬到伺服器組——
+     一檔股票只能屬於一組，搬動會改變既有那組的曝險數字，留待需要時再決定。 */
+  { name: 'AI 算力租賃 (Neocloud)', codes: ['CRWV', 'NBIS', 'IREN', 'APLD', 'CIFR', 'WULF'], builtin: true },
+  { name: 'AI 伺服器與 ODM (Server & ODM)', codes: ['DELL', 'HPE', '6669.TW', '2382.TW', '3231.TW', '2376.TW'], builtin: true },
+  { name: '電動車、自駕與出行平台 (EV & Mobility)', codes: ['TSLA', 'UBER', '581A.T', 'RIVN', 'MBLY', 'XPEV', '7203.T'], builtin: true },
+  { name: '量子運算 (Quantum Computing)', codes: ['IONQ', 'RGTI', 'QBTS', 'QUBT'], builtin: true },
 ];
 
 export const STOCK_NAMES_OVERSEAS: Record<string, string> = {
+  // 2026-08-26 新增（補進現有族群 + 4 個新族群）
+  'SNDK': '晟碟', 'SPCX': 'SpaceX', '6508.T': '明電舍', '8996.TW': '高力', '2059.TW': '川湖',
+  'SMTC': 'Semtech', '2345.TW': '智邦', 'NTSK': 'Netskope', '3026.TW': '禾伸堂', 'SITM': 'SiTime',
+  'CRWV': 'CoreWeave', 'NBIS': 'Nebius', 'IREN': 'IREN', 'APLD': 'Applied Digital',
+  'CIFR': 'Cipher Mining', 'WULF': 'TeraWulf',
+  'DELL': '戴爾', 'HPE': '慧與科技', '6669.TW': '緯穎', '2382.TW': '廣達', '3231.TW': '緯創', '2376.TW': '技嘉',
+  'TSLA': '特斯拉', 'UBER': 'Uber', '581A.T': 'GO', 'RIVN': 'Rivian', 'MBLY': 'Mobileye',
+  'XPEV': '小鵬汽車', '7203.T': '豐田汽車',
+  'IONQ': 'IonQ', 'RGTI': 'Rigetti', 'QBTS': 'D-Wave Quantum', 'QUBT': 'Quantum Computing',
+  // 原清單漏掉的「同一家公司的另一個掛牌」與同供應鏈標的
+  'GOOG': 'Alphabet C股', 'TSM': '台積電ADR', '6274.TW': '台燿',
+  'CDNS': 'Cadence', 'CBRS': 'Cerebras',
   'AMD': '超微半導體',
   '2454.TW': '聯發科',
   'ARM': 'ARM Holdings',
