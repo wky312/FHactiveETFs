@@ -56,6 +56,7 @@ const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
     { id: 'cumret',      label: '累積報酬走勢' },
     { id: 'risk',        label: '風險指標' },
     { id: 'attribution', label: '績效個股歸因' },
+    { id: 'sectorheatmap', label: '產業熱力圖' },
   ] },
   { label: '選股與預測', items: [
     { id: 'scorecard',       label: '選股對帳單' },
@@ -68,7 +69,6 @@ const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
     { id: 'turnover',  label: '經理人換手率' },
     { id: 'consensus', label: '共識持股' },
     { id: 'sector',    label: '族群曝險' },
-    { id: 'sectorheatmap', label: '產業熱力圖' },
   ] },
   { label: '其他', items: [
     { id: 'unitwatch', label: '單位數注意商品' },

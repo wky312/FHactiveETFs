@@ -299,7 +299,7 @@ export default function PerformanceTab({
             </tr>
           </thead>
           <tbody>
-            {/* 基準列：0050(含息) 與 加權指數，置頂供相對強弱對照 */}
+            {/* 基準列置頂供相對強弱對照：台股基金＝0050(含息)＋加權指數，海外基金＝美股四大指數 */}
             {(benchmarks ?? []).map(b => {
               const cv = customMap.get(b.stockid) ?? null;
               return (
@@ -311,7 +311,9 @@ export default function PerformanceTab({
                   </td>
                   <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: SUB }}>—</td>
                   <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: SUB }}>
-                    {b.currentPrice !== null ? b.currentPrice.toFixed(2) : '—'}
+                    {b.currentPrice !== null
+                      ? b.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+                      : '—'}
                   </td>
                   {appliedRange && (
                     <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', fontWeight: 700, color: perfColor(cv), background: perfBg(cv) }}>

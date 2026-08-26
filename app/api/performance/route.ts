@@ -49,11 +49,25 @@ export async function GET(request: NextRequest) {
       return fetchStockPerformance(h.stockid, h.stockname, h.prate_addaccint, yfTicker, fallback, customStart, customEnd);
     });
 
-    // 基準：0050(含息) 與 加權指數 ^TWII，供使用者一眼看出個股/整體相對強弱
-    const benchmarks: StockPerformance[] = await Promise.all([
+    /* 基準列：供使用者一眼看出個股/整體相對強弱。台股基金拿 0050(含息) 與加權指數比，
+       海外基金拿美股四大指數比——00998A/00409A 的成分幾乎全是美股與其他海外股，
+       拿台股大盤當基準沒有參考意義。
+       四大指數用各自的價格指數：^DJI/^SOX 在 Yahoo 沒有含息版，若只把 S&P500 換成
+       ^SP500TR 會讓四條基準口徑不一致，反而更難解讀。 */
+    const TW_BENCHES = [
       { stockid: '0050',  stockname: '元大台灣50', yf: '0050.TW' },
       { stockid: '^TWII', stockname: '加權指數',   yf: '^TWII'   },
-    ].map(b => fetchStockPerformance(b.stockid, b.stockname, 0, b.yf, undefined, customStart, customEnd)));
+    ];
+    const US_BENCHES = [
+      { stockid: '^DJI',  stockname: '道瓊工業指數', yf: '^DJI'  },
+      { stockid: '^GSPC', stockname: '標普500',     yf: '^GSPC' },
+      { stockid: '^IXIC', stockname: '那斯達克',     yf: '^IXIC' },
+      { stockid: '^SOX',  stockname: '費城半導體',   yf: '^SOX'  },
+    ];
+    const benchmarks: StockPerformance[] = await Promise.all(
+      (isTwOnly ? TW_BENCHES : US_BENCHES)
+        .map(b => fetchStockPerformance(b.stockid, b.stockname, 0, b.yf, undefined, customStart, customEnd)),
+    );
 
     return NextResponse.json(
       { date: holdDate, results, benchmarks },
