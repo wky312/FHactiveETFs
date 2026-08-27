@@ -10,11 +10,12 @@ export async function GET(request: NextRequest) {
   const market: HeatmapMarket = sp.get('market') === 'overseas' ? 'overseas' : 'tw';
   const start = sp.get('start') ?? undefined;
   const end = sp.get('end') ?? undefined;
+  const force = sp.get('force') === '1';
   if ((start && !end) || (end && !start)) {
     return NextResponse.json({ error: 'start 與 end 必須同時提供' }, { status: 400 });
   }
   try {
-    const data = await computeSectorHeatmap(market, start, end);
+    const data = await computeSectorHeatmap(market, start, end, force);
     return NextResponse.json(data);
   } catch (err) {
     const msg = err instanceof Error ? err.message : 'Unknown error';

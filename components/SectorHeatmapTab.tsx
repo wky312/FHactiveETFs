@@ -109,11 +109,12 @@ export default function SectorHeatmapTab() {
 
   // mkt 參數預設吃目前 state，但呼叫端在「剛用 setMarket() 還沒重繪」的情況下（例如網址還原）
   // 必須明確傳入，否則這裡的 `market` closure 仍是舊值，會抓錯市場的資料。
-  const loadHeatmap = useCallback(async (mode: RangeMode, s: string, e: string, mkt: HeatmapMarket = market) => {
+  // force=true：盤中想看最新報價時繞過快取直接重查（見「強制查詢最新資料」按鈕）。
+  const loadHeatmap = useCallback(async (mode: RangeMode, s: string, e: string, mkt: HeatmapMarket = market, force = false) => {
     setHmLoading(true); setHmError('');
     try {
-      const qs = mode === 'custom' ? `market=${mkt}&start=${s}&end=${e}` : `market=${mkt}`;
-      const r = await fetch(`/api/sector-heatmap?${qs}`);
+      const qs = (mode === 'custom' ? `market=${mkt}&start=${s}&end=${e}` : `market=${mkt}`) + (force ? '&force=1' : '');
+      const r = await fetch(`/api/sector-heatmap?${qs}`, force ? { cache: 'no-store' } : undefined);
       const json = await r.json();
       if (!r.ok) throw new Error(json.error ?? `HTTP ${r.status}`);
       heatmapCache.current[mkt] = json;
@@ -290,6 +291,10 @@ export default function SectorHeatmapTab() {
                 </button>
               </>
             )}
+            <button onClick={() => loadHeatmap(rangeMode, start, end, market, true)} disabled={hmLoading}
+              style={{ ...toolBtn, marginLeft: 'auto' }} title="繞過快取，直接重查目前所有個股的最新報價">
+              {hmLoading ? '查詢中…' : '強制查詢最新資料'}
+            </button>
           </div>
 
           {hmLoading && <p style={{ color: SUB, fontSize: '.85rem' }}>查詢 {market === 'tw' ? '約 269' : '約 122'} 檔個股報酬中，約需 20-40 秒…</p>}
@@ -298,7 +303,7 @@ export default function SectorHeatmapTab() {
           {heatmap && !hmLoading && (
             <>
               <p style={{ fontSize: '.74rem', color: SUB, marginBottom: 10 }}>
-                {heatmap.ranged ? `區間 ${heatmap.start} ～ ${heatmap.end}` : '最近一日漲跌'}　資料時間 {new Date(heatmap.asOf).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}　點擊族群看成分股明細
+                {heatmap.ranged ? `區間 ${heatmap.start} ～ ${heatmap.end}` : '最近一日漲跌'}　資料時間 {new Date(heatmap.asOf).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei' })}　平常顯示的是快取（盤中不會即時更新），要看當下報價請按「強制查詢最新資料」；點擊族群看成分股明細
               </p>
               <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(150px, 1fr))', gap: 8 }}>
                 {sortedGroups.map(g => (

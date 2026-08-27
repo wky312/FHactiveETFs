@@ -97,17 +97,23 @@ async function computeFresh(market: HeatmapMarket, start?: string, end?: string)
   };
 }
 
-export async function computeSectorHeatmap(market: HeatmapMarket, start?: string, end?: string): Promise<HeatmapResult> {
+/** force=true：盤中想看最新報價時繞過快取，直接重查（國內盤中族群漲跌會隨時間移動，
+    預設的「一天算一次」快取不會反映最新盤中價）。不管 force 與否，算完都會覆寫兩層快取，
+    所以按一次「強制查詢最新資料」等於順便把當天的共用快取也刷新，其他人接下來的一般載入
+    也會拿到這個較新的結果，不是只更新自己這次的畫面。 */
+export async function computeSectorHeatmap(market: HeatmapMarket, start?: string, end?: string, force = false): Promise<HeatmapResult> {
   const ranged = !!(start && end);
   const dateKey = taipeiDateStr();
   const cacheKey = ranged ? `sector-heatmap:${market}:${start}:${end}` : `sector-heatmap:${market}:latest:${dateKey}`;
 
-  const mem = memCache.get(cacheKey);
-  if (mem && Date.now() - mem.ts < MEM_TTL_MS) return mem.data;
+  if (!force) {
+    const mem = memCache.get(cacheKey);
+    if (mem && Date.now() - mem.ts < MEM_TTL_MS) return mem.data;
 
-  if (!ranged) {
-    const cached = await readPageCache<HeatmapResult>(cacheKey);
-    if (cached) { memCache.set(cacheKey, { ts: Date.now(), data: cached }); return cached; }
+    if (!ranged) {
+      const cached = await readPageCache<HeatmapResult>(cacheKey);
+      if (cached) { memCache.set(cacheKey, { ts: Date.now(), data: cached }); return cached; }
+    }
   }
 
   const result = await computeFresh(market, start, end);
