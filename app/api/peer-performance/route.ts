@@ -229,6 +229,30 @@ async function fetchOne(item: PeerItem, customRange?: CustomRange, idxQuote?: Id
       .filter(r => marketClosed || r.date.toISOString().split('T')[0] < todayStr)
       .sort((a, b) => a.date.getTime() - b.date.getTime());
 
+    // 指數（^TWII/^TWOII）不用 Yahoo 即時報價（殭屍值）與可能停更的日 K，改用 MIS 補最新交易日：
+    // 盤中 → 用昨收（y）對齊個股「以上一完整收盤為準」；收盤後 → 用當日指數值（z）。
+    // 這段要放在下面「rows 是否為空」的判斷之前：^TWOII 這類指數 Yahoo 有時連一根日 K
+    // 都不回（不只是落後幾天），若沿用先判空再補值的順序，rows 一開始就是空陣列、
+    // 直接 return base，MIS 補的這筆永遠補不進去，整檔就會顯示「無報價」。
+    const isIndex = item.yfTicker.startsWith('^');
+    if (isIndex && idxQuote) {
+      const lastChartDate = rows.length ? rows[rows.length - 1].date : null;
+      if (!marketClosed) {
+        if (idxQuote.prevClose != null) {
+          const prevDay = new Date();
+          do { prevDay.setDate(prevDay.getDate() - 1); } while (prevDay.getDay() === 0 || prevDay.getDay() === 6);
+          if (!lastChartDate || prevDay.getTime() > lastChartDate.getTime()) {
+            rows.push({ date: prevDay, adjClose: idxQuote.prevClose, close: idxQuote.prevClose });
+          }
+        }
+      } else {
+        const idxDate = new Date(idxQuote.date + 'T05:30:00Z'); // 台股收盤時點
+        if (!lastChartDate || idxDate.getTime() > lastChartDate.getTime()) {
+          rows.push({ date: idxDate, adjClose: idxQuote.value, close: idxQuote.value });
+        }
+      }
+    }
+
     if (!rows.length) return base;
 
     // Use TWSE listing date to gate metrics; fall back to first chart row if unavailable
@@ -238,7 +262,7 @@ async function fetchOne(item: PeerItem, customRange?: CustomRange, idxQuote?: Id
     const pctSince = (cutoff: Date): number | null =>
       effectiveStart > cutoff ? null : pct(cur, findOnOrBefore(rows, cutoff));
 
-    // Append latest completed close when chart data lags:
+    // Append latest completed close when chart data lags (僅限非指數標的，指數的最新值已在上面用 MIS 補過):
     // - Market open today   → use regularMarketPreviousClose (prev session's close)
     //   with date = last weekday before today
     // - Market closed today → use regularMarketPrice (today's close) if newer than chart
@@ -255,47 +279,29 @@ async function fetchOne(item: PeerItem, customRange?: CustomRange, idxQuote?: Id
     const quoteStale = quote?.regularMarketPrice != null
       && round2(quote.regularMarketPrice) === round2(lastRow.close);
 
-    // 指數（^TWII/^TWOII）不用 Yahoo 即時報價（殭屍值）與可能停更的日 K，改用 MIS 補最新交易日：
-    // 盤中 → 用昨收（y）對齊個股「以上一完整收盤為準」；收盤後 → 用當日指數值（z）。
-    const isIndex = item.yfTicker.startsWith('^');
-    if (isIndex) {
-      if (idxQuote) {
-        if (!marketClosed) {
-          if (idxQuote.prevClose != null) {
-            const prevDay = new Date();
-            do { prevDay.setDate(prevDay.getDate() - 1); } while (prevDay.getDay() === 0 || prevDay.getDay() === 6);
-            if (prevDay.getTime() > lastChartDate.getTime()) {
-              rows.push({ date: prevDay, adjClose: idxQuote.prevClose, close: idxQuote.prevClose });
-            }
-          }
-        } else {
-          const idxDate = new Date(idxQuote.date + 'T05:30:00Z'); // 台股收盤時點
-          if (idxDate.getTime() > lastChartDate.getTime()) {
-            rows.push({ date: idxDate, adjClose: idxQuote.value, close: idxQuote.value });
+    if (!isIndex) {
+      if (quoteDate === todayStr && !marketClosed) {
+        // Intraday: use previous session's close with last-weekday date
+        if (quote?.regularMarketPreviousClose != null) {
+          const prevDay = new Date();
+          do { prevDay.setDate(prevDay.getDate() - 1); } while (prevDay.getDay() === 0 || prevDay.getDay() === 6);
+          if (prevDay.getTime() > lastChartDate.getTime()) {
+            rows.push({
+              date: prevDay,
+              adjClose: quote.regularMarketPreviousClose,
+              close: quote.regularMarketPreviousClose,
+            });
           }
         }
+      } else if (quoteTime && quote?.regularMarketPrice != null
+          && quoteTime.getTime() > lastChartDate.getTime() && !quoteStale) {
+        // 收盤後：最新交易日即還原基準（係數=1），直接採用最新原始價
+        rows.push({
+          date: quoteTime,
+          adjClose: quote.regularMarketPrice,
+          close: quote.regularMarketPrice,
+        });
       }
-    } else if (quoteDate === todayStr && !marketClosed) {
-      // Intraday: use previous session's close with last-weekday date
-      if (quote?.regularMarketPreviousClose != null) {
-        const prevDay = new Date();
-        do { prevDay.setDate(prevDay.getDate() - 1); } while (prevDay.getDay() === 0 || prevDay.getDay() === 6);
-        if (prevDay.getTime() > lastChartDate.getTime()) {
-          rows.push({
-            date: prevDay,
-            adjClose: quote.regularMarketPreviousClose,
-            close: quote.regularMarketPreviousClose,
-          });
-        }
-      }
-    } else if (quoteTime && quote?.regularMarketPrice != null
-        && quoteTime.getTime() > lastChartDate.getTime() && !quoteStale) {
-      // 收盤後：最新交易日即還原基準（係數=1），直接採用最新原始價
-      rows.push({
-        date: quoteTime,
-        adjClose: quote.regularMarketPrice,
-        close: quote.regularMarketPrice,
-      });
     }
 
     const cur = rows[rows.length - 1].adjClose;
