@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { PEER_GROUPS, type PeerItem } from '@/lib/peerGroups';
+import { fetchTpexIndexHistory } from '@/lib/tpexIndex';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const YahooFinance = require('yahoo-finance2').default;
@@ -205,10 +206,13 @@ async function fetchOne(item: PeerItem, customRange?: CustomRange, idxQuote?: Id
       : baseFrom;
     const period2 = new Date(today); period2.setDate(period2.getDate() + 1);
 
-    const [quote, chart, listingDate] = await Promise.all([
+    const [quote, chart, listingDate, tpexIndexHistory] = await Promise.all([
       yf.quote(item.yfTicker, {}, { validateResult: false }).catch(() => null),
       yf.chart(item.yfTicker, { period1: from, period2, interval: '1d' }, { validateResult: false }).catch(() => null),
       fetchListingDate(item.yfTicker),
+      // ^TWOII：Yahoo chart 對這個代號已完全不回資料（見 lib/tpexIndex.ts 開頭註解），
+      // 改抓 TPEx 官方「櫃買指數(月查詢)」當歷史資料源，才有辦法算 WTD/MTD/YTD 等區間報酬。
+      item.yfTicker === '^TWOII' ? fetchTpexIndexHistory(from, today) : Promise.resolve(null),
     ]);
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -216,24 +220,29 @@ async function fetchOne(item: PeerItem, customRange?: CustomRange, idxQuote?: Id
     const marketClosed = taiwanMarketClosed();
     const todayStr = new Date().toISOString().split('T')[0];
 
-    const rows: DayRow[] = rawQuotes
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .filter((q: any) => (q.adjClose ?? q.adjclose ?? q.close) != null)
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      .map((q: any) => ({
-        date: new Date(q.date),
-        adjClose: q.adjClose ?? q.adjclose ?? q.close,
-        close: q.close ?? q.adjClose ?? q.adjclose,   // 保留原始收盤價，供下方還原基準換算
-      }))
+    const rows: DayRow[] = (
+      tpexIndexHistory
+        ? tpexIndexHistory.map(r => ({ date: r.date, adjClose: r.close, close: r.close }))
+        : rawQuotes
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .filter((q: any) => (q.adjClose ?? q.adjclose ?? q.close) != null)
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            .map((q: any) => ({
+              date: new Date(q.date),
+              adjClose: q.adjClose ?? q.adjclose ?? q.close,
+              close: q.close ?? q.adjClose ?? q.adjclose,   // 保留原始收盤價，供下方還原基準換算
+            }))
+    )
       // Exclude today's intraday data when market hasn't closed yet
       .filter(r => marketClosed || r.date.toISOString().split('T')[0] < todayStr)
       .sort((a, b) => a.date.getTime() - b.date.getTime());
 
-    // 指數（^TWII/^TWOII）不用 Yahoo 即時報價（殭屍值）與可能停更的日 K，改用 MIS 補最新交易日：
+    // 指數（^TWII/^TWOII）不用 Yahoo 即時報價（殭屍值）補最新交易日，改用 MIS：
     // 盤中 → 用昨收（y）對齊個股「以上一完整收盤為準」；收盤後 → 用當日指數值（z）。
-    // 這段要放在下面「rows 是否為空」的判斷之前：^TWOII 這類指數 Yahoo 有時連一根日 K
-    // 都不回（不只是落後幾天），若沿用先判空再補值的順序，rows 一開始就是空陣列、
-    // 直接 return base，MIS 補的這筆永遠補不進去，整檔就會顯示「無報價」。
+    // ^TWOII 主要歷史資料已改用 TPEx（見上），這裡是補「TPEx 月資料還沒更新到今天」
+    // 或「TPEx 查詢失敗」時的最後一筆；^TWII 則仍是唯一的即時來源（Yahoo chart 正常但即時報價是殭屍值）。
+    // 這段要放在下面「rows 是否為空」的判斷之前：即使兩個資料源都補不到值，也不能讓
+    // 空陣列直接 return base 蓋掉後面任何一個原本可能成功的補值。
     const isIndex = item.yfTicker.startsWith('^');
     if (isIndex && idxQuote) {
       const lastChartDate = rows.length ? rows[rows.length - 1].date : null;
