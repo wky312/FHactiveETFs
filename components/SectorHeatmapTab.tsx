@@ -66,6 +66,20 @@ function defaultStart(): string { return localStr(prevTradingDay(new Date(defaul
 type ViewMode = 'heatmap' | 'rrg';
 type RangeMode = 'latest' | 'custom';
 
+interface ParsedParams { market: HeatmapMarket; view: ViewMode; rangeMode: RangeMode; start: string; end: string; group: string | null }
+
+// 從網址querystring解析出這個分頁的完整狀態——掛載還原、瀏覽器上一頁/下一頁(popstate)都靠這個。
+function parseParams(sp: URLSearchParams): ParsedParams {
+  return {
+    market: sp.get('market') === 'overseas' ? 'overseas' : 'tw',
+    view: sp.get('view') === 'rrg' ? 'rrg' : 'heatmap',
+    rangeMode: sp.get('mode') === 'custom' ? 'custom' : 'latest',
+    start: sp.get('start') ?? defaultStart(),
+    end: sp.get('end') ?? defaultEnd(),
+    group: sp.get('group'),
+  };
+}
+
 export default function SectorHeatmapTab() {
   const [market, setMarket] = useState<HeatmapMarket>('tw');
   const [view, setView] = useState<ViewMode>('heatmap');
@@ -133,19 +147,26 @@ export default function SectorHeatmapTab() {
   useEffect(() => {
     if (urlApplied.current) return;
     urlApplied.current = true;
-    const sp = new URLSearchParams(window.location.search);
-    const m: HeatmapMarket = sp.get('market') === 'overseas' ? 'overseas' : 'tw';
-    const v: ViewMode = sp.get('view') === 'rrg' ? 'rrg' : 'heatmap';
-    const mode: RangeMode = sp.get('mode') === 'custom' ? 'custom' : 'latest';
-    const s = sp.get('start') ?? defaultStart();
-    const e = sp.get('end') ?? defaultEnd();
-    const g = sp.get('group');
+    const { market: m, view: v, rangeMode: mode, start: s, end: e, group: g } = parseParams(new URLSearchParams(window.location.search));
     setMarket(m); setView(v); setRangeMode(mode); setStart(s); setEnd(e);
     if (g) setSelectedGroup(g);
     if (v === 'rrg') loadRrg(m);
     // 深連結若直接指到某族群的鑽取明細（不論在哪個 view），明細表都是吃熱力圖口徑，要一併載入
     if (v === 'heatmap' || g) loadHeatmap(mode, s, e, m);
     // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // 瀏覽器上一頁/下一頁（見下面 URL 同步 effect：「點進族群明細」會 pushState 新增一筆瀏覽紀錄，
+  // 讓上一頁可以退出明細，而不是直接跳出整個網站）。popstate 不會自動觸發 React 重繪，
+  // 網址變了但畫面狀態要自己讀網址回來同步——只需要更新 state，市場/view 若因此改變，
+  // 既有的 marketFirstRun/viewFirstRun effect 會自動處理資料載入，這裡不用重複打 API。
+  useEffect(() => {
+    const onPopState = () => {
+      const { market: m, view: v, rangeMode: mode, start: s, end: e, group: g } = parseParams(new URLSearchParams(window.location.search));
+      setMarket(m); setView(v); setRangeMode(mode); setStart(s); setEnd(e); setSelectedGroup(g);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
   }, []);
 
   // 換市場（使用者點擊切換鈕）：優先用快取，沒有才重打；跳過掛載當下那一輪（已由上面處理）
@@ -178,7 +199,12 @@ export default function SectorHeatmapTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selectedGroup]);
 
-  // 狀態同步進網址（僅本分頁作用中才動）
+  // 狀態同步進網址（僅本分頁作用中才動）。除了「點進族群明細」這個動作，其餘一律用
+  // replaceState（切市場/切view/換日期都不用每次塞一筆瀏覽紀錄）。「從沒選族群→選了族群」
+  // 這個瞬間改用 pushState，新增一筆瀏覽紀錄，這樣使用者按瀏覽器上一頁才會退出明細、回到
+  // 熱力圖列表，而不是直接跳出整個網站（原本全部用 replaceState，這筆「無族群」的網址從沒
+  // 真的進過瀏覽紀錄，上一頁只能繼續往前跳到進站之前的頁面）。
+  const prevSelectedGroup = useRef<string | null>(null);
   useEffect(() => {
     if (!urlApplied.current) return;
     const sp = new URLSearchParams(window.location.search);
@@ -188,7 +214,12 @@ export default function SectorHeatmapTab() {
     if (rangeMode === 'custom') { sp.set('mode', 'custom'); sp.set('start', start); sp.set('end', end); }
     else { sp.delete('mode'); sp.delete('start'); sp.delete('end'); }
     if (selectedGroup) sp.set('group', selectedGroup); else sp.delete('group');
-    window.history.replaceState(null, '', `${window.location.pathname}?${sp.toString()}`);
+
+    const url = `${window.location.pathname}?${sp.toString()}`;
+    const enteringGroup = selectedGroup != null && prevSelectedGroup.current == null;
+    if (enteringGroup) window.history.pushState(null, '', url);
+    else window.history.replaceState(null, '', url);
+    prevSelectedGroup.current = selectedGroup;
   }, [market, view, rangeMode, start, end, selectedGroup]);
 
   const copyLink = async () => {
