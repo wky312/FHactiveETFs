@@ -21,12 +21,12 @@ export interface LevelGroup { key: string; label: string; note: string; levels: 
  * ⚠️ 分組邊界必須落在 TDCC 的級距邊界上，否則切不出來（100/400/1000 張分別是
  *   級距 9/11/14 的上緣，剛好對齊）。 */
 export const LEVEL_GROUPS: LevelGroup[] = [
-  { key: 'retail', label: '散戶',         note: '5 張以下',    levels: [1, 2],         color: '#E8B4B8' },
-  { key: 'small',  label: '小額',         note: '5–20 張',     levels: [3, 4, 5],      color: '#DB9A99' },
-  { key: 'medium', label: '中實戶',       note: '20–100 張',   levels: [6, 7, 8, 9],   color: '#C97A78' },
-  { key: 'large',  label: '大戶',         note: '100–400 張',  levels: [10, 11],       color: '#B85C5C' },
-  { key: 'xlarge', label: '巨戶',         note: '400–1000 張', levels: [12, 13, 14],   color: '#8B3A3A' },
-  { key: 'whale',  label: '超大戶／法人', note: '1000 張以上', levels: [15],           color: '#5C1F1F' },
+  { key: 'retail',      label: '散戶',         note: '5 張以下',    levels: [1, 2],       color: '#E8B4B8' },
+  { key: 'small',       label: '小額',         note: '5–20 張',     levels: [3, 4, 5],    color: '#DB9A99' },
+  { key: 'smallholder', label: '小戶',         note: '20–100 張',   levels: [6, 7, 8, 9], color: '#C97A78' },
+  { key: 'medium',      label: '中實戶',       note: '100–400 張',  levels: [10, 11],     color: '#B85C5C' },
+  { key: 'large',       label: '大戶',         note: '400–1000 張', levels: [12, 13, 14], color: '#8B3A3A' },
+  { key: 'whale',       label: '超大戶／法人', note: '1000 張以上', levels: [15],         color: '#5C1F1F' },
 ];
 
 export interface BeneficiaryTicker { ticker: string; name: string; group: 'tw' | 'overseas' }
