@@ -26,6 +26,14 @@
 
 **單位數注意商品**（2026-07-15 新增，分頁在「其他」分組）：監測 00986D（fundId `ETF25`）每日在外流通單位數（fhtrust PCF 的 `qIssue`，鍵值為 `postDate`，非 `actBuyValDate`——與規模分頁的結算日落後欄位不同，已手動探測確認）。`daily_summary.py` 每日 17:15 順便存檔（不發 Pushover，失敗不影響其他區塊告警）；一次性回補用 `scripts/backfill_unit_watch.py`（GitHub Actions「Backfill Unit Watch Data」手動觸發）。**表要先手動跑 `scripts/sql/2026-07-15_create_unit_watch.sql`（Supabase SQL Editor）才會存在**，之後才能 backfill。門檻/產品清單集中在 `lib/unitWatch.ts`（`UNIT_WATCH_PRODUCTS`），新增監測商品只需在該陣列加一筆。
 
+**受益人數**（2026-08-31 新增，分頁在「其他」分組）：TDCC 集保股權分散表，每週一列 × 每檔 × 15 個持股分級，存 Supabase `beneficiary_counts`（**表要先手動跑 `scripts/sql/2026-08-31_create_beneficiary_counts.sql`**，RLS 開、不加 policy，讀寫都走 service role 會繞過）。追蹤台股 21 檔（以共用 Supabase `etf` 表為準，比 `lib/peerGroups.ts` 多 00404A/00406A/00407A）＋海外 10 檔。
+- **兩條抓取路徑**：每週增量走開放資料 CSV（`scripts/beneficiary_fetch.py`，一次回全市場、只打 1 次請求，`beneficiary_weekly.yml` 週六 10:00 排程）；歷史回補走查詢頁（`scripts/backfill_beneficiary.py`，`backfill_beneficiary.yml` 手動觸發、冪等、可用 `TICKERS`/`MAX_WEEKS` 分批）。
+- ⚠️ **集保只保存最近 51 週，過了就永遠沒有** → 每週存檔是唯一累積長序列的方法，週排程不能長期掛掉。
+- ⚠️ **查詢頁要 CSRF**：不帶 cookie + `SYNCHRONIZER_TOKEN` 會回 HTTP 200 的空表單頁（不是錯誤碼），token 用過即失效、每次查詢都要重新 GET；表單欄位名是小寫開頭（`stockNo`/`sqlMethod`）。
+- ⚠️ **合計列一律看 `level === 17`**，不可用「表中最後一列」：有「差異數調整」列時合計在第 17 列、沒有時在第 16 列。兩種情況都有 fixture 測到（`scripts/test_beneficiary.py`，16 項）。
+- ⚠️⚠️ **TDCC 資料日 T ＝ 官方在外流通單位數的 T−2 個交易日**（T+2 交割才進集保）。2026-08 以 00991A 逐週對 `pcf_FundQissue` 驗證，五週一單位不差。**拿受益人數/單位數跟申贖分頁對照時必須把資料日往前推 2 個交易日**，否則區間錯位；端點碰上巨額申贖時兩邊方向會完全相反（00991A 7/31 單日申購 +9.47 億單位 → TDCC 看 7/31→8/28 是 +1.09 億，申贖看同區間是 −9.98 億）。分頁註腳已標紅警語。
+- 前端：`lib/beneficiary.ts`（標的清單、5 組級距聚合、`diffLevels`/`groupShares`/`trendPoints` 純函式）、`app/api/beneficiary/route.ts`、`components/BeneficiaryTab.tsx`（人數趨勢／級距結構兩檢視）。「每人平均持有」＝級距單位數 ÷ 人數，用來分辨「人變多」與「每人買更多」；但級距是固定區間、人會跨級移動，是「當期落在此級的人」的平均。
+
 ## 2. 每日排程時序（台北時間）
 
 | 名目時間 | 實際落地 | 任務 | 產出 |
