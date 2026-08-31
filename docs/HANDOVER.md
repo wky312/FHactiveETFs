@@ -26,7 +26,7 @@
 
 **單位數注意商品**（2026-07-15 新增，分頁在「其他」分組）：監測 00986D（fundId `ETF25`）每日在外流通單位數（fhtrust PCF 的 `qIssue`，鍵值為 `postDate`，非 `actBuyValDate`——與規模分頁的結算日落後欄位不同，已手動探測確認）。`daily_summary.py` 每日 17:15 順便存檔（不發 Pushover，失敗不影響其他區塊告警）；一次性回補用 `scripts/backfill_unit_watch.py`（GitHub Actions「Backfill Unit Watch Data」手動觸發）。**表要先手動跑 `scripts/sql/2026-07-15_create_unit_watch.sql`（Supabase SQL Editor）才會存在**，之後才能 backfill。門檻/產品清單集中在 `lib/unitWatch.ts`（`UNIT_WATCH_PRODUCTS`），新增監測商品只需在該陣列加一筆。
 
-**受益人數**（2026-08-31 新增，分頁在「其他」分組）：TDCC 集保股權分散表，每週一列 × 每檔 × 15 個持股分級，存 Supabase `beneficiary_counts`（**表要先手動跑 `scripts/sql/2026-08-31_create_beneficiary_counts.sql`**，RLS 開、不加 policy，讀寫都走 service role 會繞過）。追蹤台股 21 檔（以共用 Supabase `etf` 表為準，比 `lib/peerGroups.ts` 多 00404A/00406A/00407A）＋海外 10 檔。
+**受益人數**（2026-08-31 新增，分頁在「同業觀測」分組）：TDCC 集保股權分散表，每週一列 × 每檔 × 15 個持股分級，存 Supabase `beneficiary_counts`（**表要先手動跑 `scripts/sql/2026-08-31_create_beneficiary_counts.sql`**，RLS 開、不加 policy，讀寫都走 service role 會繞過）。追蹤台股 21 檔（以共用 Supabase `etf` 表為準，比 `lib/peerGroups.ts` 多 00404A/00406A/00407A）＋海外 10 檔。
 - **兩條抓取路徑**：每週增量走開放資料 CSV（`scripts/beneficiary_fetch.py`，一次回全市場、只打 1 次請求，`beneficiary_weekly.yml` 週六 10:00 排程）；歷史回補走查詢頁（`scripts/backfill_beneficiary.py`，`backfill_beneficiary.yml` 手動觸發、冪等、可用 `TICKERS`/`MAX_WEEKS` 分批）。
 - ⚠️ **集保只保存最近 51 週，過了就永遠沒有** → 每週存檔是唯一累積長序列的方法，週排程不能長期掛掉。
 - ⚠️ **查詢頁要 CSRF**：不帶 cookie + `SYNCHRONIZER_TOKEN` 會回 HTTP 200 的空表單頁（不是錯誤碼），token 用過即失效、每次查詢都要重新 GET；表單欄位名是小寫開頭（`stockNo`/`sqlMethod`）。

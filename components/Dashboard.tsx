@@ -70,10 +70,10 @@ const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
     { id: 'turnover',  label: '經理人換手率' },
     { id: 'consensus', label: '共識持股' },
     { id: 'sector',    label: '族群曝險' },
+    { id: 'beneficiary', label: '受益人數' },
   ] },
   { label: '其他', items: [
     { id: 'unitwatch', label: '單位數注意商品' },
-    { id: 'beneficiary', label: '受益人數' },
     { id: 'mktcap150', label: '市值前150大漲跌排行' },
     { id: 'newhigh150', label: '創新高強勢股' },
     { id: 'top300ytd', label: '前300大YTD還原權息追蹤' },
