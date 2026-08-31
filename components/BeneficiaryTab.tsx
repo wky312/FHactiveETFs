@@ -165,7 +165,7 @@ export default function BeneficiaryTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [points]);
 
-  /* ── 結構圖：五組單位數佔比隨週變化（100% 堆疊） ── */
+  /* ── 結構圖：六組單位數佔比隨週變化（100% 堆疊） ── */
   const structureTraces = useMemo(() => {
     const x = weeks.map(w => w.date);
     const shares = weeks.map(w => groupShares(w));
@@ -440,7 +440,7 @@ export default function BeneficiaryTab() {
                 </table>
               </div>
 
-              {/* 五組聚合速覽 */}
+              {/* 六組聚合速覽 */}
               {current && (
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))', gap: 0,
                   border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden', marginTop: 16, background: '#FAFAF9' }}>
@@ -542,7 +542,7 @@ export default function BeneficiaryTab() {
                     </table>
                   </div>
 
-                  {/* 五組聚合對照 */}
+                  {/* 六組聚合對照 */}
                   <div style={{ overflow: 'auto', border: `1px solid ${BORDER}`, borderRadius: 8, marginBottom: 18 }}>
                     <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                       <thead>
@@ -610,25 +610,25 @@ export default function BeneficiaryTab() {
                       <tbody>
                         {([
                           ['人數', (st: typeof statsA) => {
-                            const w = st.groups[4];
+                            const w = st.groups.find(g => g.key === 'whale')!;
                             return `${int(w.basePeople)} → ${int(w.people)}　(${signed(w.peopleDelta)})`;
                           }],
                           ['持有單位（億）', (st: typeof statsA) => {
-                            const w = st.groups[4];
+                            const w = st.groups.find(g => g.key === 'whale')!;
                             return `${(w.baseUnits / 1e8).toFixed(2)} → ${(w.units / 1e8).toFixed(2)}　(${signed(w.unitsDelta / 1e8, 2)})`;
                           }],
                           ['每人平均（萬單位）', (st: typeof statsA) => {
-                            const w = st.groups[4];
+                            const w = st.groups.find(g => g.key === 'whale')!;
                             const a0 = avgUnitsOf(w.baseUnits, w.basePeople) / 1e4;
                             const a1 = avgUnitsOf(w.units, w.people) / 1e4;
                             return `${a0.toFixed(0)} → ${a1.toFixed(0)}　(${signed(a1 - a0)})`;
                           }],
                           ['佔全基金單位比', (st: typeof statsA) => {
-                            const l = st.levels[14];
+                            const l = st.levels.find(x => x.level === 15)!;
                             return `${l.basePct.toFixed(2)}% → ${l.pct.toFixed(2)}%　(${signed(l.pctDelta, 2)}pp)`;
                           }],
                           ['佔全基金單位變動', (st: typeof statsA) => {
-                            const w = st.groups[4];
+                            const w = st.groups.find(g => g.key === 'whale')!;
                             return st.unitsDelta === 0 ? '—' : `${(w.unitsDelta / st.unitsDelta * 100).toFixed(0)}%`;
                           }],
                         ] as const).map(([label, fmt]) => (

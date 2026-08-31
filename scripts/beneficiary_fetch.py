@@ -58,7 +58,8 @@ LEVEL_GROUPS = [
     {'key': 'retail',  'label': '散戶',        'note': '5 張以下',      'levels': [1, 2]},
     {'key': 'small',   'label': '小額',        'note': '5–20 張',       'levels': [3, 4, 5]},
     {'key': 'medium',  'label': '中實戶',      'note': '20–100 張',     'levels': [6, 7, 8, 9]},
-    {'key': 'large',   'label': '大戶',        'note': '100–1000 張',   'levels': [10, 11, 12, 13, 14]},
+    {'key': 'large',   'label': '大戶',        'note': '100–400 張',    'levels': [10, 11]},
+    {'key': 'xlarge',  'label': '巨戶',        'note': '400–1000 張',   'levels': [12, 13, 14]},
     {'key': 'whale',   'label': '超大戶／法人', 'note': '1000 張以上',   'levels': [15]},
 ]
 
