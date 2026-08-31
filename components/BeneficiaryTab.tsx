@@ -506,17 +506,18 @@ export default function BeneficiaryTab() {
                       <tbody>
                         {([
                           ['受益人數', (st: typeof statsA) => `${int(st.basePeople)} → ${int(st.people)}`,
-                            (st: typeof statsA) => st.peopleDelta],
+                            (st: typeof statsA) => st.peopleDelta, 0],
+                          // 顯示單位是「億」，增減也必須換算成億，否則會印出原始單位數
                           ['受益權單位數（億）', (st: typeof statsA) => `${(st.baseUnits / 1e8).toFixed(2)} → ${(st.units / 1e8).toFixed(2)}`,
-                            (st: typeof statsA) => st.unitsDelta],
+                            (st: typeof statsA) => st.unitsDelta / 1e8, 2],
                           ['每人平均持有（單位）', (st: typeof statsA) => `${int(st.baseAvgUnits)} → ${int(st.avgUnits)}`,
-                            (st: typeof statsA) => st.avgUnitsDelta],
-                        ] as const).map(([label, fmt, delta]) => (
+                            (st: typeof statsA) => st.avgUnitsDelta, 0],
+                        ] as const).map(([label, fmt, delta, digits]) => (
                           <tr key={label}>
                             <td style={{ ...TD, textAlign: 'left', fontFamily: SANS }}>{label}</td>
                             {[statsA, statsB].map(st => (
                               <td key={st.ticker} style={{ ...TD, borderLeft: `1px solid ${BORDER}` }}>
-                                {fmt(st)}　<span style={{ color: deltaColor(delta(st)) }}>({signed(delta(st))})</span>
+                                {fmt(st)}　<span style={{ color: deltaColor(delta(st)) }}>({signed(delta(st), digits)})</span>
                               </td>
                             ))}
                           </tr>
