@@ -320,7 +320,11 @@ PEER_ETFS = [
     # 反推頂著(見 fetch_jpmorgan_estimate，標記 is_estimate=True)。
     {'ticker': '00989A', 'name': '摩根美國科技', 'source': 'jpmorgan', 'key': 'TW00000989A5', 'group': 'overseas'},
     # 2026/08/26 掛牌（統一投信，上櫃）。fundCode 由 ezmoney PCF 頁的 fundCode↔代號配對查得。
-    {'ticker': '00411A', 'name': '統一前沿科技', 'source': 'ezmoney', 'key': '64YTW',  'group': 'overseas'},
+    # since = 這檔「最早查得到申贖」的交易日（ezmoney 掛牌前兩天就掛得出 PCF）。補洞用它排除
+    # 掛牌前的日期——否則每個舊交易日都會因為少這一檔而被判成缺漏、每天重抓一輪全部（實例：
+    # 2026-08-26 那次 run 標了 8 天、一筆都補不了，卻把 job 從 10 分鐘推過 15 分鐘 timeout）。
+    {'ticker': '00411A', 'name': '統一前沿科技', 'source': 'ezmoney', 'key': '64YTW',  'group': 'overseas',
+     'since': '2026-08-24'},
 ]
 
 EZMONEY_HOST = 'www.ezmoney.com.tw'
@@ -1895,7 +1899,9 @@ async def process_peer_redemption(today: date):
 # upsert 天然冪等，每天重跑只會補上新公告的那天。
 OVERSEAS_LOOKBACK_WEEKDAYS = 6
 
-_OVERSEAS_FETCHERS = {
+# source → 單日抓取器。**新增來源一定要同步登記在這裡**：漏登記不會報錯，只會在補洞／海外
+# 回補時印一行「無對應抓取器」然後靜靜跳過（2026-08-23 的 fhtrust 就是這樣漏掉的）。
+_SOURCE_FETCHERS = {
     'fhtrust':  fetch_fhtrust_day,
     'ezmoney':  fetch_ezmoney_day,
     'capital':  fetch_capital_day,
@@ -1905,7 +1911,25 @@ _OVERSEAS_FETCHERS = {
     'yuanta':   fetch_yuanta_day,
     'cmoney':   fetch_cmoney_day,
     'jpmorgan': fetch_jpmorgan_day,
+    # 以下只有台股組在用，海外組沒有任何一檔走這幾家（行為不變，只是補齊給補洞用）
+    'fubon':    fetch_fubon_day,
+    'nomura':   fetch_nomura_day,
+    'cathay':   fetch_cathay_day,
+    'kgi':      fetch_kgi_day,
 }
+
+_OVERSEAS_FETCHERS = _SOURCE_FETCHERS
+
+
+def fetch_peer_day(etf: dict, transaction_date: date, ezmoney_session=None) -> dict | None:
+    """依 etf['source'] 抓單一檔、單一交易日；查無或來源未登記回 None。"""
+    fetcher = _SOURCE_FETCHERS.get(etf['source'])
+    if fetcher is None:
+        print(f'  ⚠ {etf["ticker"]}: 無對應抓取器（{etf["source"]}），略過')
+        return None
+    if etf['source'] == 'ezmoney':
+        return fetch_ezmoney_day(etf['key'], transaction_date, session=ezmoney_session)
+    return fetcher(etf['key'], transaction_date)
 
 
 def pick_latest_point(official: dict | None, estimate: dict | None) -> dict | None:
@@ -2144,7 +2168,10 @@ async def process_overseas_peer_push(today: date, points: dict) -> bool:
 #      （實例：overseas 缺 08-18——實測那天 21/21 檔現在全部抓得到，純粹是沒人寫）
 # 所以每天補跑一次：查最近 N 個交易日在 DB 裡「缺任何一檔有來源的 ticker」的日期，只補那些。
 # upsert 以 (date,ticker) 為主鍵，重寫既有列是冪等的。
-GAP_REPAIR_LOOKBACK = 10   # 交易日
+GAP_REPAIR_LOOKBACK = 15   # 交易日（改成逐檔補之後成本降下來了，視窗才敢拉長）
+# 單輪最多抓幾筆 (date,ticker)。補洞排在 main 最後，撐爆 job 的 timeout 會連帶讓它自己
+# 永遠跑不完（2026-08-27/28 兩次 run 就是這樣被 cancel 的）→ 寧可分幾天補完。
+GAP_REPAIR_MAX_FETCHES = 60
 
 
 def recent_trading_days(today: date, n: int) -> list:
@@ -2164,18 +2191,30 @@ def recent_trading_days(today: date, n: int) -> list:
     return sorted(days)
 
 
-def find_peer_gaps(days: list, existing: set, expected: set) -> list:
-    """純函式：回傳 days 之中「還缺任何一檔 expected ticker」的日期。
+def expected_tickers_on(d: date) -> set:
+    """該交易日「理應有值」的 ticker：有接通來源、且已過該檔的 since（掛牌／首見日）。
 
-    days     = [date]（升冪）
-    existing = {(date_str, ticker)} 已在 DB 的列
-    expected = {ticker} 有接通資料來源、理應有值的檔
+    掛牌前的新檔永遠抓不到，算進 expected 會讓每個舊日期都被判成缺漏、每天白抓一輪。
+    """
+    return {
+        e['ticker'] for e in PEER_ETFS
+        if e.get('source') and not (e.get('since') and str(d) < e['since'])
+    }
+
+
+def find_peer_gaps(days: list, existing: set, expected_of) -> list:
+    """純函式：回傳 [(date, {缺的 ticker})]，只列真的缺東西的日期。
+
+    days        = [date]（升冪）
+    existing    = {(date_str, ticker)} 已在 DB 的列
+    expected_of = date -> {ticker}（見 expected_tickers_on；測試可直接餵 lambda）
     """
     gaps = []
     for d in days:
-        have = {t for (ds, t) in existing if ds == str(d)}
-        if not expected <= have:
-            gaps.append(d)
+        have    = {t for (ds, t) in existing if ds == str(d)}
+        missing = expected_of(d) - have
+        if missing:
+            gaps.append((d, missing))
     return gaps
 
 
@@ -2198,33 +2237,63 @@ def _fetch_existing_peer_keys(start: date, end: date):
 
 
 def process_peer_gap_repair(today: date) -> int:
-    """補最近 GAP_REPAIR_LOOKBACK 個交易日的缺漏（只寫 DB、不推播）。回傳補起來的天數。"""
+    """補最近 GAP_REPAIR_LOOKBACK 個交易日的缺漏（只寫 DB、不推播）。回傳補起來的天數。
+
+    只抓「那天真的缺的那幾檔」——舊版對每個缺漏日都重跑一次 fetch_all_peer_data(23 檔)，
+    通常只為了補 1～2 檔，一天的補洞就要 20 秒以上，是把 job 撐過 timeout 的主因。
+    """
     print(f'\n[同業申贖：近 {GAP_REPAIR_LOOKBACK} 個交易日補洞]')
     days = recent_trading_days(today, GAP_REPAIR_LOOKBACK)
     existing = _fetch_existing_peer_keys(days[0], days[-1])
     if existing is None:
         return 0
-    expected = {e['ticker'] for e in PEER_ETFS if e.get('source')}
-    gaps = find_peer_gaps(days, existing, expected)
+    gaps = find_peer_gaps(days, existing, expected_tickers_on)
     if not gaps:
         print('  近期無缺漏。')
         return 0
     # 最新的那一兩天本來就會缺（海外檔 T+1～T+2 才公告），這是預期內、隔天會自己補上。
-    print(f'  待補 {len(gaps)} 天：{", ".join(str(d) for d in gaps)}')
-    repaired = 0
-    for d in gaps:
-        try:
-            results = fetch_all_peer_data(d)
-            have = {t for (ds, t) in existing if ds == str(d)}
-            # 只寫「這天還沒有的 ticker」，不覆蓋既有列
-            new = [e for e in results if e['ticker'] not in have]
-            if any(e.get('data') and e['data'].get('netSub') is not None for e in new):
-                write_peer_to_supabase(new, d)
-                repaired += 1
-            else:
-                print(f'  {d}: 尚無新資料可補（海外檔可能還沒公告）')
-        except Exception as e:
-            print(f'  {d}: 補洞失敗 {e}')
+    total = sum(len(m) for _, m in gaps)
+    print(f'  待補 {len(gaps)} 天 / {total} 筆：'
+          + '，'.join(f'{d}({len(m)})' for d, m in gaps))
+
+    by_ticker       = {e['ticker']: e for e in PEER_ETFS}
+    ezmoney_session = None
+    budget          = GAP_REPAIR_MAX_FETCHES
+    repaired        = 0
+    # 新的日期先補：舊洞多半是來源真的沒有資料，不該擋住今天剛公告的那筆。
+    for d, missing in sorted(gaps, key=lambda g: g[0], reverse=True):
+        if budget <= 0:
+            break
+        rows = []
+        for ticker in sorted(missing):
+            if budget <= 0:
+                break
+            etf = by_ticker.get(ticker)
+            if etf is None:
+                continue
+            if etf['source'] == 'ezmoney' and ezmoney_session is None:
+                try:
+                    ezmoney_session = _get_ezmoney_session(etf['key'])
+                except Exception as e:
+                    print(f'  ezmoney session error: {e}')
+            budget -= 1
+            try:
+                data = fetch_peer_day(etf, d, ezmoney_session)
+            except Exception as e:
+                print(f'  {d} {ticker}: 抓取失敗 {e}')
+                continue
+            if data and data.get('netSub') is not None and data.get('aum') is not None:
+                rows.append({**etf, 'data': data})
+        if rows:
+            write_peer_to_supabase(rows, d)
+            print(f'  {d}: 補上 '
+                  + '　'.join(f'{r["ticker"]} {r["data"]["netSub"]:+.2f}億' for r in rows))
+            repaired += 1
+        else:
+            print(f'  {d}: 尚無新資料可補（海外檔可能還沒公告）')
+    if budget <= 0:
+        print(f'  ⚠ 已用滿本輪 {GAP_REPAIR_MAX_FETCHES} 筆抓取上限，剩下的留給下一輪'
+              f'（視窗每天往前滑，補得完）')
     return repaired
 
 

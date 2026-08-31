@@ -11,7 +11,9 @@ on:
 jobs:
   send-summary:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    # 15 分鐘在 2026-08-27/28 連兩天被 cancel：觀測群長到 23 檔，加上每天的補洞掃描，
+    # 正常跑就已經 10 分鐘起跳。補洞排在最後，一旦被砍就永遠輪不到它跑。
+    timeout-minutes: 30
 
     steps:
       - uses: actions/checkout@v7

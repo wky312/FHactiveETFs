@@ -60,30 +60,58 @@ def test_is_stale_true_when_reported_date_earlier_than_expected(monkeypatch):
 
 # ── 近期補洞（find_peer_gaps / recent_trading_days）─────────────────────────
 
+ALL = lambda tickers: (lambda d: set(tickers))
+
+
 def test_find_peer_gaps_flags_date_missing_any_ticker():
-    """某日少了一檔有來源的 ticker → 該日算缺漏。"""
+    """某日少了一檔有來源的 ticker → 回報該日與「缺哪幾檔」。"""
     days = [date(2026, 8, 17), date(2026, 8, 18)]
     existing = {('2026-08-17', 'A'), ('2026-08-17', 'B'), ('2026-08-18', 'A')}
-    assert ds.find_peer_gaps(days, existing, {'A', 'B'}) == [date(2026, 8, 18)]
+    assert ds.find_peer_gaps(days, existing, ALL({'A', 'B'})) == [(date(2026, 8, 18), {'B'})]
 
 
 def test_find_peer_gaps_empty_when_all_present():
     days = [date(2026, 8, 17)]
     existing = {('2026-08-17', 'A'), ('2026-08-17', 'B')}
-    assert ds.find_peer_gaps(days, existing, {'A', 'B'}) == []
+    assert ds.find_peer_gaps(days, existing, ALL({'A', 'B'})) == []
 
 
 def test_find_peer_gaps_date_absent_entirely_is_a_gap():
-    """整天完全沒有列（實例：overseas 的 2026-08-18）→ 必須被抓出來。"""
+    """整天完全沒有列（實例：tw_active 的 2026-08-07）→ 必須被抓出來，且整組都算缺。"""
     days = [date(2026, 8, 18)]
-    assert ds.find_peer_gaps(days, set(), {'A'}) == [date(2026, 8, 18)]
+    assert ds.find_peer_gaps(days, set(), ALL({'A', 'B'})) == [(date(2026, 8, 18), {'A', 'B'})]
 
 
 def test_find_peer_gaps_ignores_extra_tickers():
     """DB 有多的 ticker（例如已停用的來源）不影響判定。"""
     days = [date(2026, 8, 17)]
     existing = {('2026-08-17', 'A'), ('2026-08-17', 'Z')}
-    assert ds.find_peer_gaps(days, existing, {'A'}) == []
+    assert ds.find_peer_gaps(days, existing, ALL({'A'})) == []
+
+
+def test_find_peer_gaps_respects_per_date_expected():
+    """expected 逐日計算：掛牌前的新檔不算缺，掛牌後才算。"""
+    days = [date(2026, 8, 17), date(2026, 8, 18)]
+    existing = {('2026-08-17', 'A'), ('2026-08-18', 'A')}
+    expected_of = lambda d: {'A'} if d < date(2026, 8, 18) else {'A', 'NEW'}
+    assert ds.find_peer_gaps(days, existing, expected_of) == [(date(2026, 8, 18), {'NEW'})]
+
+
+def test_expected_tickers_on_excludes_ticker_before_its_since(monkeypatch):
+    """since 之前不該期待有值——否則每個舊交易日都被判缺漏、每天白抓一輪。"""
+    monkeypatch.setattr(ds, 'PEER_ETFS', [
+        {'ticker': 'OLD', 'source': 'ezmoney', 'key': 'x'},
+        {'ticker': 'NEW', 'source': 'ezmoney', 'key': 'y', 'since': '2026-08-24'},
+        {'ticker': 'NOSRC', 'key': 'z'},
+    ])
+    assert ds.expected_tickers_on(date(2026, 8, 21)) == {'OLD'}
+    assert ds.expected_tickers_on(date(2026, 8, 24)) == {'OLD', 'NEW'}
+
+
+def test_every_peer_source_has_a_fetcher():
+    """漏登記抓取器不會報錯、只會靜靜略過 → 用測試把它變成紅燈。"""
+    missing = {e['source'] for e in ds.PEER_ETFS if e.get('source')} - set(ds._SOURCE_FETCHERS)
+    assert not missing, f'這些來源沒有對應抓取器：{sorted(missing)}'
 
 
 def test_recent_trading_days_skips_weekend(monkeypatch):
