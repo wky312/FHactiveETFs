@@ -548,16 +548,18 @@ export default function BeneficiaryTab() {
                       <thead>
                         <tr>
                           <th rowSpan={2} style={{ ...TH, textAlign: 'left' }}>組別</th>
-                          <th colSpan={3} style={{ ...TH, textAlign: 'center', borderLeft: '1px solid #555' }}>{statsA.ticker}</th>
-                          <th colSpan={3} style={{ ...TH, textAlign: 'center', borderLeft: '1px solid #555' }}>{statsB.ticker}</th>
+                          <th colSpan={4} style={{ ...TH, textAlign: 'center', borderLeft: '1px solid #555' }}>{statsA.ticker}</th>
+                          <th colSpan={4} style={{ ...TH, textAlign: 'center', borderLeft: '1px solid #555' }}>{statsB.ticker}</th>
                         </tr>
                         <tr>
                           <th style={{ ...TH, ...SUBTH, borderLeft: '1px solid #555' }}>人數增減</th>
                           <th style={{ ...TH, ...SUBTH }}>變動率</th>
                           <th style={{ ...TH, ...SUBTH }}>單位增減(億)</th>
+                          <th style={{ ...TH, ...SUBTH }}>平均持有增減</th>
                           <th style={{ ...TH, ...SUBTH, borderLeft: '1px solid #555' }}>人數增減</th>
                           <th style={{ ...TH, ...SUBTH }}>變動率</th>
                           <th style={{ ...TH, ...SUBTH }}>單位增減(億)</th>
+                          <th style={{ ...TH, ...SUBTH }}>平均持有增減</th>
                         </tr>
                       </thead>
                       <tbody>
@@ -573,6 +575,7 @@ export default function BeneficiaryTab() {
                                   <td style={{ ...TD, borderLeft: `1px solid ${BORDER}`, color: deltaColor(st.peopleDelta) }}>{signed(st.peopleDelta)}</td>
                                   <td style={{ ...TD, color: deltaColor(st.peopleDelta) }}>{signed(st.peoplePctChange, 2)}%</td>
                                   <td style={{ ...TD, color: deltaColor(st.unitsDelta) }}>{signed(st.unitsDelta / 1e8, 2)}</td>
+                                  <td style={{ ...TD, color: deltaColor(st.avgUnitsDelta), fontWeight: 600 }}>{signed(st.avgUnitsDelta)}</td>
                                 </React.Fragment>
                               ))}
                             </tr>
@@ -581,6 +584,11 @@ export default function BeneficiaryTab() {
                       </tbody>
                     </table>
                   </div>
+
+                  <p style={{ color: SUB, fontSize: '.75rem', margin: '-10px 0 18px', lineHeight: 1.6 }}>
+                    「平均持有增減」＝該組單位數 ÷ 人數的變化，分辨「人變多/變少」與「每人加碼/減碼」。
+                    ⚠️ 組是固定區間、人會跨組移動，所以是「當期落在此組的人」的平均，不是同一批人的追蹤。
+                  </p>
 
                   {/* 15 級距人數變動率並排 */}
                   <p style={{ fontSize: '.82rem', color: TEXT, margin: '0 0 6px' }}>各級距受益人數變動率</p>

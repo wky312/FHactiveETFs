@@ -162,6 +162,9 @@ export interface GroupStat {
   key: string; label: string; note: string;
   people: number; basePeople: number; peopleDelta: number; peoplePctChange: number;
   units: number; baseUnits: number; unitsDelta: number;
+  /* 該組每人平均持有單位。人數與單位數同向變動時，總量分不出是「人變多」還是
+   * 「每人買更多」——除下去才看得到組內個體是加碼還是減碼。 */
+  avgUnits: number; baseAvgUnits: number; avgUnitsDelta: number;
 }
 
 export interface LevelStat {
@@ -193,10 +196,13 @@ export function fundStats(ticker: string, name: string, current: Week, base: Wee
     const basePeople = sum(base, g.levels, 'people');
     const units = sum(current, g.levels, 'units');
     const baseUnits = sum(base, g.levels, 'units');
+    const avgUnits = avgUnitsOf(units, people);
+    const baseAvgUnits = avgUnitsOf(baseUnits, basePeople);
     return {
       key: g.key, label: g.label, note: g.note,
       people, basePeople, peopleDelta: people - basePeople, peoplePctChange: pctChange(people, basePeople),
       units, baseUnits, unitsDelta: units - baseUnits,
+      avgUnits, baseAvgUnits, avgUnitsDelta: avgUnits - baseAvgUnits,
     };
   });
 
