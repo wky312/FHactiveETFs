@@ -1,0 +1,39 @@
+name: Backfill Beneficiary Counts
+
+# 手動回補受益人數歷史（TDCC 查詢頁只保存最近 51 週，過了就永遠沒有）。
+# 冪等：已有的 (週, 檔) 會跳過，逾時中斷後再跑一次即可接續。
+on:
+  workflow_dispatch:
+    inputs:
+      tickers:
+        description: '逗號分隔，只回補這些檔（分批用）。留空＝全部台股主動式 ETF'
+        required: false
+        default: ''
+      max_weeks:
+        description: '只回補最近 N 週，留空＝全部可查週次（約 51 週）'
+        required: false
+        default: ''
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests supabase
+
+      - name: Run backfill
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          TICKERS:              ${{ github.event.inputs.tickers }}
+          MAX_WEEKS:            ${{ github.event.inputs.max_weeks }}
+        run: python scripts/backfill_beneficiary.py

@@ -1,0 +1,32 @@
+name: Weekly Beneficiary Counts
+
+# TDCC 每週五結算、開放資料隔日就緒 → 週六台北 10:00 抓。
+# 一次 CSV 就涵蓋全市場所有追蹤標的，冪等（upsert），重跑無害。
+# ⚠️ GitHub Actions 的 schedule 常誤點 20-30 分，週更不影響；要準時可改由 cron-job.org 打
+# dispatch API（同 etf-daily-line 模式）。
+on:
+  schedule:
+    - cron: '0 2 * * 6'   # 週六 02:00 UTC = 10:00 台北
+  workflow_dispatch:
+
+jobs:
+  fetch:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests supabase
+
+      - name: Fetch this week's beneficiary counts
+        env:
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: python scripts/beneficiary_fetch.py
