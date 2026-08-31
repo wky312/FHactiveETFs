@@ -15,6 +15,7 @@ sys.path.insert(0, os.path.dirname(__file__))
 from daily_summary import (
     fetch_all_peer_data,
     write_peer_to_supabase,
+    expected_tickers_on,
     PEER_ETFS,
 )
 
@@ -64,13 +65,17 @@ def get_complete_dates(start: date, end: date) -> set:
             .lte('date', str(end))
             .execute()
         )
-        # 只把「有接通爬蟲」的 ticker 算進完成度；尚未接通申贖來源的 ETF
-        # 永遠不會有資料，否則該日永遠標不成完成、被無限重抓。
-        expected = {e['ticker'] for e in PEER_ETFS if e.get('source')}
+        # 只把「有接通爬蟲、且該日已經存在」的 ticker 算進完成度：
+        # ① 尚未接通申贖來源的 ETF 永遠不會有資料 → 算進去會讓該日永遠標不成完成、被無限重抓；
+        # ② 新掛牌的檔（如 00411A）掛牌前一樣抓不到 → expected_tickers_on 用 since 逐日排除，
+        #    否則加一檔新 ETF 就會讓歷史上每一天都退回未完成、整段重抓一遍。
         counts = defaultdict(set)
         for row in result.data:
             counts[row['date']].add(row['ticker'])
-        return {d for d, tickers in counts.items() if tickers >= expected}
+        return {
+            d for d, tickers in counts.items()
+            if expected_tickers_on(date.fromisoformat(d)) <= tickers
+        }
     except Exception as e:
         print(f'Warning: could not query existing dates ({e}), will fetch all.')
         return set()
