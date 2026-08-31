@@ -122,12 +122,25 @@ export function groupShares(week: Week): GroupShare[] {
 export interface LevelDiff extends LevelCell {
   basePeople: number | null; baseUnits: number | null; basePct: number | null;
   peopleDelta: number | null; unitsDelta: number | null; pctDelta: number | null;
+  /* 該級距每人平均持有幾個受益權單位。看「這一級的人是在加碼還是減碼」——
+   * 人數與單位數同向增減時單看總量分不出來，除下去才看得到個體行為。
+   * ⚠️ 級距是固定區間，人會跨級移動，所以這是「當期落在此級的人」的平均，不是同一批人的追蹤。 */
+  avgUnits: number;
+  baseAvgUnits: number | null;
+  avgUnitsDelta: number | null;
+}
+
+/** people 為 0 的級距（極少見，但差異數調整後可能出現）除法要擋掉。 */
+export function avgUnitsOf(units: number, people: number): number {
+  return people > 0 ? units / people : 0;
 }
 
 /** 級距明細表：本期 vs 對照期。沒有對照期時 delta 全為 null（顯示「—」而不是 0）。 */
 export function diffLevels(current: Week, base: Week | null): LevelDiff[] {
   return current.levels.map(l => {
     const b = base?.levels.find(x => x.level === l.level) ?? null;
+    const avg = avgUnitsOf(l.units, l.people);
+    const baseAvg = b ? avgUnitsOf(b.units, b.people) : null;
     return {
       ...l,
       basePeople: b?.people ?? null,
@@ -136,6 +149,9 @@ export function diffLevels(current: Week, base: Week | null): LevelDiff[] {
       peopleDelta: b ? l.people - b.people : null,
       unitsDelta: b ? l.units - b.units : null,
       pctDelta: b ? l.pct - b.pct : null,
+      avgUnits: avg,
+      baseAvgUnits: baseAvg,
+      avgUnitsDelta: baseAvg === null ? null : avg - baseAvg,
     };
   });
 }

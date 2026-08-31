@@ -3,7 +3,7 @@ import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import PlotlyWrapper from './PlotlyWrapper';
 import {
-  BENEFICIARY_TICKERS, LEVEL_GROUPS, Week, diffLevels, groupShares, trendPoints,
+  BENEFICIARY_TICKERS, LEVEL_GROUPS, Week, avgUnitsOf, diffLevels, groupShares, trendPoints,
 } from '@/lib/beneficiary';
 
 const RED    = '#C00000';
@@ -26,6 +26,9 @@ const TH: React.CSSProperties = {
   padding: '8px 12px', fontWeight: 600, fontSize: '.75rem',
   background: TEXT, color: '#fff', whiteSpace: 'nowrap',
   position: 'sticky', top: 0, zIndex: 1,
+};
+const SUBTH: React.CSSProperties = {
+  fontWeight: 500, fontSize: '.7rem', textAlign: 'right', background: '#3A3A3C',
 };
 const TD: React.CSSProperties = {
   padding: '7px 12px', fontSize: '.8rem', fontFamily: MONO,
@@ -89,6 +92,8 @@ export default function BeneficiaryTab() {
   const current = weeks.find(w => w.date === curDate) ?? null;
   const base    = weeks.find(w => w.date === baseDate) ?? null;
   const levelRows = useMemo(() => (current ? diffLevels(current, base) : []), [current, base]);
+  const totalAvg     = current ? avgUnitsOf(current.units, current.people) : 0;
+  const baseTotalAvg = base ? avgUnitsOf(base.units, base.people) : null;
 
   /* ── 趨勢圖：上半人數＋單位數（雙軸），下半平均持有張數，共用 X 軸 ── */
   const axisFont  = { family: SANS, size: 11, color: SUB };
@@ -159,20 +164,36 @@ export default function BeneficiaryTab() {
 
   const exportExcel = useCallback(() => {
     if (!current) return;
-    const headers = ['持股/單位數分級', '人數', '受益權單位數', '佔比(%)', '人數增減', '單位數增減', '佔比增減'];
-    const body = levelRows.map(r => [
-      r.label, r.people, r.units, r.pct,
-      r.peopleDelta ?? '', r.unitsDelta ?? '', r.pctDelta === null ? '' : Number(r.pctDelta.toFixed(2)),
+    const b = baseDate || '對照';
+    const headers = [
+      '持股/單位數分級',
+      `人數 ${curDate}`, `人數 ${b}`, '人數增減',
+      `每人平均持有 ${curDate}`, `每人平均持有 ${b}`, '平均持有增減',
+      `受益權單位數 ${curDate}`, '單位數增減', '佔比(%)', '佔比增減',
+    ];
+    const r0 = (v: number | null) => (v === null ? '' : Math.round(v));
+    const body: (string | number)[][] = levelRows.map(r => [
+      r.label,
+      r.people, r.basePeople ?? '', r.peopleDelta ?? '',
+      Math.round(r.avgUnits), r0(r.baseAvgUnits), r0(r.avgUnitsDelta),
+      r.units, r.unitsDelta ?? '',
+      r.pct, r.pctDelta === null ? '' : Number(r.pctDelta.toFixed(2)),
     ]);
-    const totalPeople = current.people;
-    body.push(['合計', totalPeople, current.units, 100,
-      base ? totalPeople - base.people : '', base ? current.units - base.units : '', '']);
+    body.push([
+      '合計',
+      current.people, base ? base.people : '', base ? current.people - base.people : '',
+      Math.round(totalAvg), r0(baseTotalAvg), baseTotalAvg === null ? '' : Math.round(totalAvg - baseTotalAvg),
+      current.units, base ? current.units - base.units : '',
+      100, '',
+    ]);
     const ws = XLSX.utils.aoa_to_sheet([headers, ...body]);
-    ws['!cols'] = [{ wch: 20 }, { wch: 12 }, { wch: 18 }, { wch: 10 }, { wch: 12 }, { wch: 16 }, { wch: 10 }];
+    ws['!cols'] = [{ wch: 20 }, { wch: 14 }, { wch: 14 }, { wch: 12 },
+                   { wch: 20 }, { wch: 20 }, { wch: 14 },
+                   { wch: 20 }, { wch: 16 }, { wch: 10 }, { wch: 10 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, '受益人數分級');
     XLSX.writeFile(wb, `${ticker}_受益人數_${curDate}${base ? `_vs_${baseDate}` : ''}.xlsx`);
-  }, [current, base, levelRows, ticker, curDate, baseDate]);
+  }, [current, base, levelRows, ticker, curDate, baseDate, totalAvg, baseTotalAvg]);
 
   const pill = (active: boolean): React.CSSProperties => ({
     padding: '6px 16px', borderRadius: 20, cursor: 'pointer', fontSize: '.82rem',
@@ -291,39 +312,59 @@ export default function BeneficiaryTab() {
                 <table style={{ width: '100%', borderCollapse: 'collapse' }}>
                   <thead>
                     <tr>
-                      <th style={{ ...TH, textAlign: 'left' }}>持股/單位數分級</th>
-                      <th style={{ ...TH, textAlign: 'right' }}>人數</th>
-                      <th style={{ ...TH, textAlign: 'right' }}>人數增減</th>
-                      <th style={{ ...TH, textAlign: 'right' }}>受益權單位數</th>
-                      <th style={{ ...TH, textAlign: 'right' }}>單位數增減</th>
-                      <th style={{ ...TH, textAlign: 'right' }}>佔比 (%)</th>
-                      <th style={{ ...TH, textAlign: 'right' }}>佔比增減</th>
+                      <th rowSpan={2} style={{ ...TH, textAlign: 'left' }}>持股/單位數分級</th>
+                      <th colSpan={3} style={{ ...TH, textAlign: 'center', borderLeft: '1px solid #555' }}>受益人數（人）</th>
+                      <th colSpan={3} style={{ ...TH, textAlign: 'center', borderLeft: '1px solid #555' }}>每人平均持有（單位）</th>
+                      <th colSpan={2} style={{ ...TH, textAlign: 'center', borderLeft: '1px solid #555' }}>受益權單位數</th>
+                      <th colSpan={2} style={{ ...TH, textAlign: 'center', borderLeft: '1px solid #555' }}>佔比 (%)</th>
+                    </tr>
+                    <tr>
+                      <th style={{ ...TH, ...SUBTH, borderLeft: '1px solid #555' }}>{curDate}</th>
+                      <th style={{ ...TH, ...SUBTH }}>{baseDate || '對照'}</th>
+                      <th style={{ ...TH, ...SUBTH }}>增減</th>
+                      <th style={{ ...TH, ...SUBTH, borderLeft: '1px solid #555' }}>{curDate}</th>
+                      <th style={{ ...TH, ...SUBTH }}>{baseDate || '對照'}</th>
+                      <th style={{ ...TH, ...SUBTH }}>增減</th>
+                      <th style={{ ...TH, ...SUBTH, borderLeft: '1px solid #555' }}>{curDate}</th>
+                      <th style={{ ...TH, ...SUBTH }}>增減</th>
+                      <th style={{ ...TH, ...SUBTH, borderLeft: '1px solid #555' }}>{curDate}</th>
+                      <th style={{ ...TH, ...SUBTH }}>增減</th>
                     </tr>
                   </thead>
                   <tbody>
                     {levelRows.map(r => (
                       <tr key={r.level}>
                         <td style={{ ...TD, textAlign: 'left', fontFamily: SANS }}>{r.label}</td>
-                        <td style={TD}>{int(r.people)}</td>
+                        <td style={{ ...TD, borderLeft: `1px solid ${BORDER}` }}>{int(r.people)}</td>
+                        <td style={{ ...TD, color: SUB }}>{r.basePeople === null ? '—' : int(r.basePeople)}</td>
                         <td style={{ ...TD, color: deltaColor(r.peopleDelta) }}>{signed(r.peopleDelta)}</td>
-                        <td style={TD}>{int(r.units)}</td>
+                        <td style={{ ...TD, borderLeft: `1px solid ${BORDER}` }}>{int(r.avgUnits)}</td>
+                        <td style={{ ...TD, color: SUB }}>{r.baseAvgUnits === null ? '—' : int(r.baseAvgUnits)}</td>
+                        <td style={{ ...TD, color: deltaColor(r.avgUnitsDelta), fontWeight: 600 }}>{signed(r.avgUnitsDelta)}</td>
+                        <td style={{ ...TD, borderLeft: `1px solid ${BORDER}` }}>{int(r.units)}</td>
                         <td style={{ ...TD, color: deltaColor(r.unitsDelta) }}>{signed(r.unitsDelta)}</td>
-                        <td style={TD}>{r.pct.toFixed(2)}</td>
+                        <td style={{ ...TD, borderLeft: `1px solid ${BORDER}` }}>{r.pct.toFixed(2)}</td>
                         <td style={{ ...TD, color: deltaColor(r.pctDelta) }}>{signed(r.pctDelta, 2)}</td>
                       </tr>
                     ))}
                     {current && (
                       <tr style={{ background: '#FAFAF9', fontWeight: 700 }}>
                         <td style={{ ...TD, textAlign: 'left', fontFamily: SANS }}>合計</td>
-                        <td style={TD}>{int(current.people)}</td>
+                        <td style={{ ...TD, borderLeft: `1px solid ${BORDER}` }}>{int(current.people)}</td>
+                        <td style={{ ...TD, color: SUB }}>{base ? int(base.people) : '—'}</td>
                         <td style={{ ...TD, color: deltaColor(base ? current.people - base.people : null) }}>
                           {signed(base ? current.people - base.people : null)}
                         </td>
-                        <td style={TD}>{int(current.units)}</td>
+                        <td style={{ ...TD, borderLeft: `1px solid ${BORDER}` }}>{int(totalAvg)}</td>
+                        <td style={{ ...TD, color: SUB }}>{baseTotalAvg === null ? '—' : int(baseTotalAvg)}</td>
+                        <td style={{ ...TD, color: deltaColor(baseTotalAvg === null ? null : totalAvg - baseTotalAvg), fontWeight: 700 }}>
+                          {signed(baseTotalAvg === null ? null : totalAvg - baseTotalAvg)}
+                        </td>
+                        <td style={{ ...TD, borderLeft: `1px solid ${BORDER}` }}>{int(current.units)}</td>
                         <td style={{ ...TD, color: deltaColor(base ? current.units - base.units : null) }}>
                           {signed(base ? current.units - base.units : null)}
                         </td>
-                        <td style={TD}>100.00</td>
+                        <td style={{ ...TD, borderLeft: `1px solid ${BORDER}` }}>100.00</td>
                         <td style={TD}>—</td>
                       </tr>
                     )}
@@ -354,6 +395,9 @@ export default function BeneficiaryTab() {
             資料源：集保結算所（TDCC）股權分散表，<strong style={{ color: TEXT }}>每週最後一個營業日</strong>結算、隔日更新。
             「受益人數」＝集保戶 ID 歸戶後的人數；單位為受益權單位，1 張 = 1,000 單位。
             集保只保存最近一年，<strong style={{ color: TEXT }}>再往前沒有任何來源</strong>，故本站每週自動存檔累積。
+            「每人平均持有」＝該級距單位數 ÷ 人數，用來看這一級的人是加碼還是減碼；
+            但級距是固定區間、人會跨級移動，所以它是<strong style={{ color: TEXT }}>「當期落在此級的人」的平均</strong>，
+            不是同一批人的追蹤——某級平均下降也可能是上一級有人減碼掉下來。
           </p>
         </>
       )}
