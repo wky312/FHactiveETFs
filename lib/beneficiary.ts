@@ -155,3 +155,79 @@ export function diffLevels(current: Week, base: Week | null): LevelDiff[] {
     };
   });
 }
+
+/* ── 兩檔對照 ─────────────────────────────────────────────────────────────── */
+
+export interface GroupStat {
+  key: string; label: string; note: string;
+  people: number; basePeople: number; peopleDelta: number; peoplePctChange: number;
+  units: number; baseUnits: number; unitsDelta: number;
+}
+
+export interface LevelStat {
+  level: number; label: string;
+  people: number; basePeople: number; peopleDelta: number; peoplePctChange: number;
+  pct: number; basePct: number; pctDelta: number;
+}
+
+export interface FundStats {
+  ticker: string; name: string;
+  people: number; basePeople: number; peopleDelta: number; peoplePctChange: number;
+  units: number; baseUnits: number; unitsDelta: number; unitsPctChange: number;
+  avgUnits: number; baseAvgUnits: number; avgUnitsDelta: number;
+  /** 散戶（5 張以下）佔總人數比重——分辨「全民型」與「單筆較大」的客群結構。 */
+  retailPeopleShare: number;
+  groups: GroupStat[];
+  levels: LevelStat[];
+}
+
+const pctChange = (cur: number, base: number) => (base > 0 ? (cur / base - 1) * 100 : 0);
+
+/** 單檔在「本期 vs 對照期」的完整統計。兩檔各算一份並排，就是對照檢視。 */
+export function fundStats(ticker: string, name: string, current: Week, base: Week): FundStats {
+  const sum = (w: Week, levels: number[], field: 'people' | 'units') =>
+    w.levels.filter(l => levels.includes(l.level)).reduce((s, l) => s + l[field], 0);
+
+  const groups: GroupStat[] = LEVEL_GROUPS.map(g => {
+    const people = sum(current, g.levels, 'people');
+    const basePeople = sum(base, g.levels, 'people');
+    const units = sum(current, g.levels, 'units');
+    const baseUnits = sum(base, g.levels, 'units');
+    return {
+      key: g.key, label: g.label, note: g.note,
+      people, basePeople, peopleDelta: people - basePeople, peoplePctChange: pctChange(people, basePeople),
+      units, baseUnits, unitsDelta: units - baseUnits,
+    };
+  });
+
+  const levels: LevelStat[] = current.levels.map(l => {
+    const b = base.levels.find(x => x.level === l.level);
+    const basePeople = b?.people ?? 0;
+    return {
+      level: l.level, label: l.label,
+      people: l.people, basePeople, peopleDelta: l.people - basePeople,
+      peoplePctChange: pctChange(l.people, basePeople),
+      pct: l.pct, basePct: b?.pct ?? 0, pctDelta: l.pct - (b?.pct ?? 0),
+    };
+  });
+
+  const retail = groups.find(g => g.key === 'retail');
+  return {
+    ticker, name,
+    people: current.people, basePeople: base.people,
+    peopleDelta: current.people - base.people, peoplePctChange: pctChange(current.people, base.people),
+    units: current.units, baseUnits: base.units,
+    unitsDelta: current.units - base.units, unitsPctChange: pctChange(current.units, base.units),
+    avgUnits: avgUnitsOf(current.units, current.people),
+    baseAvgUnits: avgUnitsOf(base.units, base.people),
+    avgUnitsDelta: avgUnitsOf(current.units, current.people) - avgUnitsOf(base.units, base.people),
+    retailPeopleShare: current.people > 0 ? (retail?.people ?? 0) / current.people : 0,
+    groups, levels,
+  };
+}
+
+/** 兩檔可共同比較的週次（各自掛牌時間不同，交集才畫得出對照）。新到舊。 */
+export function commonWeeks(a: Week[], b: Week[]): string[] {
+  const setB = new Set(b.map(w => w.date));
+  return a.filter(w => setB.has(w.date)).map(w => w.date).sort().reverse();
+}

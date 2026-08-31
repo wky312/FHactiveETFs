@@ -1,9 +1,10 @@
 'use client';
-import { useState, useCallback, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useMemo, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import PlotlyWrapper from './PlotlyWrapper';
 import {
-  BENEFICIARY_TICKERS, LEVEL_GROUPS, Week, avgUnitsOf, diffLevels, groupShares, trendPoints,
+  BENEFICIARY_TICKERS, LEVEL_GROUPS, Week, avgUnitsOf, commonWeeks, diffLevels,
+  fundStats, groupShares, trendPoints,
 } from '@/lib/beneficiary';
 
 const RED    = '#C00000';
@@ -35,7 +36,7 @@ const TD: React.CSSProperties = {
   borderBottom: `1px solid ${BORDER}`, textAlign: 'right', whiteSpace: 'nowrap',
 };
 
-type Mode = 'trend' | 'structure';
+type Mode = 'trend' | 'structure' | 'compare';
 
 interface ApiResult { ticker: string; name: string; weeks: Week[] }
 
@@ -57,6 +58,13 @@ export default function BeneficiaryTab() {
   const [error,   setError]   = useState('');
   const [curDate,  setCurDate]  = useState('');
   const [baseDate, setBaseDate] = useState('');
+  /* 對照檢視：第二檔基金獨立抓取、獨立的週次選擇（只能選兩檔都有的週）。 */
+  const [tickerB,  setTickerB]  = useState('00981A');
+  const [dataB,    setDataB]    = useState<ApiResult | null>(null);
+  const [loadingB, setLoadingB] = useState(false);
+  const [errorB,   setErrorB]   = useState('');
+  const [cmpCur,   setCmpCur]   = useState('');
+  const [cmpBase,  setCmpBase]  = useState('');
 
   const load = useCallback(async (t: string) => {
     setLoading(true); setError(''); setData(null);
@@ -76,6 +84,25 @@ export default function BeneficiaryTab() {
       setLoading(false);
     }
   }, []);
+
+  const loadB = useCallback(async (t: string) => {
+    setLoadingB(true); setErrorB(''); setDataB(null);
+    try {
+      const res  = await fetch(`/api/beneficiary?ticker=${encodeURIComponent(t)}`, { cache: 'no-store' });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
+      setDataB(json as ApiResult);
+    } catch (e) {
+      setErrorB(e instanceof Error ? e.message : '載入失敗');
+    } finally {
+      setLoadingB(false);
+    }
+  }, []);
+
+  const enterCompare = useCallback(() => {
+    setMode('compare');
+    if (!dataB && !loadingB) loadB(tickerB);
+  }, [dataB, loadingB, loadB, tickerB]);
 
   const didInit = useRef(false);
   useEffect(() => {
@@ -162,6 +189,46 @@ export default function BeneficiaryTab() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [weeks]);
 
+  /* 兩檔共同有資料的週次；各檔掛牌時間不同，交集才畫得出對照。
+     選擇值不在交集內（換檔後）就退回預設，不用 effect 改 state。 */
+  const weeksB   = useMemo(() => dataB?.weeks ?? [], [dataB]);
+  const common   = useMemo(() => commonWeeks(weeks, weeksB), [weeks, weeksB]);
+  /* 預設比「最新 vs 4 週前」——結構變化用週對週太小，看不出形狀差異。 */
+  const cmpCurEff  = cmpCur  && common.includes(cmpCur)  ? cmpCur  : (common[0] ?? '');
+  const cmpBaseEff = cmpBase && common.includes(cmpBase) ? cmpBase : (common[4] ?? common[common.length - 1] ?? '');
+
+  const statsA = useMemo(() => {
+    const c = weeks.find(w => w.date === cmpCurEff), b = weeks.find(w => w.date === cmpBaseEff);
+    return data && c && b ? fundStats(data.ticker, data.name, c, b) : null;
+  }, [weeks, data, cmpCurEff, cmpBaseEff]);
+  const statsB = useMemo(() => {
+    const c = weeksB.find(w => w.date === cmpCurEff), b = weeksB.find(w => w.date === cmpBaseEff);
+    return dataB && c && b ? fundStats(dataB.ticker, dataB.name, c, b) : null;
+  }, [weeksB, dataB, cmpCurEff, cmpBaseEff]);
+
+  const compareTraces = useMemo(() => {
+    if (!statsA || !statsB) return [];
+    return [statsA, statsB].map((st, i) => ({
+      y: st.levels.map(l => l.label),
+      x: st.levels.map(l => l.peoplePctChange),
+      name: `${st.ticker}`,
+      type: 'bar', orientation: 'h',
+      marker: { color: i === 0 ? RED : '#2E5E8A' },
+      hovertemplate: `${st.ticker} %{y}：%{x:+.2f}%<extra></extra>`,
+    }));
+  }, [statsA, statsB]);
+
+  const compareLayout = useMemo(() => ({
+    paper_bgcolor: '#fff', plot_bgcolor: '#fff',
+    margin: { l: 130, r: 30, t: 10, b: 50 }, height: 560,
+    barmode: 'group', bargap: 0.25,
+    legend: { orientation: 'h', x: 0, y: -0.08, font: { family: SANS, size: 11 } },
+    xaxis: { title: { text: '受益人數變動率 (%)', font: titleFont }, tickfont: axisFont,
+             gridcolor: BORDER, zeroline: true, zerolinecolor: '#999', zerolinewidth: 1 },
+    yaxis: { autorange: 'reversed', tickfont: { ...axisFont, size: 10 }, automargin: true },
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }), [statsA, statsB]);
+
   const exportExcel = useCallback(() => {
     if (!current) return;
     const b = baseDate || '對照';
@@ -226,6 +293,7 @@ export default function BeneficiaryTab() {
         <div style={{ display: 'flex', gap: 8 }}>
           <button style={pill(mode === 'trend')}     onClick={() => setMode('trend')}>人數趨勢</button>
           <button style={pill(mode === 'structure')} onClick={() => setMode('structure')}>級距結構</button>
+          <button style={pill(mode === 'compare')}   onClick={enterCompare}>兩檔對照</button>
         </div>
       </div>
 
@@ -244,7 +312,7 @@ export default function BeneficiaryTab() {
       {!loading && !error && weeks.length > 0 && (
         <>
           {/* 摘要卡 */}
-          {latest && (
+          {mode !== 'compare' && latest && (
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(150px, 1fr))',
               border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden', marginBottom: 18, background: '#FAFAF9' }}>
               <Stat label="最新受益人數" value={`${int(latest.people)} 人`} sub={latest.date} />
@@ -387,6 +455,189 @@ export default function BeneficiaryTab() {
                     );
                   })}
                 </div>
+              )}
+            </>
+          )}
+
+          {mode === 'compare' && (
+            <>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center', marginBottom: 14 }}>
+                <span style={{ fontSize: '.82rem', color: SUB }}>對照基金</span>
+                <select value={tickerB} style={{ ...selectStyle, minWidth: 230 }}
+                        onChange={e => { setTickerB(e.target.value); loadB(e.target.value); }}>
+                  {BENEFICIARY_TICKERS.filter(t => t.ticker !== ticker).map(t => (
+                    <option key={t.ticker} value={t.ticker}>{t.ticker}　{t.name}</option>
+                  ))}
+                </select>
+                <span style={{ fontSize: '.82rem', color: SUB }}>本期</span>
+                <select value={cmpCurEff} style={selectStyle} onChange={e => setCmpCur(e.target.value)}>
+                  {common.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+                <span style={{ fontSize: '.82rem', color: SUB }}>對照</span>
+                <select value={cmpBaseEff} style={selectStyle} onChange={e => setCmpBase(e.target.value)}>
+                  {common.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+
+              {loadingB && <p style={{ color: SUB, textAlign: 'center', padding: '30px 0', fontSize: '.9rem' }}>載入對照基金…</p>}
+              {errorB && (
+                <div style={{ background: '#FFF5F5', border: '1px solid #FFCDD2', borderRadius: 6, padding: '10px 14px', color: RED, fontSize: '.88rem' }}>
+                  ⚠ {errorB}
+                </div>
+              )}
+              {!loadingB && !errorB && common.length === 0 && dataB && (
+                <p style={{ color: '#AAA', textAlign: 'center', padding: '30px 0', fontSize: '.9rem' }}>
+                  兩檔沒有共同的資料週次（掛牌時間不重疊）
+                </p>
+              )}
+
+              {statsA && statsB && (
+                <>
+                  {/* 總體對照 */}
+                  <div style={{ overflow: 'auto', border: `1px solid ${BORDER}`, borderRadius: 8, marginBottom: 18 }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr>
+                          <th style={{ ...TH, textAlign: 'left' }}>指標（{cmpBaseEff} → {cmpCurEff}）</th>
+                          <th style={{ ...TH, textAlign: 'right', borderLeft: '1px solid #555' }}>{statsA.ticker} {statsA.name}</th>
+                          <th style={{ ...TH, textAlign: 'right', borderLeft: '1px solid #555' }}>{statsB.ticker} {statsB.name}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {([
+                          ['受益人數', (st: typeof statsA) => `${int(st.basePeople)} → ${int(st.people)}`,
+                            (st: typeof statsA) => st.peopleDelta],
+                          ['受益權單位數（億）', (st: typeof statsA) => `${(st.baseUnits / 1e8).toFixed(2)} → ${(st.units / 1e8).toFixed(2)}`,
+                            (st: typeof statsA) => st.unitsDelta],
+                          ['每人平均持有（單位）', (st: typeof statsA) => `${int(st.baseAvgUnits)} → ${int(st.avgUnits)}`,
+                            (st: typeof statsA) => st.avgUnitsDelta],
+                        ] as const).map(([label, fmt, delta]) => (
+                          <tr key={label}>
+                            <td style={{ ...TD, textAlign: 'left', fontFamily: SANS }}>{label}</td>
+                            {[statsA, statsB].map(st => (
+                              <td key={st.ticker} style={{ ...TD, borderLeft: `1px solid ${BORDER}` }}>
+                                {fmt(st)}　<span style={{ color: deltaColor(delta(st)) }}>({signed(delta(st))})</span>
+                              </td>
+                            ))}
+                          </tr>
+                        ))}
+                        <tr>
+                          <td style={{ ...TD, textAlign: 'left', fontFamily: SANS }}>人數變動率</td>
+                          {[statsA, statsB].map(st => (
+                            <td key={st.ticker} style={{ ...TD, borderLeft: `1px solid ${BORDER}`, color: deltaColor(st.peopleDelta), fontWeight: 700 }}>
+                              {signed(st.peoplePctChange, 2)}%
+                            </td>
+                          ))}
+                        </tr>
+                        <tr>
+                          <td style={{ ...TD, textAlign: 'left', fontFamily: SANS }}>散戶（5 張以下）佔人數比</td>
+                          {[statsA, statsB].map(st => (
+                            <td key={st.ticker} style={{ ...TD, borderLeft: `1px solid ${BORDER}` }}>
+                              {(st.retailPeopleShare * 100).toFixed(1)}%
+                            </td>
+                          ))}
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* 五組聚合對照 */}
+                  <div style={{ overflow: 'auto', border: `1px solid ${BORDER}`, borderRadius: 8, marginBottom: 18 }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr>
+                          <th rowSpan={2} style={{ ...TH, textAlign: 'left' }}>組別</th>
+                          <th colSpan={3} style={{ ...TH, textAlign: 'center', borderLeft: '1px solid #555' }}>{statsA.ticker}</th>
+                          <th colSpan={3} style={{ ...TH, textAlign: 'center', borderLeft: '1px solid #555' }}>{statsB.ticker}</th>
+                        </tr>
+                        <tr>
+                          <th style={{ ...TH, ...SUBTH, borderLeft: '1px solid #555' }}>人數增減</th>
+                          <th style={{ ...TH, ...SUBTH }}>變動率</th>
+                          <th style={{ ...TH, ...SUBTH }}>單位增減(億)</th>
+                          <th style={{ ...TH, ...SUBTH, borderLeft: '1px solid #555' }}>人數增減</th>
+                          <th style={{ ...TH, ...SUBTH }}>變動率</th>
+                          <th style={{ ...TH, ...SUBTH }}>單位增減(億)</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {LEVEL_GROUPS.map((g, gi) => {
+                          const a = statsA.groups[gi], b = statsB.groups[gi];
+                          return (
+                            <tr key={g.key}>
+                              <td style={{ ...TD, textAlign: 'left', fontFamily: SANS }}>
+                                {g.label}<span style={{ color: SUB, fontSize: '.72rem' }}>　{g.note}</span>
+                              </td>
+                              {[a, b].map((st, si) => (
+                                <React.Fragment key={si}>
+                                  <td style={{ ...TD, borderLeft: `1px solid ${BORDER}`, color: deltaColor(st.peopleDelta) }}>{signed(st.peopleDelta)}</td>
+                                  <td style={{ ...TD, color: deltaColor(st.peopleDelta) }}>{signed(st.peoplePctChange, 2)}%</td>
+                                  <td style={{ ...TD, color: deltaColor(st.unitsDelta) }}>{signed(st.unitsDelta / 1e8, 2)}</td>
+                                </React.Fragment>
+                              ))}
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+
+                  {/* 15 級距人數變動率並排 */}
+                  <p style={{ fontSize: '.82rem', color: TEXT, margin: '0 0 6px' }}>各級距受益人數變動率</p>
+                  <p style={{ fontSize: '.75rem', color: SUB, margin: '0 0 8px' }}>
+                    看「形狀」最快：長條全落在左側＝該檔全面流失；兩端翹右、中間偏左＝啞鈴化（小額與超大戶進場、中實戶撤退）。
+                  </p>
+                  <PlotlyWrapper traces={compareTraces} layout={compareLayout} style={{ marginBottom: 18 }} />
+
+                  {/* 超大戶對照 */}
+                  <div style={{ overflow: 'auto', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
+                    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+                      <thead>
+                        <tr>
+                          <th style={{ ...TH, textAlign: 'left' }}>超大戶（1000 張以上）</th>
+                          <th style={{ ...TH, textAlign: 'right', borderLeft: '1px solid #555' }}>{statsA.ticker}</th>
+                          <th style={{ ...TH, textAlign: 'right', borderLeft: '1px solid #555' }}>{statsB.ticker}</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {([
+                          ['人數', (st: typeof statsA) => {
+                            const w = st.groups[4];
+                            return `${int(w.basePeople)} → ${int(w.people)}　(${signed(w.peopleDelta)})`;
+                          }],
+                          ['持有單位（億）', (st: typeof statsA) => {
+                            const w = st.groups[4];
+                            return `${(w.baseUnits / 1e8).toFixed(2)} → ${(w.units / 1e8).toFixed(2)}　(${signed(w.unitsDelta / 1e8, 2)})`;
+                          }],
+                          ['每人平均（萬單位）', (st: typeof statsA) => {
+                            const w = st.groups[4];
+                            const a0 = avgUnitsOf(w.baseUnits, w.basePeople) / 1e4;
+                            const a1 = avgUnitsOf(w.units, w.people) / 1e4;
+                            return `${a0.toFixed(0)} → ${a1.toFixed(0)}　(${signed(a1 - a0)})`;
+                          }],
+                          ['佔全基金單位比', (st: typeof statsA) => {
+                            const l = st.levels[14];
+                            return `${l.basePct.toFixed(2)}% → ${l.pct.toFixed(2)}%　(${signed(l.pctDelta, 2)}pp)`;
+                          }],
+                          ['佔全基金單位變動', (st: typeof statsA) => {
+                            const w = st.groups[4];
+                            return st.unitsDelta === 0 ? '—' : `${(w.unitsDelta / st.unitsDelta * 100).toFixed(0)}%`;
+                          }],
+                        ] as const).map(([label, fmt]) => (
+                          <tr key={label}>
+                            <td style={{ ...TD, textAlign: 'left', fontFamily: SANS }}>{label}</td>
+                            {[statsA, statsB].map(st => (
+                              <td key={st.ticker} style={{ ...TD, borderLeft: `1px solid ${BORDER}` }}>{fmt(st)}</td>
+                            ))}
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <p style={{ color: SUB, fontSize: '.75rem', marginTop: 8, lineHeight: 1.6 }}>
+                    「佔全基金單位變動」＝超大戶的單位增減 ÷ 全基金的單位增減。超過 100%（或為負）代表這一檔的規模變動
+                    幾乎由超大戶單獨決定，其餘級距是反方向的。
+                  </p>
+                </>
               )}
             </>
           )}
