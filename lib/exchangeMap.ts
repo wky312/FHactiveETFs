@@ -69,3 +69,24 @@ export function stockidToYfTicker(stockid: string): { ticker: string; suffix: st
 export function getSuffixCountry(suffix: string): string {
   return EXCHANGE_MAP[suffix]?.country ?? 'Unknown';
 }
+
+/** 把復華的 stockid 轉成「查價用」的 Yahoo ticker。
+
+    復華對台股給的是裸 4 碼、不帶交易所後綴（外國股一律是 '7203 JP' 這種空格＋兩碼），
+    Yahoo 查價必須補 .TW（上櫃退 .TWO）。這段邏輯原本在 stockTrajectory、
+    /api/performance、/api/holdings-newhigh 各寫一次，而且都硬編 `fundId === 'ETF23'`
+    ——所以全球型基金（00409A）的台股部位在這三個地方都查不到價。改用裸 4 碼通則判定。
+
+    ⚠️ 刻意不動 stockidToYfTicker 本身：它的輸出還被 consensusOverseas 拿去當共識持股的
+    join key 與顯示代號，改它會連帶改到那邊。查價走這支就好。 */
+export function resolveYfTicker(
+  stockid: string,
+  isTwOnlyFund = false,
+): { yfTicker: string; fallback?: string } {
+  const { ticker, suffix } = stockidToYfTicker(stockid);
+  const base = stockid.trim();
+  if (!suffix && (isTwOnlyFund || TW_BARE_CODE.test(base.toUpperCase()))) {
+    return { yfTicker: `${base}.TW`, fallback: `${base}.TWO` };
+  }
+  return { yfTicker: ticker || base };
+}

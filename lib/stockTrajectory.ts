@@ -1,7 +1,7 @@
 import { fetchHoldings } from './fhtrust';
 import { Holding } from './types';
 import { UNIVERSE_NAMES } from './twseUniverse';
-import { stockidToYfTicker } from './exchangeMap';
+import { resolveYfTicker } from './exchangeMap';
 import { fetchDailyBars } from './yahooFinance';
 import { loadStoredHoldings } from './holdingsStore';
 import { fetchCmoneyHoldings, CMONEY_FUNDS } from './cmoneyHoldings';
@@ -303,11 +303,8 @@ function forwardFill(raw: Map<string, number>, start: string, end: string): Map<
 // 抓某檔股票在 [start, end] 區間每日價格，回傳 date(YYYY/MM/DD) → 價格。
 //  mid/close：Yahoo（已前向填補，處理假日/缺口）；avg：台股真實成交均價（TWSE，僅交易日，不填補）。
 export async function fetchPriceMaps(stockid: string, fundId: string, start: string, end: string): Promise<{ mid: Map<string, number>; close: Map<string, number>; avg: Map<string, number> }> {
-  const { ticker, suffix } = stockidToYfTicker(stockid);
-  const base = stockid.trim();
   const isTwOnly = fundId === 'ETF23' || !!CMONEY_FUNDS[fundId];
-  const yfTicker = isTwOnly && !suffix ? `${base}.TW` : (ticker || base);
-  const fallback = isTwOnly && !suffix ? `${base}.TWO` : undefined;
+  const { yfTicker, fallback } = resolveYfTicker(stockid, isTwOnly);
 
   // 台股（yfTicker 以 .TW/.TWO 結尾）才有 TWSE 真實成交均價可查；海外股 avg 留空，沿用中間價
   const isTw = /\.TWO?$/.test(yfTicker);

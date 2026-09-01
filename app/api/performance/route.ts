@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchHoldings } from '@/lib/fhtrust';
-import { stockidToYfTicker } from '@/lib/exchangeMap';
+import { resolveYfTicker } from '@/lib/exchangeMap';
 import { fetchStockPerformance, StockPerformance } from '@/lib/yahooFinance';
 
 const BATCH = 8;
@@ -41,11 +41,8 @@ export async function GET(request: NextRequest) {
     const isTwOnly = fundId === 'ETF23';
 
     const results: StockPerformance[] = await batchAll(stocks, h => {
-      const { ticker, suffix } = stockidToYfTicker(h.stockid);
-      const base     = h.stockid.trim();
-      const raw      = isTwOnly && !suffix ? `${base}.TW`  : (ticker || base);
+      const { yfTicker: raw, fallback } = resolveYfTicker(h.stockid, isTwOnly);
       const yfTicker = TICKER_OVERRIDES[raw] ?? raw;
-      const fallback = isTwOnly && !suffix ? `${base}.TWO` : undefined;
       return fetchStockPerformance(h.stockid, h.stockname, h.prate_addaccint, yfTicker, fallback, customStart, customEnd);
     });
 

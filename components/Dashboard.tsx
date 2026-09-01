@@ -200,19 +200,29 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState<Tab>('summary');
   const [selectedEtf, setSelectedEtf] = useState<EtfConfig>(DEFAULT_ETF);
 
-  // 深連結：進站時依網址 ?tab= 還原分頁，切換時寫回網址，方便把特定分頁分享給別人。
+  /* 深連結：進站時依網址 ?tab= / ?etf= 還原「分頁 + 基金」，切換任一個都寫回網址，
+     這樣分享出去的連結才分得出是哪一檔基金的哪一頁（只帶 ?tab= 的話對方永遠開到預設的 00991A）。
+     刻意在 effect 裡還原而不是用 useState 初始值：初始值在 SSR 讀不到 window，
+     client 讀得到就會 hydration mismatch。 */
   useEffect(() => {
-    const t = new URLSearchParams(window.location.search).get('tab') as Tab | null;
+    const sp = new URLSearchParams(window.location.search);
+    const t = sp.get('tab') as Tab | null;
+    const e = sp.get('etf');
+    const etf = e ? ETF_LIST.find(x => x.ticker === e.trim().toUpperCase()) : undefined;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 一次性還原網址狀態，不會串連渲染
     if (t && ALL_TABS.includes(t)) setActiveTab(t);
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- 同上
+    if (etf) setSelectedEtf(etf);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
-    if (sp.get('tab') !== activeTab) {
+    if (sp.get('tab') !== activeTab || sp.get('etf') !== selectedEtf.ticker) {
       sp.set('tab', activeTab);
+      sp.set('etf', selectedEtf.ticker);
       window.history.replaceState(null, '', `${window.location.pathname}?${sp.toString()}`);
     }
-  }, [activeTab]);
+  }, [activeTab, selectedEtf]);
 
   // 導覽下拉：開啟中的分組 index、hover 中的項目 key；外部點擊或 Esc 關閉
   const [openGroup, setOpenGroup] = useState<number | null>(null);

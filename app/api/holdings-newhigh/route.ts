@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchHoldings } from '@/lib/fhtrust';
-import { stockidToYfTicker } from '@/lib/exchangeMap';
+import { resolveYfTicker } from '@/lib/exchangeMap';
 import { fetchStockPerformance, StockPerformance } from '@/lib/yahooFinance';
 
 // 「創新高強勢股」：持股清單頁的頁內模式，重用 fetchStockPerformance() 已算好的
@@ -37,11 +37,7 @@ export async function GET(request: NextRequest) {
     const isTwOnly = fundId === 'ETF23';
 
     const results: StockPerformance[] = await batchAll(stocks, h => {
-      const { ticker, suffix } = stockidToYfTicker(h.stockid);
-      const base     = h.stockid.trim();
-      const raw      = isTwOnly && !suffix ? `${base}.TW`  : (ticker || base);
-      const yfTicker = raw;
-      const fallback = isTwOnly && !suffix ? `${base}.TWO` : undefined;
+      const { yfTicker, fallback } = resolveYfTicker(h.stockid, isTwOnly);
       return fetchStockPerformance(h.stockid, h.stockname, h.prate_addaccint, yfTicker, fallback, undefined, undefined, highSince);
     });
 
