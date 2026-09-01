@@ -42,13 +42,24 @@ const EXCHANGE_MAP: Record<string, { yf: string; country: string }> = {
   ' TB': { yf: '.BK', country: 'Thailand' },
   ' SE': { yf: '.ST', country: 'Sweden' },
   ' PW': { yf: '.WA', country: 'Poland' },
+  // Bloomberg ' CH' 同時涵蓋上海與深圳，yfinance 的後綴不同（.SS / .SZ）→
+  // 這裡放預設值，實際後綴在 stockidToYfTicker 依代號開頭決定。
+  ' CH': { yf: '.SS', country: '中國' },
 };
+
+/** 台股在復華 API 是裸 4 碼、不帶交易所後綴（00991A 全部、00409A 的台股部位都是）。
+ *  外國股一律帶空格＋兩碼後綴（如 '7203 JP'），所以「沒有空格的純 4 碼」可安全判為台股。 */
+export const TW_BARE_CODE = /^[1-9]\d{3}[A-Z]?$/;
 
 export function stockidToYfTicker(stockid: string): { ticker: string; suffix: string } {
   const upper = stockid.toUpperCase();
   for (const suffix of Object.keys(EXCHANGE_MAP)) {
     if (upper.endsWith(suffix)) {
       const base = stockid.slice(0, -suffix.length).trim();
+      // 滬市 6xxxxx → .SS；深市 0xxxxx / 3xxxxx → .SZ
+      if (suffix === ' CH') {
+        return { ticker: base + (/^[03]/.test(base) ? '.SZ' : '.SS'), suffix };
+      }
       return { ticker: base + EXCHANGE_MAP[suffix].yf, suffix };
     }
   }

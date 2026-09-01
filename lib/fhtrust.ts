@@ -1,5 +1,5 @@
 import { Holding, HoldingsResponse } from './types';
-import { stockidToYfTicker, getSuffixCountry } from './exchangeMap';
+import { stockidToYfTicker, getSuffixCountry, TW_BARE_CODE } from './exchangeMap';
 import { getCountry } from './country';
 
 const API_URL = 'https://www.fhtrust.com.tw/api/assets';
@@ -18,7 +18,13 @@ function resolveCountry(item: any): string {
 
   const stockid: string = item.stockid || '';
   const { ticker, suffix } = stockidToYfTicker(stockid);
-  return getCountry(ticker) ?? getSuffixCountry(suffix);
+  const cached = getCountry(ticker);
+  if (cached) return cached;
+  if (suffix) return getSuffixCountry(suffix);
+  /* 沒有後綴又不在 cache 裡 → 復華對台股就是給裸 4 碼。這條以前只有 ETF23 靠下面那段
+     整批補台灣，所以 00409A 的台股部位（11 檔、約 16.5%）全部掉進 Unknown。 */
+  if (TW_BARE_CODE.test(stockid.trim().toUpperCase())) return '台灣';
+  return 'Unknown';
 }
 
 export async function fetchHoldings(

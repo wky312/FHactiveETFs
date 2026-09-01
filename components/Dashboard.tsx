@@ -253,6 +253,9 @@ export default function Dashboard() {
   const summaryRef    = useRef<HTMLDivElement>(null);
   const compareRef    = useRef<HTMLDivElement>(null);
   const countryRef    = useRef<HTMLDivElement>(null);
+  /* 國家配置分頁下方那份持股清單自己的 ref——與「當天持股清單」分頁的 holdingsRef 分開，
+     這樣兩張卡片可以各自存成一張圖（國家配置一張、持股清單一張）。 */
+  const countryHoldingsRef = useRef<HTMLDivElement>(null);
   const performanceRef = useRef<HTMLDivElement>(null);
   const newHighRef    = useRef<HTMLDivElement>(null);
 
@@ -479,32 +482,38 @@ export default function Dashboard() {
           </Card>
         )}
 
-        {activeTab === 'country' && (
-          <Card
-            ref={countryRef} title="國家 / 資產配置"
-            onSave={holdData ? () => saveImage(countryRef, imgName('國家配置')) : undefined}
-          >
-            {holdData
-              ? <>
-                  <p style={{ fontSize: '.82rem', color: SUB, marginBottom: 16, marginTop: 0 }}>資料來源：持股清單 {holdData.date}</p>
-                  <CountryTab holdings={holdData.holdings} date={holdData.date} etfTicker={selectedEtf.ticker} />
-                </>
-              : (
-                <div style={{ textAlign: 'center', padding: '40px 0' }}>
-                  <p style={{ color: '#AAA', fontSize: '.9rem', marginBottom: 18 }}>請先在「當天持股清單」頁面載入資料</p>
-                  <div style={{ display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'flex-end', flexWrap: 'wrap' }}>
-                    <DateInput label="日期" value={holdDate} onChange={setHoldDate} />
-                    <ActionButton
-                      onClick={async () => { setActiveTab('holdings'); await loadHoldings(); setActiveTab('country'); }}
-                      loading={holdLoading} label="載入"
-                    />
-                  </div>
-                  <ErrorMsg msg={holdError} onReset={() => { setHoldError(''); setHoldData(null); }} />
-                </div>
-              )
-            }
+        {activeTab === 'country' && (holdData ? (
+          /* 兩張獨立的卡片：一頁看完國家配置＋持股清單，但「儲存 / 分享」各存各的圖。 */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            <Card
+              ref={countryRef} title="國家 / 資產配置"
+              onSave={() => saveImage(countryRef, imgName('國家配置'))}
+            >
+              <p style={{ fontSize: '.82rem', color: SUB, marginBottom: 16, marginTop: 0 }}>資料來源：持股清單 {holdData.date}</p>
+              <CountryTab holdings={holdData.holdings} date={holdData.date} etfTicker={selectedEtf.ticker} />
+            </Card>
+            <Card
+              ref={countryHoldingsRef} title="持股清單"
+              onSave={() => saveImage(countryHoldingsRef, imgName('持股清單'))}
+            >
+              <HoldingsTab holdings={holdData.holdings} date={holdData.date} etfTicker={selectedEtf.ticker} fundId={selectedEtf.fundId} />
+            </Card>
+          </div>
+        ) : (
+          <Card ref={countryRef} title="國家 / 資產配置">
+            <div style={{ textAlign: 'center', padding: '40px 0' }}>
+              <p style={{ color: '#AAA', fontSize: '.9rem', marginBottom: 18 }}>請先在「當天持股清單」頁面載入資料</p>
+              <div style={{ display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'flex-end', flexWrap: 'wrap' }}>
+                <DateInput label="日期" value={holdDate} onChange={setHoldDate} />
+                <ActionButton
+                  onClick={async () => { setActiveTab('holdings'); await loadHoldings(); setActiveTab('country'); }}
+                  loading={holdLoading} label="載入"
+                />
+              </div>
+              <ErrorMsg msg={holdError} onReset={() => { setHoldError(''); setHoldData(null); }} />
+            </div>
           </Card>
-        )}
+        ))}
 
         {activeTab === 'performance' && (
           <Card
