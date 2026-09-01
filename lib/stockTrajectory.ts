@@ -162,41 +162,58 @@ export async function buildDayMap(fundId: string): Promise<DayMapResult> {
   return { dayMap, sortedDates, end };
 }
 
+/** 在基金持有過的清單裡找最常出現、且代碼（或名稱）吻合的那一檔。
+    海外股代碼是彭博式的「NVDA US」「600183 CH」，所以也比對代碼第一段，
+    讓使用者可以直接打 NVDA / 600183。byName=false 時只比代碼——純數字查詢
+    不該去撞名稱（空字串的 stockname 會讓 q.includes('') 命中所有列）。 */
+function matchHolding(
+  dayMap: Map<string, Holding[]>,
+  qU: string,
+  q: string,
+  byName: boolean,
+): { id: string; name: string } | null {
+  const freq = new Map<string, { name: string; n: number }>();
+  for (const holdings of dayMap.values()) {
+    for (const h of holdings) {
+      if (!h.stockid) continue;
+      const codeBase = h.stockid.split(/\s+/)[0].toUpperCase();
+      const codeHit = codeBase === qU || h.stockid.toUpperCase() === qU;
+      const nameHit = byName && !!h.stockname && (h.stockname.includes(q) || q.includes(h.stockname));
+      if (codeHit || nameHit) {
+        const e = freq.get(h.stockid) ?? { name: h.stockname, n: 0 };
+        e.n += 1;
+        freq.set(h.stockid, e);
+      }
+    }
+  }
+  let best: { id: string; n: number } | null = null;
+  for (const [id, e] of freq) if (!best || e.n > best.n) best = { id, n: e.n };
+  return best ? { id: best.id, name: freq.get(best.id)!.name } : null;
+}
+
 export async function fetchTrajectory(rawQuery: string, fundId = 'ETF23'): Promise<TrajectoryResult> {
   const q = rawQuery.trim();
   const { dayMap, sortedDates, end } = await buildDayMap(fundId);
 
   // 3. 解析目標股票代碼
-  const isCode = /^\d{4,6}[A-Za-z]?$/.test(q);  // 台股代碼（4-6 碼 +可選一英文）
+  const isCode = /^\d{4,6}[A-Za-z]?$/.test(q);  // 數字代碼（4-6 碼 +可選一英文）
   const qU = q.toUpperCase();
   let stockid = '';
   let stockname = '';
   if (isCode) {
-    stockid = qU;
+    /* 台股的 stockid 就是代碼本身，但中國 A 股在復華是彭博式的「600183 CH」——
+       純數字查詢直接當 stockid 用會對不上任何一天（個股軌跡一律空白）。
+       先去持股清單比對代碼第一段，找不到才維持查詢字串，讓「此基金未持有」照常顯示。 */
+    const hit = matchHolding(dayMap, qU, q, false);
+    stockid = hit?.id ?? qU;
+    stockname = hit?.name ?? '';
   } else {
-    // 用基金實際持有過的名稱或代碼比對，取出現次數最多者。海外股代碼為彭博式（如「NVDA US」），
-    // 故也比對代碼的第一段（NVDA）讓使用者能直接打外國 ticker。
-    const freq = new Map<string, { name: string; n: number }>();
-    for (const holdings of dayMap.values()) {
-      for (const h of holdings) {
-        if (!h.stockid) continue;
-        const codeBase = h.stockid.split(/\s+/)[0].toUpperCase();
-        const nameHit = h.stockname.includes(q) || q.includes(h.stockname);
-        const codeHit = codeBase === qU || h.stockid.toUpperCase() === qU;
-        if (nameHit || codeHit) {
-          const e = freq.get(h.stockid) ?? { name: h.stockname, n: 0 };
-          e.n += 1;
-          freq.set(h.stockid, e);
-        }
-      }
-    }
-    let best: { id: string; n: number } | null = null;
-    for (const [id, e] of freq) if (!best || e.n > best.n) best = { id, n: e.n };
-    if (best) { stockid = best.id; stockname = freq.get(best.id)!.name; }
+    const hit = matchHolding(dayMap, qU, q, true);
+    if (hit) { stockid = hit.id; stockname = hit.name; }
     else {
       // 退而求其次：用 TWSE universe 名稱反查
-      const hit = Object.entries(UNIVERSE_NAMES).find(([, name]) => name.includes(q) || q.includes(name));
-      if (hit) { stockid = hit[0]; stockname = hit[1]; }
+      const uh = Object.entries(UNIVERSE_NAMES).find(([, name]) => name.includes(q) || q.includes(name));
+      if (uh) { stockid = uh[0]; stockname = uh[1]; }
     }
   }
 
