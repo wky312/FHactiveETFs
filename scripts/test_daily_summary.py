@@ -58,6 +58,24 @@ def test_is_stale_true_when_reported_date_earlier_than_expected(monkeypatch):
     assert ds.is_stale(date(2026, 8, 13), date(2026, 8, 14)) == (True, date(2026, 8, 14))
 
 
+def test_is_stale_lag_allows_overseas_to_be_one_trading_day_behind(monkeypatch):
+    """海外檔(holdingsLag=1)：今天 9/2 拿到 9/1 的持股是正常的，不該告警。"""
+    monkeypatch.setattr(ds, 'is_twse_trading_day', lambda d: True)
+    assert ds.is_stale(date(2026, 9, 1), date(2026, 9, 2), 1) == (False, date(2026, 9, 1))
+
+
+def test_is_stale_lag_still_flags_two_trading_days_behind(monkeypatch):
+    """海外檔連 T-1 都沒有、只到 8/31 → 這才要告警。"""
+    monkeypatch.setattr(ds, 'is_twse_trading_day', lambda d: True)
+    assert ds.is_stale(date(2026, 8, 31), date(2026, 9, 2), 1) == (True, date(2026, 9, 1))
+
+
+def test_is_stale_lag_steps_back_over_the_weekend(monkeypatch):
+    """往回退一個『交易日』而不是一個日曆日：週一(9/7)的海外檔應更新到週五(9/4)。"""
+    monkeypatch.setattr(ds, 'is_twse_trading_day', lambda d: d.weekday() < 5)
+    assert ds.is_stale(date(2026, 9, 4), date(2026, 9, 7), 1) == (False, date(2026, 9, 4))
+
+
 # ── 近期補洞（find_peer_gaps / recent_trading_days）─────────────────────────
 
 ALL = lambda tickers: (lambda d: set(tickers))

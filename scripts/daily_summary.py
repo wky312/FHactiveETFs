@@ -39,12 +39,16 @@ SECTOR_MAP = load_sector_map()
 FHTRUST_ASSETS = 'https://www.fhtrust.com.tw/api/assets'
 FHTRUST_PCF    = 'https://www.fhtrust.com.tw/api/ETFPcf'
 
+# holdingsLag = 該檔持股「本來就會落後幾個交易日」，只給 is_stale 判斷要不要打 ⚠️ 用。
 ETFS = [
-    {'ticker': '00991A', 'name': '復華主動式ETF', 'fundId': 'ETF23', 'yfTicker': '00991A.TW'},
+    {'ticker': '00991A', 'name': '復華主動式ETF', 'fundId': 'ETF23', 'yfTicker': '00991A.TW',
+     'holdingsLag': 0},
     # 00409A 成立 2026/08/20、掛牌 2026/09/02。掛牌前復華每日持股 detail 是空的、PCF 全 null →
     # find_trading_day_with_data 回 (None, None)、process_etf 直接 skip（不推播、不影響 00991A 的
     # sent_any 判定）；資料一開始公布就會自己接上。
-    {'ticker': '00409A', 'name': '復華全球未來50主動式ETF', 'fundId': 'ETF26', 'yfTicker': '00409A.TW'},
+    # 海外檔的持股 T+1 才公告：今天(T)拿到 T-1、對比 T-2 是正常的，別再打 ⚠️（holdingsLag=1）。
+    {'ticker': '00409A', 'name': '復華全球未來50主動式ETF', 'fundId': 'ETF26', 'yfTicker': '00409A.TW',
+     'holdingsLag': 1},
 ]
 
 # 單位數注意商品：主管機關要求成立以來平均單位數不得低於發行時單位數之一半。
@@ -146,11 +150,23 @@ def latest_expected_trading_day(anchor: date, max_back: int = 10) -> date | None
     return None
 
 
-def is_stale(reported_date: date, today: date) -> tuple[bool, date | None]:
-    """回傳 (是否為非最新交易日資料, 最新交易日應為的日期或 None)。
+def is_stale(reported_date: date, today: date, lag_days: int = 0) -> tuple[bool, date | None]:
+    """回傳 (是否為非最新交易日資料, 這檔「應該要有」的最新資料日或 None)。
+
+    lag_days = 這檔基金的持股本來就會落後幾個交易日。**海外檔與國內檔的差別就在這裡**：
+    國內檔(00991A) T 日下午就掛出 T 日持股，lag_days=0；海外檔(00409A) 要 T+1 才公告，
+    所以今天(T)拿到 T-1 的資料是正常的、不是官網沒更新，lag_days=1——只有連 T-1 都沒有
+    （停在 T-2 以前）才該告警。
     expected 為 None（TWSE 行事曆連不到）時一律不視為 stale——呼叫端不可誤報。"""
     expected = latest_expected_trading_day(today)
-    return (expected is not None and reported_date < expected), expected
+    if expected is None:
+        return False, None
+    for _ in range(lag_days):
+        prev = latest_expected_trading_day(expected - timedelta(days=1))
+        if prev is None:
+            return False, expected
+        expected = prev
+    return reported_date < expected, expected
 
 
 # ── API fetchers ──────────────────────────────────────────────────────────────
@@ -1799,7 +1815,7 @@ async def process_etf(etf: dict, today: date):
     # 真正會顯示/使用的日期——兩者可能不同（官網回放前一交易日的內容），
     # 所以 stale 判斷與 stale_note 都要用「API 實際回報的日期」而非搜尋迴圈的 base_date。
     reported_date = api_to_date(base_data['date'])
-    stale, expected = is_stale(reported_date, today)
+    stale, expected = is_stale(reported_date, today, etf.get('holdingsLag', 0))
     if stale:
         print(f'  ⚠ 資料非最新：reported_date={reported_date}，最新交易日應為 {expected}')
 
@@ -1815,7 +1831,9 @@ async def process_etf(etf: dict, today: date):
     bs    = str(base_data['date'])[5:]
     cs    = str(cmp_data['date'])[5:]
     total = len(rows)
-    stale_note = f'\n⚠️ 官網尚未更新，此為 {reported_date} 資料（最新交易日應為 {expected}）' if stale else ''
+    # expected 已經把該檔的 holdingsLag 算進去了，所以是「這檔應該要有的資料日」，
+    # 不是「最新交易日」——海外檔兩者本來就差一天。
+    stale_note = f'\n⚠️ 官網尚未更新，此為 {reported_date} 資料（應更新到 {expected}）' if stale else ''
     notify(
         title   = f'{"⚠️ " if stale else ""}{etf["ticker"]} 當日摘要 {bs}',
         message = f'vs {cs}　共 {total} 筆異動{stale_note}',
@@ -2119,9 +2137,9 @@ def process_overseas_estimate_confirm(today: date) -> int:
 #    正式值 TranDate 是 T-2、預估值 ValueDate 是 T-1，T 日本身要等明天才會以預估值出現。
 #    所以這張表一律以「每檔各自最新可得的那一天」為準，並把資料日印在表上；
 #    預估值標 *，等正式值公告後 process_overseas_estimate_confirm 會覆蓋 DB。
-# 復華自家兩檔（00409A 置頂、00998A 次之）固定排最前，其餘依規模由大到小——同業是拿來
-# 對照的，自家的要一眼就看到。
-OVERSEAS_PUSH_TICKERS = ['00409A', '00998A', '00988A', '00990A', '00411A']
+# 依投信分群、同一家排在一起（復華 → 統一 → 元大），復華自家固定最前、00409A 置頂。
+# 不用規模排序：同一家的兩檔擺在一起才看得出該投信整體是進是出。
+OVERSEAS_PUSH_TICKERS = ['00409A', '00998A', '00988A', '00411A', '00990A']
 
 
 def build_overseas_peer_html(points: dict, today: date) -> str:
