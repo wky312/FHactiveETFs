@@ -2119,7 +2119,9 @@ def process_overseas_estimate_confirm(today: date) -> int:
 #    正式值 TranDate 是 T-2、預估值 ValueDate 是 T-1，T 日本身要等明天才會以預估值出現。
 #    所以這張表一律以「每檔各自最新可得的那一天」為準，並把資料日印在表上；
 #    預估值標 *，等正式值公告後 process_overseas_estimate_confirm 會覆蓋 DB。
-OVERSEAS_PUSH_TICKERS = ['00409A', '00988A', '00990A', '00411A']
+# 復華自家兩檔（00409A 置頂、00998A 次之）固定排最前，其餘依規模由大到小——同業是拿來
+# 對照的，自家的要一眼就看到。
+OVERSEAS_PUSH_TICKERS = ['00409A', '00998A', '00988A', '00990A', '00411A']
 
 
 def build_overseas_peer_html(points: dict, today: date) -> str:
@@ -2401,7 +2403,7 @@ async def main():
         print(f'  Overseas redemption ERROR: {e}')
         import traceback; traceback.print_exc()
 
-    # 第三張表：海外主動式ETF 申購買回（00409A/00988A/00990A/00411A）。直接用上一步的結果，不重打 API。
+    # 第三張表：海外主動式ETF 申購買回（見 OVERSEAS_PUSH_TICKERS）。直接用上一步的結果，不重打 API。
     try:
         sent_any = bool(await process_overseas_peer_push(today, overseas_latest)) or sent_any
     except Exception as e:
