@@ -313,6 +313,11 @@ PEER_ETFS = [
     # 復華官方 PCF 現在有回 actBuyValDate（2026-08-23 實測 ETF24 完整），不必再用 CMoney 推算
     # （CMoney 用「規模÷淨值」還原單位數，有 ±0.01 億取整噪音，且規模以公告日標記會錯位）。
     {'ticker': '00998A', 'name': '復華全球金融', 'source': 'fhtrust', 'key': 'ETF24', 'group': 'overseas'},
+    # 2026/09/02 掛牌（復華自家海外第二檔）。官方 PCF 形狀同 ETF24，直接沿用 fetch_fhtrust_day。
+    # since = 這檔最早查得到的 actBuyValDate：ETFPcf 從掛牌日(09/02)才開始有 postDate，掛牌前的
+    # pcfDate 全回 null；09/02 那筆自報的交易日是 08/31 → 08-31 以前不列入補洞的 expected。
+    {'ticker': '00409A', 'name': '復華全球未來50', 'source': 'fhtrust', 'key': 'ETF26', 'group': 'overseas',
+     'since': '2026-08-31'},
     {'ticker': '00402A', 'name': '安聯美國科技', 'source': 'allianz', 'key': 'E0003',  'group': 'overseas'},
     # 2026-08-26 補：原本漏掉是沒試過，不是真的沒來源——摩根投信一樣有 CMoney 規模/淨值序列。
     # 2026-08-26 修：摩根投信官網其實有官方 PCF(product-data API)，不用只靠 CMoney 反推——
@@ -850,8 +855,10 @@ def fetch_yuanta_day(ticker: str, transaction_date: date) -> dict | None:
 # 的最新總單位數。用它減掉已確定的「已發行受益權單位總數」、乘上最新一筆已知的
 # 每受益權單位淨資產價值，可以在正式值公告前先抓出一個概算的淨申贖，回傳的 dict 帶
 # is_estimate=True 標記；正式值出來後 process_overseas_estimate_confirm() 會覆蓋掉它。
-# 台新(tsit)、摩根(jpmorgan) 的官方 PCF 頁面沒有這個欄位，改用 CMoney 規模/淨值反推頂著
-# （fetch_jpmorgan_estimate）；復華(fhtrust) 的官方 PCF 目前也沒發現對應欄位，不做預估。
+# 復華(fhtrust) 也有：preQIssue / preQIssueDate（2026-09-02 複查推翻舊結論，見
+# fetch_fhtrust_estimate）。台新(tsit) 的頁面則是真的只有單一一組數字（實測欄位只到
+# 「每現金申購單位約當市值」），摩根(jpmorgan) 官方 PCF 又不能指定日期——這兩家改用
+# CMoney 規模/淨值反推頂著（fetch_jpmorgan_estimate），台新則只能等公告。
 
 def _parse_flex_slash_date(s: str) -> date | None:
     """解析 'YYY/MM/DD' 格式日期，年份可能是民國(如 115/08/24)或西元(如 2026/08/24)。"""
@@ -1209,6 +1216,40 @@ def fetch_jpmorgan_estimate(cusip: str) -> dict | None:
         return None
 
 
+def fetch_fhtrust_estimate(fund_id: str) -> dict | None:
+    """復華 00998A/00409A：ETFPcf 的 preQIssue(預估發行受益權單位數) 概算尚未定案那天。
+
+    ⚠️ 2026-09-02 訂正：原本以為復華的 PCF 沒有預估欄位，其實一直都有 preQIssueDate /
+    preQIssue——只是**台股檔(ETF23) 一律回 '-'**（它 T+1 就公告正式值，本來就不需要預估），
+    只有海外檔(ETF24/ETF26) 才給值，早期只拿台股檔試才看不出來。少了這支，兩檔復華海外
+    ETF 的資料日會固定比其他家慢一天（別人是 T、它是 T-1）。
+    """
+    return _newest_estimate(lambda ann: _fhtrust_estimate_at(fund_id, ann))
+
+
+def _fhtrust_estimate_at(fund_id: str, ann: date) -> dict | None:
+    try:
+        url = f'{FHTRUST_PCF}?fundID={fund_id}&pcfDate={requests.utils.quote(date_to_api(ann))}'
+        r = get_with_retry(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=20)
+        d = r.json()
+        d = (d.get('result') or [None])[0] if d.get('result') else d
+        if not d:
+            return None
+        est_date = _parse_flex_slash_date(str(d.get('preQIssueDate') or ''))
+        pnav     = _pcf_num(d.get('pnav'))
+        if not est_date or pnav == 0:
+            return None
+        est_units = _pcf_num(d.get('preQIssue'))
+        cur_units = _pcf_num(d.get('qIssue'))
+        if est_units <= 0:
+            return None
+        return {'date': est_date, 'netSub': (est_units - cur_units) * pnav / 1e8,
+                'aum': est_units * pnav / 1e8, 'is_estimate': True}
+    except Exception as e:
+        print(f'  fhtrust-estimate {fund_id} {ann}: {e}')
+        return None
+
+
 _OVERSEAS_ESTIMATE_FETCHERS = {
     'ctbc':     fetch_ctbc_estimate,
     'ezmoney':  fetch_ezmoney_estimate,
@@ -1216,6 +1257,7 @@ _OVERSEAS_ESTIMATE_FETCHERS = {
     'allianz':  fetch_allianz_estimate,
     'capital':  fetch_capital_estimate,
     'jpmorgan': fetch_jpmorgan_estimate,
+    'fhtrust':  fetch_fhtrust_estimate,
 }
 
 
@@ -1977,7 +2019,10 @@ def process_overseas_redemption(today: date) -> dict:
             if data and data.get('netSub') is not None and data.get('aum') is not None:
                 write_peer_to_supabase([{**etf, 'data': data}], d)
                 print(f'  {etf["ticker"]} {d}: netSub={data["netSub"]:+.2f}億 aum={data["aum"]:.2f}億')
-                official = {**data, 'date': d, 'is_estimate': False}
+                # is_estimate 以抓取器自報的為準，不可寫死 False：fetch_fhtrust_day 用「未來的
+                # pcfDate」拿到的那筆本來就還沒定案（自報 is_estimate=True），寫死會讓 DB 標
+                # 估計值、推播卻不打 *，兩邊對不起來。
+                official = {**data, 'date': d, 'is_estimate': bool(data.get('is_estimate'))}
                 break
         else:
             print(f'  {etf["ticker"]}: 近 {OVERSEAS_LOOKBACK_WEEKDAYS} 個工作日查無已公告資料')
@@ -2057,6 +2102,10 @@ def process_overseas_estimate_confirm(today: date) -> int:
             d = date.fromisoformat(d_str)
             data = fetcher(etf['key'], d)
             if data and data.get('netSub') is not None and data.get('aum') is not None:
+                # 抓回來的仍是估計值（fhtrust 用未來 pcfDate 拿到的那種）就不能算覆核成功——
+                # 寫成正式值會讓它從此離開待覆核名單，永久留著一個沒定案的數字。
+                if data.get('is_estimate'):
+                    continue
                 write_peer_to_supabase([{**etf, 'data': {**data, 'is_estimate': False}}], d)
                 print(f'  {etf["ticker"]} {d}: 估計值 → 正式值 netSub={data["netSub"]:+.2f}億')
                 confirmed += 1
@@ -2070,7 +2119,7 @@ def process_overseas_estimate_confirm(today: date) -> int:
 #    正式值 TranDate 是 T-2、預估值 ValueDate 是 T-1，T 日本身要等明天才會以預估值出現。
 #    所以這張表一律以「每檔各自最新可得的那一天」為準，並把資料日印在表上；
 #    預估值標 *，等正式值公告後 process_overseas_estimate_confirm 會覆蓋 DB。
-OVERSEAS_PUSH_TICKERS = ['00988A', '00990A', '00411A']
+OVERSEAS_PUSH_TICKERS = ['00409A', '00988A', '00990A', '00411A']
 
 
 def build_overseas_peer_html(points: dict, today: date) -> str:
@@ -2352,7 +2401,7 @@ async def main():
         print(f'  Overseas redemption ERROR: {e}')
         import traceback; traceback.print_exc()
 
-    # 第三張表：海外主動式ETF 申購買回（00988A/00990A/00411A）。直接用上一步的結果，不重打 API。
+    # 第三張表：海外主動式ETF 申購買回（00409A/00988A/00990A/00411A）。直接用上一步的結果，不重打 API。
     try:
         sent_any = bool(await process_overseas_peer_push(today, overseas_latest)) or sent_any
     except Exception as e:

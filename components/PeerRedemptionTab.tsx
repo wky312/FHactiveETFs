@@ -83,9 +83,9 @@ const REDEMPTION_GROUPS: RedemptionGroup[] = [
       { ticker: '00998A', name: '復華全球金融', source: 'fhtrust', key: 'ETF24'  },  // 復華 fundID
       { ticker: '00983A', name: '中信ARK創新',  source: 'ctbc',    key: 'E0034'  },  // 中信投信 FID
       { ticker: '00986A', name: '台新全球龍頭', source: 'tsit',    key: '00986A' },  // 台新投信（HTML）
-      // 00409A 成立 2026/08/20、掛牌 2026/09/02：掛牌前沒有申購買回清單（fhtrust ETFPcf 全 null，
-      // CMoney 也還沒有規模/淨值序列）→ 先不接來源，該欄顯示「—」，掛牌後再補 source。
-      { ticker: '00409A', name: '復華全球未來50' },
+      // 00409A 成立 2026/08/20、掛牌 2026/09/02：掛牌當天 fhtrust ETFPcf 才開始有值（在那之前
+      // 全 null），已接上官方來源；最早查得到的交易日是 2026-08-31，更早的日期本來就沒有。
+      { ticker: '00409A', name: '復華全球未來50', source: 'fhtrust', key: 'ETF26' },
       // 2026-08-26 補：摩根投信官網其實有官方 PCF（product-data API），不用只靠 CMoney 反推——
       // 只是這支 API 沒有依日期查詢的能力，只回「目前最新一筆」，區間內其餘天數仍用 CMoney
       // 頂著（見 lib/jpmorganScale.ts）。規模約 12 億，是這組裡最小的一檔。
