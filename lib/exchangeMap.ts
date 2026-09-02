@@ -53,6 +53,14 @@ export const TW_BARE_CODE = /^[1-9]\d{3}[A-Z]?$/;
 
 export function stockidToYfTicker(stockid: string): { ticker: string; suffix: string } {
   const upper = stockid.toUpperCase();
+  // 中國 A 股：Bloomberg 滬深統一用 " CH" 後綴，不像其他市場是單純 1:1 對照——
+  // 要看代碼開頭數字才分得出滬深：6 開頭是上海(.SS)，0/2/3 開頭是深圳(.SZ)。
+  // 獨立處理，不塞進 EXCHANGE_MAP（那份表每個 key 只能對一個固定 yf 後綴）。
+  if (upper.endsWith(' CH')) {
+    const base = stockid.slice(0, -3).trim();
+    const yf = /^6/.test(base) ? '.SS' : '.SZ';
+    return { ticker: base + yf, suffix: ' CH' };
+  }
   for (const suffix of Object.keys(EXCHANGE_MAP)) {
     if (upper.endsWith(suffix)) {
       const base = stockid.slice(0, -suffix.length).trim();
@@ -67,6 +75,7 @@ export function stockidToYfTicker(stockid: string): { ticker: string; suffix: st
 }
 
 export function getSuffixCountry(suffix: string): string {
+  if (suffix === ' CH') return 'China';
   return EXCHANGE_MAP[suffix]?.country ?? 'Unknown';
 }
 
