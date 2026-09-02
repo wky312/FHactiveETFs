@@ -48,6 +48,16 @@ const BATCH = 8;
 const MEM_TTL_MS = 10 * 60 * 1000;
 const memCache = new Map<string, { ts: number; data: HeatmapResult }>();
 
+// force=1 冷卻時間：這支 API 沒有驗證機制，任何人都能打，force 若無限制就等於誰都能
+// 繞過快取把「一天最多算一次」的資源上限直接架空（每次都要逐檔查269/122檔 Yahoo Finance，
+// 約20-40秒）。超過冷卻時間才讓 force 真的生效，冷卻期內的 force 請求退回一般快取行為
+// （不報錯，直接給快取——使用者感覺只是「這次沒那麼新」，不影響操作）。
+const FORCE_COOLDOWN_MS = 60 * 1000;
+const lastForceAt = new Map<string, number>();
+// 同一個 key 若已經有計算在跑，後到的請求（不管是不是 force 觸發）共用同一個 promise，
+// 不要並發重複打 Yahoo——force 連點兩下、或多個分頁同時載入同一個 key 時很容易發生。
+const inFlight = new Map<string, Promise<HeatmapResult>>();
+
 async function mapLimit<T, R>(items: T[], limit: number, fn: (x: T) => Promise<R>): Promise<R[]> {
   const out: R[] = new Array(items.length);
   let idx = 0;
@@ -106,7 +116,10 @@ export async function computeSectorHeatmap(market: HeatmapMarket, start?: string
   const dateKey = taipeiDateStr();
   const cacheKey = ranged ? `sector-heatmap:${market}:${start}:${end}` : `sector-heatmap:${market}:latest:${dateKey}`;
 
-  if (!force) {
+  const now = Date.now();
+  const effectiveForce = force && now - (lastForceAt.get(cacheKey) ?? 0) > FORCE_COOLDOWN_MS;
+
+  if (!effectiveForce) {
     const mem = memCache.get(cacheKey);
     if (mem && Date.now() - mem.ts < MEM_TTL_MS) return mem.data;
 
@@ -116,8 +129,20 @@ export async function computeSectorHeatmap(market: HeatmapMarket, start?: string
     }
   }
 
-  const result = await computeFresh(market, start, end);
-  memCache.set(cacheKey, { ts: Date.now(), data: result });
-  if (!ranged) await writePageCache(cacheKey, result);
-  return result;
+  const existing = inFlight.get(cacheKey);
+  if (existing) return existing;
+
+  const task = (async () => {
+    try {
+      const result = await computeFresh(market, start, end);
+      memCache.set(cacheKey, { ts: Date.now(), data: result });
+      if (!ranged) await writePageCache(cacheKey, result);
+      if (effectiveForce) lastForceAt.set(cacheKey, now);
+      return result;
+    } finally {
+      inFlight.delete(cacheKey);
+    }
+  })();
+  inFlight.set(cacheKey, task);
+  return task;
 }
