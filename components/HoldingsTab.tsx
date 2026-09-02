@@ -319,13 +319,21 @@ export default function HoldingsTab({ holdings, date, etfTicker, fundId }: { hol
   const [sortKey, setSortKey] = useState<SortKey>('prate_addaccint');
   const [sortAsc, setSortAsc] = useState(false);
 
-  const stocks  = holdings.filter(h => h.stockid.trim() !== '');
+  // 現金餘額／應付買回款／期貨保證金這類「其他資產」不是持股，一律不進最大持倉、前十大
+  // 合計、持股檔數的計算。三個條件任一成立就當現金：只靠「沒有股票代號」太脆弱——這幾列
+  // 現在剛好都是空代號，但來源哪天補上代號，00409A 那筆 15.89% 的 NTD 現金就會變成「最大
+  // 持倉」、把真正的第十名擠出前十大。
+  const isCashLike = (h: Holding) =>
+    h.stockid.trim() === '' || h.ftype === '其他資產' || h.country === '現金/其他';
+
+  const stocks    = holdings.filter(h => !isCashLike(h));
+  const cashCount = holdings.length - stocks.length;
   const byPrate = [...stocks].sort((a, b) => b.prate_addaccint - a.prate_addaccint);
   const top     = byPrate[0];
   const top10   = byPrate.slice(0, 10).reduce((s, h) => s + h.prate_addaccint, 0);
   const totalMv = holdings.reduce((s, h) => s + h.mvalue, 0);
   const mktCount = new Set(
-    stocks.filter(h => h.country !== '期貨' && h.country !== '現金/其他').map(h => h.country)
+    stocks.filter(h => h.country !== '期貨').map(h => h.country)
   ).size;
 
   const sortedHoldings = useMemo(() => {
@@ -394,7 +402,10 @@ export default function HoldingsTab({ holdings, date, etfTicker, fundId }: { hol
         <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
           <span>資料日期：<strong style={{ color: TEXT, fontFamily: MONO }}>{date}</strong></span>
           <span style={{ color: BORDER }}>|</span>
-          <span>共 <strong style={{ color: TEXT }}>{holdings.length}</strong> 筆　點擊欄位標題可排序</span>
+          {/* 「共 N 筆」＝持股檔數，與上面的統計卡同一口徑（不含現金/其他）；下方表格仍會
+              把現金那幾列印出來，所以另外註明有幾筆，免得數字對不起來。 */}
+          <span>共 <strong style={{ color: TEXT }}>{stocks.length}</strong> 筆
+            {cashCount > 0 ? `（另有 ${cashCount} 筆現金/其他）` : ''}　點擊欄位標題可排序</span>
         </div>
         <button
           onClick={() => exportExcel(sortedHoldings, date, etfTicker)}

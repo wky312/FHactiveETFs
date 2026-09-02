@@ -11,13 +11,6 @@ const SUB   = '#6B6460';
 const MONO  = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS  = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-const DONUT_COLORS = [
-  '#C00000', '#D94040', '#E86060', '#F09090',
-  '#B08F6E', '#C9A882', '#DEC4A6',
-  '#1A6B45', '#2E8B5A', '#4AA872',
-  '#6B6460', '#8A7F7A',
-];
-
 export default function CountryTab({ holdings, date, etfTicker }: { holdings: Holding[]; date: string; etfTicker: string }) {
   const allocMap = new Map<string, number>();
   for (const h of holdings) {
@@ -59,47 +52,11 @@ export default function CountryTab({ holdings, date, etfTicker }: { holdings: Ho
     bargap: 0.28,
   };
 
-  // Donut: top 8 countries + 其他
-  const TOP_N = 8;
-  const stockRows   = rows.filter(r => r.country !== '期貨' && r.country !== '現金/其他');
-  const specialRows = rows.filter(r => r.country === '期貨' || r.country === '現金/其他');
-  const topRows     = stockRows.slice(0, TOP_N);
-  const othersSum   = stockRows.slice(TOP_N).reduce((s, r) => s + r.prate, 0);
-
-  const donutLabels = [...topRows.map(r => r.country), ...(othersSum > 0 ? ['其他國家'] : []), ...specialRows.map(r => r.country)];
-  const donutValues = [...topRows.map(r => r.prate),   ...(othersSum > 0 ? [othersSum]  : []), ...specialRows.map(r => r.prate)];
-  const donutColors = [
-    ...topRows.map((_, i) => DONUT_COLORS[i % DONUT_COLORS.length]),
-    ...(othersSum > 0 ? ['#D0CBC6'] : []),
-    ...specialRows.map(r => r.country === '期貨' ? GOLD : GREY),
-  ];
-
-  const donutTrace = [{
-    type: 'pie', hole: 0.52,
-    labels: donutLabels, values: donutValues,
-    marker: { colors: donutColors, line: { color: '#fff', width: 2 } },
-    texttemplate: '%{value:.2f}%',
-    textfont: { family: "'IBM Plex Mono', monospace", size: 11 },
-    hovertemplate: '<b>%{label}</b><br>%{value:.3f}%<extra></extra>',
-    sort: false,
-  }];
-
-  const donutLayout = {
-    margin: { l: 10, r: 10, t: 20, b: 10 },
-    height: 280,
-    paper_bgcolor: '#fff', plot_bgcolor: '#fff',
-    showlegend: true,
-    legend: {
-      font: { family: "'Noto Sans TC', sans-serif", size: 11 },
-      orientation: 'v', x: 1.02, y: 0.5,
-    },
-  };
-
-  // Stats
-  const stockRows2 = rows.filter(r => r.country !== '期貨' && r.country !== '現金/其他');
-  const top1       = stockRows2[0];
-  const top3Sum    = stockRows2.slice(0, 3).reduce((s, r) => s + r.prate, 0);
-  const mktCount   = stockRows2.length;
+  // 只留橫條圖：每根 bar 上已經標了百分比，甜甜圈與摘要表格都是同一份數字的重複呈現。
+  const stockRows = rows.filter(r => r.country !== '期貨' && r.country !== '現金/其他');
+  const top1      = stockRows[0];
+  const top3Sum   = stockRows.slice(0, 3).reduce((s, r) => s + r.prate, 0);
+  const mktCount  = stockRows.length;
 
   const STAT_CARDS = [
     { label: '最大配置', value: `${top1?.prate.toFixed(2) ?? '—'}%`, sub: top1?.country ?? '', color: RED },
@@ -126,18 +83,10 @@ export default function CountryTab({ holdings, date, etfTicker }: { holdings: Ho
         ))}
       </div>
 
-      {/* Bar chart */}
-      <div style={{ flex: '1 1 300px', minWidth: 0, maxWidth: '100%' }}>
-        <p style={{ margin: '0 0 8px 2px', fontSize: '.78rem', fontWeight: 600, color: SUB, letterSpacing: '.4px' }}>各國佔比</p>
-        <PlotlyWrapper traces={barTrace} layout={barLayout} />
-      </div>
-
-      {/* Donut + summary table */}
-      <div style={{ flex: '1 1 300px', minWidth: 0, maxWidth: '100%' }}>
-        <p style={{ margin: '0 0 4px 2px', fontSize: '.78rem', fontWeight: 600, color: SUB, letterSpacing: '.4px' }}>配置比例</p>
-        <PlotlyWrapper traces={donutTrace} layout={donutLayout} />
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12, marginBottom: 4 }}>
+      {/* Bar chart —— 這頁唯一的圖 */}
+      <div style={{ width: '100%', minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', margin: '0 2px 8px' }}>
+          <p style={{ margin: 0, fontSize: '.78rem', fontWeight: 600, color: SUB, letterSpacing: '.4px' }}>各國佔比</p>
           <button
             onClick={() => {
               const ws = XLSX.utils.aoa_to_sheet([['國家 / 類別', '佔比%'], ...rows.map(r => [r.country, parseFloat(r.prate.toFixed(3))])]);
@@ -151,24 +100,7 @@ export default function CountryTab({ holdings, date, etfTicker }: { holdings: Ho
             ↓ 匯出 Excel
           </button>
         </div>
-        <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: '.82rem' }}>
-          <thead>
-            <tr style={{ background: '#1C1C1E', color: '#fff' }}>
-              <th style={{ padding: '8px 12px', textAlign: 'left', fontWeight: 600, fontFamily: SANS }}>國家 / 類別</th>
-              <th style={{ padding: '8px 12px', textAlign: 'right', fontWeight: 600, fontFamily: MONO }}>佔比合計</th>
-            </tr>
-          </thead>
-          <tbody>
-            {rows.map((r, i) => (
-              <tr key={r.country} style={{ background: i % 2 === 0 ? '#fff' : '#FAFAF9', borderBottom: '1px solid #EEE9E4' }}>
-                <td style={{ padding: '6px 12px', color: TEXT, fontFamily: SANS }}>{r.country}</td>
-                <td style={{ padding: '6px 12px', textAlign: 'right', fontFamily: MONO, color: TEXT }}>
-                  {r.prate.toFixed(3)}%
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
+        <PlotlyWrapper traces={barTrace} layout={barLayout} />
       </div>
 
     </div>

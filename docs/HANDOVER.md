@@ -138,4 +138,4 @@ DRY_RUN=1 SCAN_DATE=2026-07-03 python scripts/highlight_scan.py
 - 元件全用 inline style（`React.CSSProperties`），色票 `RED='#C00000'` 等每檔自宣告；**紅漲綠跌**（台灣慣例）。
 - 網站 API route 的口徑（除息、先進位、anomaly 偵測）是唯一真相——需要報酬數字時**呼叫站上 API**，不要用 Python 重算一套（會口徑漂移）。
 - 使用者的長期記憶在 Claude 的 memory 系統（`project_00998a_web.md` 等）；若你沒有 memory 存取，本檔案＋`docs/` 就是完整交接。
-- 持股/比較/當日摘要三分頁的「強制查詢最新資料」按鈕會繞過 `lib/fhtrust.ts` 的 1 小時 fetch cache；`daily_summary.py` 的 Pushover 若標題帶 `⚠️`，代表抓到的資料日早於 TWSE 官方行事曆認定的最新交易日（官網尚未更新），不是程式錯誤。這類 stale 告警是用 `priority=1` 發送，在 Pushover 端會繞過使用者的靜音時段（quiet hours）直接響鈴，不只是多顯示一個警示圖示，半夜也可能吵醒人。
+- 持股/比較/當日摘要三分頁的「強制查詢最新資料」按鈕會繞過 `lib/fhtrust.ts` 的 1 小時 fetch cache；`daily_summary.py` 的 Pushover 若標題帶 `⚠️`，代表抓到的資料日早於**該檔應該要有的**資料日（官網尚未更新），不是程式錯誤。基準逐檔不同，看 `ETFS` 的 `holdingsLag`（該檔持股本來就會落後幾個交易日）：國內檔 00991A=0（T 日下午就掛出 T 日持股），海外檔 00409A=1（T+1 才公告，今天拿到 T−1、對比 T−2 是正常的，停在 T−2 以前才告警）。這類 stale 告警是用 `priority=1` 發送，在 Pushover 端會繞過使用者的靜音時段（quiet hours）直接響鈴，不只是多顯示一個警示圖示，半夜也可能吵醒人。
