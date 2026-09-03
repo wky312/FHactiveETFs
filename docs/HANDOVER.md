@@ -34,6 +34,17 @@
 - ⚠️⚠️ **TDCC 資料日 T ＝ 官方在外流通單位數的 T−2 個交易日**（T+2 交割才進集保）。2026-08 以 00991A 逐週對 `pcf_FundQissue` 驗證，五週一單位不差。**拿受益人數/單位數跟申贖分頁對照時必須把資料日往前推 2 個交易日**，否則區間錯位；端點碰上巨額申贖時兩邊方向會完全相反（00991A 7/31 單日申購 +9.47 億單位 → TDCC 看 7/31→8/28 是 +1.09 億，申贖看同區間是 −9.98 億）。分頁註腳已標紅警語。
 - 前端：`lib/beneficiary.ts`（標的清單、5 組級距聚合、`diffLevels`/`groupShares`/`trendPoints`/`fundStats`/`commonWeeks` 純函式）、`app/api/beneficiary/route.ts`、`components/BeneficiaryTab.tsx`（人數趨勢／級距結構／**兩檔對照**三檢視）。**兩檔對照**：打兩次同一支 API，總體＋五組聚合＋各級距人數變動率並排橫條圖＋超大戶專區；週次只能選兩檔交集（掛牌時間不同），預設「最新 vs 4 週前」（週對週的結構變化太小看不出形狀）。選擇值不在交集內就推導退回預設，不用 effect 改 state。「每人平均持有」＝級距單位數 ÷ 人數，用來分辨「人變多」與「每人買更多」；但級距是固定區間、人會跨級移動，是「當期落在此級的人」的平均。
 
+**個股代碼格式與國家判定（2026-09-02 修）**：復華 API 對**台股給裸 4 碼**（`2383`）、外國股給**彭博式空格＋兩碼**（`NVDA US`、`600183 CH`）。兩個獨立的洞讓 00409A 的國家配置有 12 檔 / 18.20% 是 Unknown：
+- ① 裸 4 碼沒有後綴 → `getSuffixCountry('')` 回 Unknown。以前只有 ETF23 靠 `fetchHoldings` 尾端「整批把 Unknown 補成台灣」蓋過去，所以 **00991A 看起來正常、全球型基金才爆**。已改成 `resolveCountry` 用 `TW_BARE_CODE` 通則判定。
+- ② `EXCHANGE_MAP` 缺彭博 ` CH`（中國）。⚠️ **` CN` 是加拿大、` CH` 才是中國**；` CH` 同時涵蓋滬深，Yahoo 後綴不同（**6xxxxx→`.SS`、0/3xxxxx→`.SZ`**），所以實際後綴在 `stockidToYfTicker` 依代號開頭再分一次，不能只靠 suffix 表。
+- **查價路徑抽成 `lib/exchangeMap.ts` 的 `resolveYfTicker()`**：同一段「`isTwOnly && !suffix` 就補 `.TW`」原本在 `lib/stockTrajectory.ts`、`/api/performance`、`/api/holdings-newhigh` **各寫一次且都硬編 `fundId === 'ETF23'`** → 00409A 的 11 檔台股在這三處都查不到價。改用裸 4 碼通則，`.TWO` 退路也適用於非純台股基金（實測 6274 台燿自動退 `.TWO`）。
+- ⚠️ **刻意不改 `stockidToYfTicker` 本身**：它的輸出還被 `consensusOverseas` 當共識持股的 join key 與顯示代號（`sectorExposure` 有 `canonicalCode` 在兩邊剝後綴配對），動它會連帶改到那邊。查價一律走 `resolveYfTicker`。
+- ⚠️ **個股軌跡的純數字捷徑**：`fetchTrajectory` 對 `/^\d{4,6}[A-Za-z]?$/` 曾直接 `stockid = qU`，等於假設「全數字＝台股代碼」→ 中國 A 股打 `600183` 永遠空白（打 `600183 CH` 或中文名反而查得到）。已改成先用**代碼第一段**比對持股清單（`matchHolding()`），找不到才維持原字串，保留「此基金未持有」訊息。
+
+**國家配置分頁（2026-09-02）**：下方加上當日持股清單，**兩張獨立 Card、各自的 ref**（`countryRef` / `countryHoldingsRef`），所以「儲存 / 分享」各存各的圖。深連結加 `?etf=`：只帶 `?tab=` 的話對方一律開到預設的 00991A，現在 `?tab=country&etf=00409A` 才分得出是哪一檔。
+
+⚠️ **新基金掛牌前 `data/holdings/{fundId}.json` 是空的，不代表 `update_holdings.py` 壞了**：00409A 的持股復華是**掛牌日（2026/09/02）才對外開放**，在那之前每天排程都是 `ETF26: +0 天，共 0 天`，掛牌後手動觸發一次就補齊成立日以來 8 天。**診斷時別被 CI 日誌的時間戳誤導**——Python stdout 在 CI 是塊緩衝、所有 print 到最後一起 flush，兩行只差 0.8 毫秒**不代表**迴圈沒跑；要看的是有沒有 stderr 的 `! {fund} {date} fetch error`。
+
 ## 2. 每日排程時序（台北時間）
 
 | 名目時間 | 實際落地 | 任務 | 產出 |
