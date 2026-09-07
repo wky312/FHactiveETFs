@@ -16,15 +16,22 @@ import { SectorGroup } from './sectorGroups';
    （600183.SS 廣東生益、HOOD、BMNR、8473.T、034020.KS）+ 開 3 個新組（原物料能源貴金屬、
    醫療科技與生技、精密光學元件）。同時修 lib/exchangeMap.ts：中國 A 股 Bloomberg 統一用
    " CH" 後綴（滬深要看代碼開頭數字分，不是簡單 1:1 對照），先前完全沒處理，600183 CH
-   這類持股會原樣卡在彭博格式，永遠 join 不到 600183.SS。現 19→22 組、160→174 檔。 */
+   這類持股會原樣卡在彭博格式，永遠 join 不到 600183.SS。現 19→22 組、160→174 檔。
+
+   2026-09-07：比對 00409A(57檔)、00988A(49檔) 最新持股（申報日 2026/09/03），補 6 檔進現有族群
+   （3308.HK 中際旭創-H → CPO，與既有 300308.SZ 同一家公司的港股掛牌線，比照 GOOG/GOOGL；
+   992.HK 聯想 → 伺服器整機與機構件；5274.TWO 信驊 → 算力與 IC 設計（fabless BMC 晶片）；
+   AEM 艾格尼可鷹、EQT 天然氣 → 原物料能源貴金屬；NTRA → 醫療科技與生技，與同組 TEM 同性質）
+   ＋開 1 個新組「消費網路與平台」（EXPE Expedia、DASH DoorDash，前 22 組接不住的線上旅遊／外送平台）。
+   現 22→23 組、174→182 檔。 */
 
 export const BUILTIN_GROUPS_OVERSEAS: SectorGroup[] = [
-  { name: '算力與 IC 設計 (CPU / GPU / ASIC / IP)', codes: ['AMD', '2454.TW', 'ARM', 'INTC', 'NVDA', 'QCOM', 'AVGO', '3661.TW', '3443.TW', 'CDNS', 'CBRS'], builtin: true },
+  { name: '算力與 IC 設計 (CPU / GPU / ASIC / IP)', codes: ['AMD', '2454.TW', 'ARM', 'INTC', 'NVDA', 'QCOM', 'AVGO', '3661.TW', '3443.TW', 'CDNS', 'CBRS', '5274.TWO'], builtin: true },
   { name: 'AI 資料中心電力、燃料電池與核能基建', codes: ['BE', 'PLUG', 'FCEL', 'VRT', 'ETN', 'GEV', 'CEG', 'VST', 'OKLO', 'SMR', '6508.T', '034020.KS'], builtin: true },
   { name: '低軌衛星與太空科技 (LEO Satellite & Aerospace)', codes: ['ASTS', 'RKLB', 'IRDM', 'SATS', 'GSAT', 'PL', '3491.TWO', '6285.TW', 'SPCX'], builtin: true },
   { name: '半導體設備、測試與探針卡', codes: ['6223.TWO', '6871.T', 'TER', 'FORM', 'AIXA.DE', 'AEHR', '095340.KS', 'ASML', 'AMAT', 'LRCX', 'KLAC', '8035.T', '6857.T', '6515.TW'], builtin: true },
   { name: '晶圓代工與封測製造 (Foundry & OSAT)', codes: ['2330.TW', 'TSM', 'TSEM', '3711.TW', 'GFS', '2303.TW', 'AMKR', '2449.TW'], builtin: true },
-  { name: '光通訊與矽光子 / CPO (Optical & CPO)', codes: ['LITE', 'COHR', '300308.SZ', '4979.TWO', 'FN', 'CIEN', '6442.TW', '3363.TWO', '3081.TWO'], builtin: true },
+  { name: '光通訊與矽光子 / CPO (Optical & CPO)', codes: ['LITE', 'COHR', '300308.SZ', '3308.HK', '4979.TWO', 'FN', 'CIEN', '6442.TW', '3363.TWO', '3081.TWO'], builtin: true },
   { name: '載板與高階 PCB / 材料 (Substrates & PCB)', codes: ['3037.TW', '2383.TW', '301377.SZ', '8046.TW', '3189.TW', '4062.T', '6967.T', '2368.TW', '6274.TW', '600183.SS'], builtin: true },
   { name: '記憶體與高容量儲存 (Memory & Storage)', codes: ['MU', '285A.T', 'STX', 'WDC', '000660.KS', '005930.KS', 'PSTG', '8299.TWO', '2408.TW', 'SNDK'], builtin: true },
   { name: '軟體、資安與 AI 雲端服務 (SaaS & Security)', codes: ['PANW', 'SNOW', 'PLTR', 'NET', 'TWLO', '4180.T', 'CRWD', 'NOW', 'DDOG', 'ZS', 'CRM', 'NTSK'], builtin: true },
@@ -42,20 +49,28 @@ export const BUILTIN_GROUPS_OVERSEAS: SectorGroup[] = [
   { name: 'AI 算力租賃 (Neocloud)', codes: ['CRWV', 'NBIS', 'IREN', 'APLD', 'CIFR', 'WULF'], builtin: true },
   // 含整機/ODM 與機構件：川湖(滑軌)、勤誠(機殼)是伺服器機構件龍頭，不是散熱件——
   // 2059 一度誤放在「電源與散熱」，2026-08-26 修正歸位。
-  { name: 'AI 伺服器整機與機構件 (Server, ODM & Mechanicals)', codes: ['DELL', 'HPE', '6669.TW', '2382.TW', '3231.TW', '2376.TW', '2059.TW', '8210.TW'], builtin: true },
+  { name: 'AI 伺服器整機與機構件 (Server, ODM & Mechanicals)', codes: ['DELL', 'HPE', '992.HK', '6669.TW', '2382.TW', '3231.TW', '2376.TW', '2059.TW', '8210.TW'], builtin: true },
   { name: '電動車、自駕與出行平台 (EV & Mobility)', codes: ['TSLA', 'UBER', '581A.T', 'RIVN', 'MBLY', 'XPEV', '7203.T'], builtin: true },
   { name: '量子運算 (Quantum Computing)', codes: ['IONQ', 'RGTI', 'QBTS', 'QUBT'], builtin: true },
   /* 以下 3 組為 2026-09-02 新增：比對 00409A（主動復華全球50）51 檔實際持股後，
      這批完全不屬於「科技供應鏈」視角，前一輪 19 組故意不收（見上一輪 commit 的
      「需要時再開新組」），現在真的需要了。 */
-  { name: '原物料、能源與貴金屬 (Commodities & Energy)', codes: ['GDX', 'COPX', 'WPM', 'PSX'], builtin: true },
-  { name: '醫療科技與生技 (Healthcare & Biotech)', codes: ['LLY', 'MRK', 'TEM'], builtin: true },
+  { name: '原物料、能源與貴金屬 (Commodities & Energy)', codes: ['GDX', 'COPX', 'WPM', 'PSX', 'AEM', 'EQT'], builtin: true },
+  { name: '醫療科技與生技 (Healthcare & Biotech)', codes: ['LLY', 'MRK', 'TEM', 'NTRA'], builtin: true },
   // 精密光學元件目前只有大立光一檔——刻意不硬塞進「光通訊與矽光子」（那組是通訊用零組件，
   // 大立光是手機相機鏡頭，製程與客戶完全不同），寧可先開一組只有 1 檔的類別。
   { name: '精密光學元件 (Precision Optics)', codes: ['3008.TW'], builtin: true },
+  /* 2026-09-07 新增：00409A 的 EXPE、00988A 的 DASH 都是「消費網路／平台經濟」，
+     跟前 22 組（清一色科技供應鏈／算力主線）完全不同性質，故獨立成組。
+     UBER 留在「電動車、自駕與出行平台」不動（那組的敘事是出行，不是純平台）。 */
+  { name: '消費網路與平台 (Consumer Internet & Platforms)', codes: ['EXPE', 'DASH'], builtin: true },
 ];
 
 export const STOCK_NAMES_OVERSEAS: Record<string, string> = {
+  // 2026-09-07 新增（比對 00409A/00988A 最新持股，補 6 檔進現有族群 + 1 個新族群）
+  '3308.HK': '中際旭創-H', '992.HK': '聯想集團', '5274.TWO': '信驊',
+  'AEM': 'Agnico Eagle 礦業', 'EQT': 'EQT天然氣', 'NTRA': 'Natera',
+  'EXPE': 'Expedia', 'DASH': 'DoorDash',
   // 2026-09-02 新增（比對 00409A 實際持股，補 5 檔進現有族群 + 3 個新族群）
   '600183.SS': '廣東生益', 'HOOD': 'Robinhood', 'BMNR': 'BitMine Immersion',
   '8473.T': 'SBI控股', '034020.KS': '斗山重工業',
