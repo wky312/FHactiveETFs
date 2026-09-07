@@ -26,6 +26,7 @@ import BeneficiaryTab from './BeneficiaryTab';
 import MarketCapRankingTab from './MarketCapRankingTab';
 import NewHighTab from './NewHighTab';
 import Top300YtdTab from './Top300YtdTab';
+import BreakIssueTab from './BreakIssueTab';
 import { captureAndShare } from '@/lib/captureImage';
 
 /* ── Design tokens ── */
@@ -40,7 +41,7 @@ const BORDER = '#E8E3DF';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'attribution' | 'risk' | 'turnover' | 'consensus' | 'sector' | 'sectorheatmap' | 'unitwatch' | 'beneficiary' | 'mktcap150' | 'newhigh150' | 'top300ytd';
+type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'attribution' | 'risk' | 'turnover' | 'consensus' | 'sector' | 'sectorheatmap' | 'unitwatch' | 'beneficiary' | 'mktcap150' | 'newhigh150' | 'top300ytd' | 'breakissue';
 
 /* 頂部導覽分組（13 個分頁收進 4 個下拉選單；不改各分頁邏輯，只改呈現） */
 const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
@@ -74,6 +75,7 @@ const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
   ] },
   { label: '其他', items: [
     { id: 'unitwatch', label: '單位數注意商品' },
+    { id: 'breakissue', label: '掛牌破發追蹤' },
     { id: 'mktcap150', label: '市值前150大漲跌排行' },
     { id: 'newhigh150', label: '創新高強勢股' },
     { id: 'top300ytd', label: '前300大YTD還原權息追蹤' },
@@ -646,6 +648,12 @@ export default function Dashboard() {
         {activeTab === 'unitwatch' && (
           <Card title="單位數注意商品">
             <UnitWatchTab />
+          </Card>
+        )}
+
+        {activeTab === 'breakissue' && (
+          <Card title="主動式ETF 掛牌破發追蹤與觀察">
+            <BreakIssueTab />
           </Card>
         )}
 
