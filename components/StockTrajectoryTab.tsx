@@ -154,6 +154,7 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
   // 選單只保留這幾檔重點觀察標的（2026-08-24 依需求精簡，其餘投信/海外檔先移除）。
   const OVERRIDE_FUNDS: { fundId: string; ticker: string; name: string }[] = [
     { fundId: '00981A', ticker: '00981A', name: '統一台股增長' },
+    { fundId: '00990A', ticker: '00990A', name: '元大AI新經濟' },
     { fundId: '00988A', ticker: '00988A', name: '統一全球創新（海外）' },
     { fundId: '00411A', ticker: '00411A', name: '統一前沿科技（海外）' },
     { fundId: 'ETF24',  ticker: '00998A', name: '復華全球金融（海外）' },
