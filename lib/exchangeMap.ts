@@ -47,6 +47,26 @@ const EXCHANGE_MAP: Record<string, { yf: string; country: string }> = {
   ' CH': { yf: '.SS', country: 'China' },
 };
 
+/** Bloomberg / Refinitiv 交易所後綴 → 計價幣別（ISO 4217）。海外個股歸因（lib/fx.ts）把各持股
+ *  的當地幣別報酬換算成新台幣時用。查不到（→ getSuffixCurrency 回 null）的持股會被列為
+ *  「無法換匯」而排除，並在涵蓋率caveat裡揭露。' LN'（倫敦）Yahoo 常以「便士 GBp」報價，
+ *  實際換匯時要再看 chart meta.currency 決定要不要 ÷100。 */
+const SUFFIX_CCY: Record<string, string> = {
+  ' US': 'USD', ' UW': 'USD', ' UN': 'USD', ' UA': 'USD',
+  ' LN': 'GBP', ' HK': 'HKD', ' JP': 'JPY', ' JT': 'JPY',
+  ' GY': 'EUR', ' GR': 'EUR', ' FP': 'EUR', ' SM': 'EUR', ' IM': 'EUR',
+  ' NA': 'EUR', ' AT': 'EUR', ' BB': 'EUR', ' GA': 'EUR', ' PL': 'EUR', ' FH': 'EUR',
+  ' SW': 'CHF', ' DC': 'DKK', ' NO': 'NOK', ' SS': 'SEK', ' SE': 'SEK',
+  ' AU': 'AUD', ' NZ': 'NZD', ' SP': 'SGD', ' PW': 'PLN',
+  ' KS': 'KRW', ' KP': 'KRW', ' CH': 'CNY', ' TT': 'TWD',
+  ' IN': 'INR', ' IB': 'INR', ' SJ': 'ZAR', ' BZ': 'BRL',
+  ' CN': 'CAD', ' CT': 'CAD', ' MK': 'MYR', ' PM': 'PHP', ' IJ': 'IDR', ' TB': 'THB',
+};
+
+export function getSuffixCurrency(suffix: string): string | null {
+  return SUFFIX_CCY[suffix] ?? null;
+}
+
 /** 台股在復華 API 是裸 4 碼、不帶交易所後綴（00991A 全部、00409A 的台股部位都是）。
  *  外國股一律帶空格＋兩碼後綴（如 '7203 JP'），所以「沒有空格的純 4 碼」可安全判為台股。 */
 export const TW_BARE_CODE = /^[1-9]\d{3}[A-Z]?$/;
@@ -55,7 +75,9 @@ export function stockidToYfTicker(stockid: string): { ticker: string; suffix: st
   const upper = stockid.toUpperCase();
   for (const suffix of Object.keys(EXCHANGE_MAP)) {
     if (upper.endsWith(suffix)) {
-      const base = stockid.slice(0, -suffix.length).trim();
+      // 尾端斜線清掉：彭博把某些倫敦股寫成 'AV/ LN'（Aviva），直接接後綴會變成無效的
+      // 'AV/.L'，Yahoo 實際代號是 'AV.L'。
+      const base = stockid.slice(0, -suffix.length).trim().replace(/\/+$/, '');
       // 中國 A 股：Bloomberg 滬深統一用 " CH" 後綴，不像其他 key 是單純 1:1 對照——
       // 要看代碼開頭數字才分得出滬深：6 開頭是上海(.SS)，其餘(0/1/2/3 開頭)是深圳(.SZ)。
       if (suffix === ' CH') {

@@ -46,6 +46,7 @@ interface FetchResult {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   quotes: any[];
   regularMarketPrice: number | null;
+  currency: string | null;   // Yahoo meta.currency（如 'USD'、'JPY'、'GBp'）——海外個股歸因換匯用
 }
 
 interface QuoteResult {
@@ -91,6 +92,7 @@ async function tryFetch(ticker: string, from: Date, today: Date, interval: '1d' 
       quotes,
       // regularMarketPrice: intraday during regular session, last close otherwise — no extended hours
       regularMarketPrice: result?.meta?.regularMarketPrice ?? null,
+      currency: result?.meta?.currency ?? null,
     };
   } catch {
     return null;
@@ -164,6 +166,41 @@ export async function fetchAdjCloseSeries(
   }
   bars.sort((a, b) => a.date.localeCompare(b.date));
   return bars;
+}
+
+export interface TrBar {
+  date: string;   // 台灣時區日期字串 YYYY/MM/DD
+  adj: number;    // 還原權息收盤（adjClose，含息報酬用）
+  raw: number;    // 原始收盤（純價差報酬用）
+}
+export interface TrSeries {
+  currency: string | null;   // Yahoo meta.currency（'USD' / 'JPY' / 'GBp' …）
+  bars: TrBar[];
+}
+
+/* 海外個股歸因專用：一次 Yahoo 呼叫同時取「還原收盤」與「原始收盤」，外加該標的計價幣別。
+   含息切換只是在 adj / raw 之間選，不需要重抓；換匯另由 lib/fx.ts 處理。
+   primary 失敗才試 fallback（同 fetchDailyBars / fetchAdjCloseSeries）。 */
+export async function fetchTotalReturnSeries(
+  yfTicker: string,
+  from: Date,
+  to: Date,
+  fallbackTicker?: string,
+): Promise<TrSeries> {
+  let data = await tryFetch(yfTicker, from, to);
+  if (!data && fallbackTicker) data = await tryFetch(fallbackTicker, from, to);
+  if (!data) return { currency: null, bars: [] };
+
+  const bars: TrBar[] = [];
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  for (const q of data.quotes as any[]) {
+    const a = adj(q);
+    const raw = q.close ?? a;
+    if (a == null || raw == null) continue;
+    bars.push({ date: twDateKey(new Date(q.date)), adj: a, raw });
+  }
+  bars.sort((x, y) => x.date.localeCompare(y.date));
+  return { currency: data.currency, bars };
 }
 
 export async function fetchStockPerformance(
