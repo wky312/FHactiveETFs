@@ -58,7 +58,7 @@ const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
     { id: 'trajectory',  label: '個股軌跡' },
     { id: 'cumret',      label: '累積報酬走勢' },
     { id: 'risk',        label: '風險指標' },
-    { id: 'attribution', label: '績效個股歸因' },
+    { id: 'attribution', label: '國內個股歸因' },
     { id: 'oseasattr', label: '海外個股歸因' },
     { id: 'sectorheatmap', label: '產業熱力圖' },
   ] },
@@ -642,7 +642,7 @@ export default function Dashboard() {
         )}
 
         {activeTab === 'attribution' && (
-          <Card title="績效個股歸因比較">
+          <Card title="國內個股歸因比較">
             <AttributionTab />
           </Card>
         )}

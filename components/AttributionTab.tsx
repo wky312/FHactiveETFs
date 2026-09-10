@@ -169,7 +169,7 @@ export default function AttributionTab() {
     const r4 = (x: number) => Number((x * 100).toFixed(4));
     const r2 = (x: number) => Number((x * 100).toFixed(2));
     const aoa: (string | number)[][] = [
-      [`${res.fundA} vs ${res.fundB} 績效個股歸因（${res.totalReturn ? '含息' : '純價差'}）`],
+      [`${res.fundA} vs ${res.fundB} 國內個股歸因（${res.totalReturn ? '含息' : '純價差'}）`],
       ['期間', `${res.start} → ${res.end}`, `${res.days} 交易日`],
       [`${res.fundA} 區間報酬(%)`, r2(res.retA_geo), `${res.fundB} 區間報酬(%)`, r2(res.retB_geo), '差距(%)', r2(res.gap_geo)],
       [],
@@ -182,7 +182,7 @@ export default function AttributionTab() {
     ws['!cols'] = [{ wch: 8 }, { wch: 12 }, { wch: 18 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, '個股歸因');
-    XLSX.writeFile(wb, `績效個股歸因_${res.fundA}-${res.fundB}_${res.start}_${res.end}.xlsx`);
+    XLSX.writeFile(wb, `國內個股歸因_${res.fundA}-${res.fundB}_${res.start}_${res.end}.xlsx`);
   }, [res]);
 
   /* 分享 / 儲存圖片：共用截圖工具（截圖前攤平寬表格，避免被切欄位） */
@@ -190,8 +190,8 @@ export default function AttributionTab() {
     if (!resultRef.current || !res) return;
     await captureAndShare(
       resultRef.current,
-      `績效個股歸因_${res.fundA}-${res.fundB}_${res.start}_${res.end}.jpg`,
-      '復華主動式ETF 績效個股歸因',
+      `國內個股歸因_${res.fundA}-${res.fundB}_${res.start}_${res.end}.jpg`,
+      '復華主動式ETF 國內個股歸因',
     );
   }, [res]);
 
