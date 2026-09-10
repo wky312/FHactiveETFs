@@ -1,4 +1,5 @@
 import { buildDayMap, fetchPriceMaps, computePositionPnl } from './stockTrajectory';
+import { adjustLotsSeries } from './corpActions';
 
 /* 經理人選股對帳單（Manager Stock-Picking Scorecard）
    ──────────────────────────────────────────────────
@@ -138,8 +139,10 @@ export async function computeScorecard(fundId: string): Promise<Scorecard> {
       let raw = { avgCost: null as number | null, currentPrice: null as number | null, currentShares: 0, grossInvested: 0, realizedPnl: 0, unrealizedPnl: 0 };
       if (trimmed.length > 0) {
         try {
-          const { mid, close, avg } = await fetchPriceMaps(stockid, fundId, trimmed[0].date, end);
-          raw = computePositionPnl(trimmed, mid, close, avg);
+          const { mid, close, avg, corpActions } = await fetchPriceMaps(stockid, fundId, trimmed[0].date, end);
+          // 除權還原：張數序列拉齊到最新股數基準（avg 已在 fetchPriceMaps 內還原），
+          // 配股才不會被移動平均成本引擎當成加碼、算出假虧損。
+          raw = computePositionPnl(adjustLotsSeries(trimmed, corpActions), mid, close, avg);
         } catch { /* 無報價 → 維持 0/null，計為不可評估 */ }
       }
       const cur = latest.get(stockid);

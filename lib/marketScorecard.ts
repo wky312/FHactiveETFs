@@ -47,7 +47,7 @@ const FUND_CONCURRENCY = 4;
 const mean = (xs: number[]): number | null => xs.length ? xs.reduce((s, x) => s + x, 0) / xs.length : null;
 
 async function latestPriceDate(onOrBefore?: string): Promise<string | null> {
-  let q = supabase!.from('price').select('date').order('date', { ascending: false }).limit(1);
+  let q = supabase!.from('price_adj').select('date').order('date', { ascending: false }).limit(1);
   if (onOrBefore) q = q.lte('date', onOrBefore);
   const { data } = await q.maybeSingle();
   return (data?.date as string) ?? null;
@@ -72,13 +72,14 @@ interface AddEvent { stockid: string; date: string; delta: number }
 async function fundAdditions(ticker: string, startDate: string, endDate: string): Promise<AddEvent[]> {
   // baseline：區間起日「之前」最後一筆快照日，作為差分起點(避免把進場前就持有的部位當成本期加碼)
   const { data: base } = await supabase!
-    .from('holding').select('date').eq('ticker', ticker).lt('date', startDate)
+    .from('holding_adj').select('date').eq('ticker', ticker).lt('date', startDate)
     .order('date', { ascending: false }).limit(1).maybeSingle();
   const baselineDate = (base?.date as string) ?? null;
   const fetchFrom = baselineDate ?? startDate;
 
+  // holding_adj：qshare 已依 corp_action 還原到最新股數基準，跨除權日的股數差分不會灌出假加碼
   const rows = await fetchAll<HoldRow>((from, to) =>
-    supabase!.from('holding').select('date,stockid,qshare')
+    supabase!.from('holding_adj').select('date,stockid,qshare')
       .eq('ticker', ticker).gte('date', fetchFrom).lte('date', endDate)
       .order('date', { ascending: true }).range(from, to));
 
@@ -118,7 +119,7 @@ async function priceWindow(ids: string[], startDate: string, endDate: string): P
   for (let i = 0; i < ids.length; i += ID_CHUNK) {
     const batch = ids.slice(i, i + ID_CHUNK);
     const rows = await fetchAll<{ stockid: string; date: string; avg: number | null; close: number | null }>((from, to) =>
-      supabase!.from('price').select('stockid,date,avg,close')
+      supabase!.from('price_adj').select('stockid,date,avg,close')
         .in('stockid', batch).gte('date', startDate).lte('date', endDate)
         .range(from, to));
     for (const r of rows) {
@@ -165,7 +166,7 @@ export async function computeMarketComparison(fromReq: string, toReq?: string): 
   const perFund = await mapLimit(etfList, FUND_CONCURRENCY, async (e) => {
     const [events, latest] = await Promise.all([
       fundAdditions(e.ticker, startDate, endDate),
-      supabase!.from('holding').select('date').eq('ticker', e.ticker).lte('date', endDate)
+      supabase!.from('holding_adj').select('date').eq('ticker', e.ticker).lte('date', endDate)
         .order('date', { ascending: false }).limit(1).maybeSingle(),
     ]);
     return { e, events, holdingDate: (latest.data?.date as string) ?? null };

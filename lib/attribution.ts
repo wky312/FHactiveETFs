@@ -104,7 +104,10 @@ export async function compute(
 
   const sids = [...new Set(hold.map(r => r.stockid))].sort();
 
-  const px = await pageAll<Px>(db, 'price', 'stockid,date,close,avg',
+  // price_adj：close/avg 已依 corp_action 還原除權（配股/分割）稀釋，跨除權日的日報酬
+  // r = p1/p0−1 不再灌出假崩跌（例：緯穎 6669 2026-09-02 配股 ~2.98:1）。純現金息不還原
+  // （price_adj 對齊 Yahoo close 口徑），含息報酬仍走下方 dividend 表。
+  const px = await pageAll<Px>(db, 'price_adj', 'stockid,date,close,avg',
     q => q.in('stockid', sids).gte('date', startD).lte('date', endD).order('date').order('stockid'));
 
   const div = new Map<string, number>();

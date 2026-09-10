@@ -6,6 +6,7 @@ import { fetchDailyBars } from './yahooFinance';
 import { loadStoredHoldings } from './holdingsStore';
 import { fetchCmoneyHoldings, CMONEY_FUNDS } from './cmoneyHoldings';
 import { fetchTwseAvgMap } from './twseDaily';
+import { fetchCorpActions, cumFactor, adjustLotsSeries, CorpAction } from './corpActions';
 
 /* 個股持股軌跡：逐交易日抓復華持股，組出某一檔個股在某 ETF 的進出時間序列。
    策略 = 即時查詢（不存檔），重用 lib/fhtrust.ts 的 fetchHoldings（已內建快取）。 */
@@ -242,10 +243,13 @@ export async function fetchTrajectory(rawQuery: string, fundId = 'ETF23'): Promi
   if (firstIdx === -1) {
     return { stockid, stockname, fundId, series: [], firstHeldDate: null, latest: null, maxLots: 0, notHeld: true, scannedDays: sortedDates.length, avgCost: null, currentPrice: null };
   }
-  const trimmed = raw.slice(firstIdx);
+  let trimmed = raw.slice(firstIdx);
 
   // 6. 抓每日中間價/收盤價（Yahoo）＋台股真實成交均價（TWSE），算移動平均持倉成本
-  const { mid: midMap, close: closeMap, avg: avgMap } = await fetchPriceMaps(stockid, fundId, trimmed[0].date, end);
+  const { mid: midMap, close: closeMap, avg: avgMap, corpActions } = await fetchPriceMaps(stockid, fundId, trimmed[0].date, end);
+  // 除權（配股/分割）還原：fhtrust/CMoney 的張數在除權日跳增 → 除權前張數 ×share_factor 拉齊，
+  // 這樣下面的 deltaLots / 移動平均成本才不會把配股當成「加碼」。avgMap 已在 fetchPriceMaps 內還原。
+  trimmed = adjustLotsSeries(trimmed, corpActions);
   let currentPrice: number | null = null;
 
   let runShares = 0;   // 累計持股股數
@@ -319,7 +323,7 @@ function forwardFill(raw: Map<string, number>, start: string, end: string): Map<
 
 // 抓某檔股票在 [start, end] 區間每日價格，回傳 date(YYYY/MM/DD) → 價格。
 //  mid/close：Yahoo（已前向填補，處理假日/缺口）；avg：台股真實成交均價（TWSE，僅交易日，不填補）。
-export async function fetchPriceMaps(stockid: string, fundId: string, start: string, end: string): Promise<{ mid: Map<string, number>; close: Map<string, number>; avg: Map<string, number> }> {
+export async function fetchPriceMaps(stockid: string, fundId: string, start: string, end: string): Promise<{ mid: Map<string, number>; close: Map<string, number>; avg: Map<string, number>; corpActions: CorpAction[] }> {
   const isTwOnly = fundId === 'ETF23' || !!CMONEY_FUNDS[fundId];
   const { yfTicker, fallback } = resolveYfTicker(stockid, isTwOnly);
 
@@ -330,20 +334,28 @@ export async function fetchPriceMaps(stockid: string, fundId: string, start: str
   const from = new Date(start.replace(/\//g, '-'));
   const to   = new Date(end.replace(/\//g, '-'));
 
-  const [bars, avgRaw] = await Promise.all([
+  const [bars, avgRaw, corpActions] = await Promise.all([
     fetchDailyBars(yfTicker, from, to, fallback).catch(() => []),
     isTw ? fetchTwseAvgMap(twseCode, start, end).catch(() => new Map<string, number>())
          : Promise.resolve(new Map<string, number>()),
+    isTw ? fetchCorpActions(twseCode).catch(() => [] as CorpAction[])
+         : Promise.resolve([] as CorpAction[]),
   ]);
 
   const midRaw = new Map<string, number>();
   const closeRaw = new Map<string, number>();
   for (const b of bars) { midRaw.set(b.date, b.mid); closeRaw.set(b.date, b.close); }
 
+  // TWSE 成交均價是原始未還原價 → 依 split_factor 累積乘積還原（Yahoo 的 mid/close 已被 Yahoo
+  // 還原分割，不再乘）。純現金息 split_factor=1，不受影響。
+  const avgAdj = new Map<string, number>();
+  for (const [d, v] of avgRaw) avgAdj.set(d, v * cumFactor(corpActions, d, 'split_factor'));
+
   return {
     mid: forwardFill(midRaw, start, end),
     close: forwardFill(closeRaw, start, end),
-    avg: avgRaw,
+    avg: avgAdj,
+    corpActions,
   };
 }
 
