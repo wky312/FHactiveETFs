@@ -142,6 +142,30 @@ DRY_RUN=1 SCAN_DATE=2026-07-03 python scripts/highlight_scan.py
 - 凱基 `RedemptionVC` 回的 HTML **中文全部是數值 entity**（`&#x8207;`…），不解碼比對不到標籤；
   且 kgifund / nomurafunds 的憑證缺 Subject Key Identifier，Python 端要走 `_post_lax`。
 
+### 熱門ETF 觀測群（`group='hot'`，2026-09-12 新增）
+
+申贖分頁第四顆按鈕，6 檔被動式大型 ETF：0050 / 0056（元大 `yuanta`，key 就是代號）、
+00878（國泰 `cathay`，FundCode `CN`）、00919（群益 `capital`，fundNo `195`）、
+00929（復華 `fhtrust`，fundID `ETF21`）、00712（復華 `fhtrust`，fundID `ETF07`）。
+
+- **只回補到 2026-01-01**（使用者指定「今年初開始」）。`PEER_ETFS` 這 6 筆都帶
+  `since='2026-01-01'`，否則 DB 裡 2025-12 那幾天會永遠被判成缺漏、每天白抓一輪。
+- **復華 fundID 的查法**：`GET /api/fundList` 回的每筆有 `fundID` 與 `etf002`（＝股票代號），
+  對一次就有全表；官網掛維護頁時可退到 Wayback（`web.archive.org/web/<ts>id_/<url>`）。
+- **`group='hot'` 是刻意隔離的**：亮點引擎 `fetch_peer_redemption_history` 寫死
+  `group=eq.tw_active`，`build_peer_html` 也只收 tw_active，所以天條 5 的「同業第一」母體
+  不受影響；Pushover 的淨申贖字串則另外排除 `group == 'hot'`（同業推播不混被動 ETF）。
+- **只回補特定幾檔**：`backfill_peer_redemption.py` 吃 `ONLY_TICKERS='0050,0056,…'`
+  （workflow 有對應的 `only_tickers` 輸入）。新增觀測群時每個舊日期都會少那幾檔 →
+  完成度判斷會把整段區間標成未完成、連已入庫的 20 幾檔一起重抓（180 天 × 26 檔＝一小時起跳）。
+- **0050 於 2026-06-18 一拆四**：netSub 取「同日單位數差 × 同日每單位淨值」，拆分前後各自
+  自洽，**不要**再另外做還原調整。
+- ⚠ 00712 是美國 REITs，PCF 公告落後 **T+2 交易日**；`fetch_fhtrust_day` 為此把公告日候選
+  從 8 個日曆日拉到 14（春節連休 9 天時 T+2 要等 11 天），並在自報 `actBuyValDate` 越過目標日
+  時提早收工（單調遞增，掃過頭不可能再對上）。
+- ⚠ 復華官網每隔一陣子會有整站維護（例：2026-09-12 08:00–20:00 全站回 HTML 公告頁），
+  期間 00929/00712 兩欄會是空的——那是維護不是壞掉，維護結束後補跑 backfill 即可。
+
 ## 6. 給 AI 助手的額外提醒
 
 - 使用者偏好：**除破壞性操作外自主執行不用問**；新專案放 `~/Claude/`；正體中文溝通。

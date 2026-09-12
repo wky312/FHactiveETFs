@@ -35,6 +35,27 @@ def _parse_start_date() -> date:
 START_DATE = _parse_start_date()
 
 
+def _parse_only_tickers() -> list:
+    """ONLY_TICKERS='0050,0056,…' → 只回補這幾檔（未設＝全部 PEER_ETFS）。
+
+    新增一組觀測群時，DB 裡每個舊日期都會少掉新那幾檔 → 完成度判斷會把整段區間標成
+    未完成，於是連已經好好躺在庫裡的 20 幾檔也一起重抓（180 個交易日 × 26 檔，
+    CI 要跑一個多小時）。指定 ONLY_TICKERS 就只抓新的那幾檔，其餘原封不動。
+    """
+    raw = os.environ.get('ONLY_TICKERS', '').strip()
+    if not raw:
+        return list(PEER_ETFS)
+    wanted = {t.strip() for t in raw.split(',') if t.strip()}
+    picked = [e for e in PEER_ETFS if e['ticker'] in wanted]
+    missing = wanted - {e['ticker'] for e in picked}
+    if missing:
+        sys.exit(f'ERROR: ONLY_TICKERS 有不在 PEER_ETFS 的代號：{sorted(missing)}')
+    return picked
+
+
+TARGET_ETFS = _parse_only_tickers()
+
+
 def trading_days(start: date, end: date):
     d = start
     while d <= end:
@@ -72,9 +93,12 @@ def get_complete_dates(start: date, end: date) -> set:
         counts = defaultdict(set)
         for row in result.data:
             counts[row['date']].add(row['ticker'])
+        # ONLY_TICKERS 指定時，完成度只看那幾檔——否則「其他檔還沒補齊」會讓每個日期
+        # 都算未完成，指定範圍就白指定了。
+        target = {e['ticker'] for e in TARGET_ETFS}
         return {
             d for d, tickers in counts.items()
-            if expected_tickers_on(date.fromisoformat(d)) <= tickers
+            if (expected_tickers_on(date.fromisoformat(d)) & target) <= tickers
         }
     except Exception as e:
         print(f'Warning: could not query existing dates ({e}), will fetch all.')
@@ -89,6 +113,9 @@ def main():
     all_days   = list(trading_days(START_DATE, end))
     print(f'Range : {START_DATE} → {end}')
     print(f'Days  : {len(all_days)} trading days')
+    if len(TARGET_ETFS) != len(PEER_ETFS):
+        print(f'ETFs  : 只回補 {len(TARGET_ETFS)} 檔 — '
+              + '、'.join(e['ticker'] for e in TARGET_ETFS))
 
     print('Checking Supabase for existing data…')
     complete = get_complete_dates(START_DATE, end)
@@ -105,7 +132,7 @@ def main():
     for i, d in enumerate(to_fetch, 1):
         print(f'[{i:>3}/{len(to_fetch)}] {d} … ', end='', flush=True)
         try:
-            peer_results = fetch_all_peer_data(d)
+            peer_results = fetch_all_peer_data(d, TARGET_ETFS)
             valid = [
                 e for e in peer_results
                 if e.get('data')

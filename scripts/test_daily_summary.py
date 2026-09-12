@@ -387,3 +387,67 @@ def test_flush_email_digest_marks_warning_subject(monkeypatch):
 def test_flush_email_digest_noop_when_empty():
     ds._EMAIL_SECTIONS.clear()
     assert ds.flush_email_digest(date(2026, 8, 27)) is False
+
+
+# ── fetch_fhtrust_day：公告日候選掃描 ─────────────────────────────────────────
+# 復華官網每隔一陣子整站維護（例：2026-09-12 08:00–20:00），那時完全打不到 API，
+# 所以這幾條一律用假的 requests.get 驗邏輯，不碰網路。
+
+class _FakeResp:
+    def __init__(self, payload):
+        self._payload = payload
+
+    def json(self):
+        return self._payload
+
+
+def _fhtrust_stub(monkeypatch, by_pcf_date: dict):
+    """by_pcf_date: {'YYYY/MM/DD'(查詢的公告日) -> actBuyValDate or None}。
+
+    回傳 (calls) —— 實際被查過的 pcfDate 清單，用來驗「掃過頭要提早收工」。
+    """
+    calls = []
+
+    def fake_get(url, **kw):
+        pcf = url.split('pcfDate=')[1].replace('%2F', '/')
+        calls.append(pcf)
+        act = by_pcf_date.get(pcf)
+        if act is None:
+            return _FakeResp({'result': []})
+        return _FakeResp({'result': [{
+            'actBuyValDate': act, 'actBuyVal': '5000000', 'qDiff': '100000000.0',
+            'nav': '10000000000',
+        }]})
+
+    monkeypatch.setattr(ds.requests, 'get', fake_get)
+    return calls
+
+
+def test_fetch_fhtrust_day_matches_self_reported_date(monkeypatch):
+    """公告日 = 交易日 +1：以 API 自報的 actBuyValDate 對齊，不是用 offset 推。"""
+    _fhtrust_stub(monkeypatch, {
+        '2026/09/10': '2026/09/09',   # 這天的公告講的是前一天，不能收
+        '2026/09/11': '2026/09/10',
+    })
+    got = ds.fetch_fhtrust_day('ETF21', date(2026, 9, 10))
+    # netSub = actBuyVal × qDiff ÷ 500000 ÷ 1e8 = 5e6 × 1e8 ÷ 5e5 ÷ 1e8 = 10 億
+    assert got == {'netSub': 10.0, 'aum': 100.0, 'is_estimate': False}
+
+
+def test_fetch_fhtrust_day_spans_lunar_new_year(monkeypatch):
+    """T+2 交易日碰上 9 天年假 → 公告日在 11 個日曆日後；舊的 8 天上限會漏掉這天。"""
+    _fhtrust_stub(monkeypatch, {'2026/02/24': '2026/02/13'})
+    got = ds.fetch_fhtrust_day('ETF07', date(2026, 2, 13))
+    assert got is not None and got['netSub'] == 10.0
+
+
+def test_fetch_fhtrust_day_stops_once_overshot(monkeypatch):
+    """自報日期已越過目標日 → 該日沒有清單（休市），提早收工不要把 14 天掃完。"""
+    calls = _fhtrust_stub(monkeypatch, {
+        # 目標 9/19 是週六、沒有清單。週一(9/21)的公告講的還是 9/18，週二(9/22)就跳到 9/21，
+        # 已經越過 9/19 → 不可能再對上。
+        '2026/09/21': '2026/09/18',
+        '2026/09/22': '2026/09/21',
+    })
+    assert ds.fetch_fhtrust_day('ETF21', date(2026, 9, 19)) is None
+    assert calls == ['2026/09/19', '2026/09/20', '2026/09/21', '2026/09/22']  # 不是硬掃滿 14 天

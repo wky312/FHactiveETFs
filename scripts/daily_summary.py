@@ -346,6 +346,26 @@ PEER_ETFS = [
     # 2026-08-26 那次 run 標了 8 天、一筆都補不了，卻把 job 從 10 分鐘推過 15 分鐘 timeout）。
     {'ticker': '00411A', 'name': '統一前沿科技', 'source': 'ezmoney', 'key': '64YTW',  'group': 'overseas',
      'since': '2026-08-24'},
+    # 熱門ETF（被動式大型 ETF，2026-09-12 新增）。口徑與主動式群組完全一致：
+    #   netSub = 單位數淨變動 × 每受益權單位淨值、aum = 基金淨資產價值，都取自各家官方 PCF。
+    # ⚠ since 一律 2026-01-01：使用者只要今年以來的紀錄，DB 裡主動式那批卻是 2025-12-08 起。
+    #   不設 since 的話 12 月那幾天會永遠被判成缺漏，每天的補洞邏輯都要白抓一輪（同 00411A 的教訓）。
+    # ⚠ 0050 於 2026-06-18 一拆四：netSub 是「同一天的單位數差 × 同一天的每單位淨值」，
+    #   拆分前後各自自洽，不需要（也不可以）再另外做還原調整。
+    {'ticker': '0050',  'name': '元大台灣50',      'source': 'yuanta',  'key': '0050',  'group': 'hot',
+     'since': '2026-01-01'},
+    {'ticker': '0056',  'name': '元大高股息',      'source': 'yuanta',  'key': '0056',  'group': 'hot',
+     'since': '2026-01-01'},
+    {'ticker': '00878', 'name': '國泰永續高股息',  'source': 'cathay',  'key': 'CN',    'group': 'hot',
+     'since': '2026-01-01'},
+    {'ticker': '00919', 'name': '群益台灣精選高息', 'source': 'capital', 'key': '195',   'group': 'hot',
+     'since': '2026-01-01'},
+    # 復華自家兩檔被動式：fundID 由官網 /api/fundList 逐筆的 fundID ↔ etf002（＝股票代號）對出來
+    # （ETF21=00929 復華台灣科技優息、ETF07=00712 復華富時不動產；同一份表 ETF23=00991A 可自我驗證）。
+    {'ticker': '00929', 'name': '復華台灣科技優息', 'source': 'fhtrust', 'key': 'ETF21', 'group': 'hot',
+     'since': '2026-01-01'},
+    {'ticker': '00712', 'name': '復華富時不動產',  'source': 'fhtrust', 'key': 'ETF07', 'group': 'hot',
+     'since': '2026-01-01'},
 ]
 
 EZMONEY_HOST = 'www.ezmoney.com.tw'
@@ -1316,16 +1336,20 @@ def fetch_fhtrust_day(fund_id: str, transaction_date: date) -> dict | None:
     **交易日一律以 API 自報的 actBuyValDate 為準，不可用「公告日 − N」去推**：
     台股檔（ETF23）的 actBuyValDate 落後公告日 1 個交易日，海外檔（ETF24）落後 2 個，
     寫死推算會整檔對不上而靜靜回 None。這裡改成從交易日往後掃公告日候選、比對自報日期。
-    掃 8 個日曆日：T+2 個交易日跨週末就是 +4 天，再遇到連假還要更多。
 
     ETF24（海外）實測：查詢的 pcfDate 可以是「還沒真正發生」的未來日期（例如今天查明天，
     就能拿到「昨天」的正式值）——這種情況下數字還沒經過真正的「今天」，比照 fetch_tsit_day
     標記 is_estimate=True。ETF23（台股）不會踩到這個情況（今天查今天就夠、查明天永遠是
     None），所以這條判斷對它是無害的 no-op。
+
+    掃 14 個日曆日、掃過頭就提早收工：T+2 交易日碰上春節（連休 9 天）要 11 個日曆日才等到
+    公告，原本寫死 8 天會讓海外檔（ETF24/ETF26/ETF07=00712）在年假前最後一個交易日靜靜漏掉。
+    actBuyValDate 隨 pcfDate 單調遞增，所以一旦回來的自報日期已經越過目標日就不可能再對上，
+    直接收工——非交易日的查詢因此反而比原本更省請求，不是單純把上限拉高。
     """
     target_str = date_to_api(transaction_date)
     today_tw = datetime.now(TZ).date()
-    for offset in range(8):
+    for offset in range(14):
         pcf_date_obj = transaction_date + timedelta(days=offset)
         pcf_date = date_to_api(pcf_date_obj)
         try:
@@ -1333,7 +1357,11 @@ def fetch_fhtrust_day(fund_id: str, transaction_date: date) -> dict | None:
             r = requests.get(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=20)
             d = r.json()
             d = (d.get('result') or [None])[0] if d.get('result') else d
-            if not d or str(d.get('actBuyValDate', '')) != target_str:
+            if not d or not d.get('actBuyValDate'):
+                continue
+            if str(d['actBuyValDate']) > target_str:
+                return None      # 已經掃過頭：目標日當天沒有申購買回清單（多半是休市日）
+            if str(d['actBuyValDate']) != target_str:
                 continue
             return {
                 'netSub': parse_num(d.get('actBuyVal', 0)) * parse_num(d.get('qDiff', 0)) / 500000 / 1e8,
@@ -1345,10 +1373,15 @@ def fetch_fhtrust_day(fund_id: str, transaction_date: date) -> dict | None:
     return None
 
 
-def fetch_all_peer_data(transaction_date: date) -> list:
-    """Fetch net subscription data for all peer ETFs on the given date."""
+def fetch_all_peer_data(transaction_date: date, etfs: list | None = None) -> list:
+    """Fetch net subscription data for all peer ETFs on the given date.
+
+    etfs=None → 全部 PEER_ETFS（每日排程用）。回補只針對某幾檔時傳子集進來，
+    否則加一組新觀測群就得把整個觀測群重抓一遍（見 backfill 的 ONLY_TICKERS）。
+    """
+    etfs = etfs if etfs is not None else PEER_ETFS
     # Build shared ezmoney session once for all ezmoney ETFs
-    ezmoney_etfs = [e for e in PEER_ETFS if e['source'] == 'ezmoney']
+    ezmoney_etfs = [e for e in etfs if e['source'] == 'ezmoney']
     ezmoney_session = None
     if ezmoney_etfs:
         try:
@@ -1357,7 +1390,7 @@ def fetch_all_peer_data(transaction_date: date) -> list:
             print(f'  ezmoney session error: {e}')
 
     results = []
-    for etf in PEER_ETFS:
+    for etf in etfs:
         data = None
         if etf['source'] == 'ezmoney':
             data = fetch_ezmoney_day(etf['key'], transaction_date, session=ezmoney_session)
@@ -1942,9 +1975,11 @@ async def process_peer_redemption(today: date):
     stale_note = f'\n⚠️ 官網尚未更新，此為 {base_date} 資料（最新交易日應為 {expected}）' if stale else ''
     notify(
         title       = f'{"⚠️ " if stale else ""}同業申贖觀測 {base_date}',
+        # 熱門ETF（被動式）只入庫給網站分頁看，不進這封推播——它是「同業」觀測，
+        # 混進 0050/0056 這種被動大型 ETF 會讓訊息長度翻倍又改變語意。
         message     = '淨申贖：' + '　'.join(
             f'{e["ticker"]} {e["data"]["netSub"]:+.2f}億' if e['data'] and e['data']['netSub'] is not None else f'{e["ticker"]} —'
-            for e in peer_results
+            for e in peer_results if e.get('group') != 'hot'
         ) + stale_note,
         image_bytes = img,
         priority = 1 if stale else 0,

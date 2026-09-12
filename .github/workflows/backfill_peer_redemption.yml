@@ -12,6 +12,10 @@ on:
         required: false
         type: boolean
         default: false
+      only_tickers:
+        description: '只回補這幾檔（逗號分隔，例：0050,0056,00878,00919,00929,00712）。留空＝全部'
+        required: false
+        default: ''
 
 jobs:
   backfill:
@@ -37,4 +41,5 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           START_DATE:           ${{ github.event.inputs.start_date }}
           IGNORE_COMPLETE:      ${{ github.event.inputs.ignore_complete && '1' || '' }}
+          ONLY_TICKERS:         ${{ github.event.inputs.only_tickers }}
         run: python scripts/backfill_peer_redemption.py
