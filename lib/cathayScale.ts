@@ -68,8 +68,9 @@ export async function fetchCathayRange(
   startDate: string, // YYYY-MM-DD (transaction date range)
   endDate: string,
 ): Promise<CathayDay[]> {
-  // 區間最前面那天也要算差額 → 往前多抓 10 個日曆日當基準（涵蓋連假）。
-  const dates = weekdaysBetween(addDays(startDate, -10), endDate);
+  // 區間最前面那天也要算差額 → 往前多抓 16 個日曆日當基準。
+  // ⚠ 16 不是 10：2026 春節休 9 天，2/23 的前一交易日是 2/11（差 12 天），-10 摸不到。
+  const dates = weekdaysBetween(addDays(startDate, -16), endDate);
   if (!dates.length) return [];
 
   const BATCH = 5;

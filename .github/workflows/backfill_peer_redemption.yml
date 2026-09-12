@@ -40,6 +40,9 @@ jobs:
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           START_DATE:           ${{ github.event.inputs.start_date }}
-          IGNORE_COMPLETE:      ${{ github.event.inputs.ignore_complete && '1' || '' }}
+          # ⚠ 一定要拿去跟 'true' 比：github.event.inputs.<boolean> 回的是**字串**，
+          #   `'false' && '1'` 在 GH 運算式裡是 truthy → 沒勾也會變成 '1'，等於這個開關
+          #   一直是開著的、每次回補都整段重抓。
+          IGNORE_COMPLETE:      ${{ github.event.inputs.ignore_complete == 'true' && '1' || '' }}
           ONLY_TICKERS:         ${{ github.event.inputs.only_tickers }}
         run: python scripts/backfill_peer_redemption.py

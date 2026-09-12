@@ -71,7 +71,8 @@ export async function fetchYuantaRange(
   endDate: string,
 ): Promise<YuantaDay[]> {
   // Announcement lags the transaction date by ~1–3 business days → widen the query window.
-  const announceDates = weekdaysBetween(addDays(startDate, 1), addDays(endDate, 5));
+  // ⚠ +14 not +5：連假會把公告推很遠（2026 春節休 9 天，2/11 的清單 2/23 才公告）。
+  const announceDates = weekdaysBetween(addDays(startDate, 1), addDays(endDate, 14));
   if (!announceDates.length) return [];
 
   const startSlash = startDate.replace(/-/g, '/');

@@ -464,10 +464,12 @@ def fetch_capital_day(fund_id: str, transaction_date: date) -> dict | None:
         s.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
         s.get(f'https://{CAPITAL_HOST}/', timeout=15)
         # 公告落差不是固定 +1：台股基金(399/500) date2 = 公告日−1 交易日，海外基金(502 主動群益
-        # 美國增長) 是 −2。寫死 _next_biz_day() 只對台股成立，海外永遠對不上 → 往後掃 5 個營業日，
+        # 美國增長) 是 −2。寫死 _next_biz_day() 只對台股成立，海外永遠對不上 → 往後掃營業日，
         # 以 API 自報的 date2 對齊（date2 隨公告日遞增，越過目標日就提早收工）。
+        # ⚠ 掃 10 個營業日而非 5：_next_biz_day 只跳週末、不認國定假日，2026 春節那 7 個
+        #   平日全是休市 → 2/11 的清單要到第 8 個「營業日」(2/23) 才等到（實測）。
         announce = transaction_date
-        for _ in range(5):
+        for _ in range(10):
             announce = _next_biz_day(announce)
             r = s.post(
                 f'https://{CAPITAL_HOST}/CFWeb/api/etf/buyback',
@@ -806,8 +808,10 @@ def fetch_cathay_day(fund_code: str, transaction_date: date) -> dict | None:
         cur = _cathay_assets(fund_code, transaction_date)
         if not cur:
             return None
+        # 往回找前一個「有資料」的交易日：掃 16 個日曆日，才跨得過 9 天年假
+        # （2026-02-23 的前一交易日是 2/11，差 12 天；原本 range(10) 只摸到 2/13 就放棄）。
         prev, d = None, transaction_date
-        for _ in range(10):
+        for _ in range(16):
             d -= timedelta(days=1)
             if d.weekday() >= 5:
                 continue
@@ -861,10 +865,16 @@ def fetch_kgi_day(fund_id: str, transaction_date: date) -> dict | None:
 
 
 def fetch_yuanta_day(ticker: str, transaction_date: date) -> dict | None:
-    """元大投信 00990A：查公告日(交易日+1..+5)，以回傳 trandate==交易日 對齊。"""
+    """元大投信：查公告日(交易日+1..+14 個日曆日)，以回傳 trandate==交易日 對齊。
+
+    ⚠ 視窗必須涵蓋連假：原本只掃 5 個日曆日，2026 春節休 9 天 → 2/11(年前最後一個交易日)
+    的清單要到 2/23 才公告，整整 12 天後，三檔元大商品在那天全部靜靜回 None（實測）。
+    trandate 隨公告日單調遞增，所以一旦自報日期越過目標日就提早收工，休市日的查詢
+    反而比原本更省請求。
+    """
     try:
         target = transaction_date.strftime('%Y%m%d')
-        for offset in range(1, 6):
+        for offset in range(1, 15):
             ann = transaction_date + timedelta(days=offset)
             if ann.weekday() >= 5:
                 continue
@@ -875,7 +885,11 @@ def fetch_yuanta_day(ticker: str, transaction_date: date) -> dict | None:
             if r.status_code != 200:
                 continue
             pcf = (r.json() or {}).get('PCF')
-            if not pcf or str(pcf.get('trandate')) != target:
+            if not pcf or not pcf.get('trandate'):
+                continue
+            if str(pcf['trandate']) > target:
+                return None      # 掃過頭：目標日沒有清單（多半是休市日）
+            if str(pcf['trandate']) != target:
                 continue
             nav = parse_num(pcf.get('nav', 0) or 0)
             if nav == 0:

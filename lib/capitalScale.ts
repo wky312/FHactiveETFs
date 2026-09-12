@@ -147,9 +147,11 @@ async function fetchOneDay(
 ): Promise<CapitalDay | null> {
   // 公告落差不是固定 +1：台股基金(399/500)是交易日+1 交易日公告，海外基金(502 主動群益美國增長)
   // 是 +2（date2 = 公告日−2 交易日）。原本寫死 nextBusinessDay() 只對台股成立，海外永遠對不上
-  // 而回 null → 00997A 整條線抓不到。改成往後掃 5 個營業日，以 API 自報的 date2 對齊。
+  // 而回 null → 00997A 整條線抓不到。改成往後掃營業日，以 API 自報的 date2 對齊。
+  // ⚠ 掃 10 個而非 5：nextBusinessDay 只跳週末不認國定假日，2026 春節那 7 個平日全休市
+  //   → 2/11 的清單要到第 8 個「營業日」(2/23) 才等到。
   let announce = transactionDate;
-  for (let i = 0; i < 5; i++) {
+  for (let i = 0; i < 10; i++) {
     announce = nextBusinessDay(announce);
     const day = await fetchAnnounce(fundId, announce, cookies);
     if (day?.date === transactionDate) return day;
