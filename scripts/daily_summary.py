@@ -352,22 +352,23 @@ PEER_ETFS = [
     #   不設 since 的話 12 月那幾天會永遠被判成缺漏，每天的補洞邏輯都要白抓一輪（同 00411A 的教訓）。
     # ⚠ 0050 於 2026-06-18 一拆四：netSub 是「同一天的單位數差 × 同一天的每單位淨值」，
     #   拆分前後各自自洽，不需要（也不可以）再另外做還原調整。
-    {'ticker': '0050',  'name': '元大台灣50',      'source': 'yuanta',  'key': '0050',  'group': 'hot',
+    {'ticker': '0050',   'name': '元大台灣50',      'source': 'yuanta',  'key': '0050',   'group': 'hot',
      'since': '2026-01-01'},
-    {'ticker': '0056',  'name': '元大高股息',      'source': 'yuanta',  'key': '0056',  'group': 'hot',
+    # 槓桿型（元大台灣50正2）。PCF 形狀與 0050 完全相同，直接沿用 fetch_yuanta_day；
+    # 排在 0050 隔壁——同一個標的，兩欄要並排看才知道資金是進原型還是進正2。
+    {'ticker': '00631L', 'name': '元大台灣50正2',    'source': 'yuanta',  'key': '00631L', 'group': 'hot',
      'since': '2026-01-01'},
-    {'ticker': '00878', 'name': '國泰永續高股息',  'source': 'cathay',  'key': 'CN',    'group': 'hot',
+    {'ticker': '0056',   'name': '元大高股息',       'source': 'yuanta',  'key': '0056',   'group': 'hot',
      'since': '2026-01-01'},
-    {'ticker': '00919', 'name': '群益台灣精選高息', 'source': 'capital', 'key': '195',   'group': 'hot',
+    {'ticker': '00878',  'name': '國泰永續高股息',   'source': 'cathay',  'key': 'CN',     'group': 'hot',
+     'since': '2026-01-01'},
+    {'ticker': '00919',  'name': '群益台灣精選高息', 'source': 'capital', 'key': '195',    'group': 'hot',
      'since': '2026-01-01'},
     # 復華自家兩檔被動式：fundID 由官網 /api/fundList 逐筆的 fundID ↔ etf002（＝股票代號）對出來
     # （ETF21=00929 復華台灣科技優息、ETF07=00712 復華富時不動產；同一份表 ETF23=00991A 可自我驗證）。
-    {'ticker': '00929', 'name': '復華台灣科技優息', 'source': 'fhtrust', 'key': 'ETF21', 'group': 'hot',
+    {'ticker': '00929',  'name': '復華台灣科技優息', 'source': 'fhtrust', 'key': 'ETF21',  'group': 'hot',
      'since': '2026-01-01'},
-    {'ticker': '00712', 'name': '復華富時不動產',  'source': 'fhtrust', 'key': 'ETF07', 'group': 'hot',
-     'since': '2026-01-01'},
-    # 槓桿型（元大台灣50正2）。PCF 形狀與 0050/0056 完全相同，直接沿用 fetch_yuanta_day。
-    {'ticker': '00631L', 'name': '元大台灣50正2', 'source': 'yuanta',  'key': '00631L', 'group': 'hot',
+    {'ticker': '00712',  'name': '復華富時不動產',   'source': 'fhtrust', 'key': 'ETF07',  'group': 'hot',
      'since': '2026-01-01'},
 ]
 

@@ -144,11 +144,13 @@ DRY_RUN=1 SCAN_DATE=2026-07-03 python scripts/highlight_scan.py
 
 ### 熱門ETF 觀測群（`group='hot'`，2026-09-12 新增）
 
-申贖分頁第四顆按鈕，7 檔被動式大型 ETF：0050 / 0056 / 00631L（元大 `yuanta`，key 就是代號）、
+申贖分頁第四顆按鈕，7 檔被動式大型 ETF（欄位順序 0050 / 00631L / 0056 / 00878 / 00919 /
+00929 / 00712 —— 00631L 刻意緊接 0050，同一個標的並排才看得出資金是進原型還是進正2）：
+0050 / 00631L / 0056（元大 `yuanta`，key 就是代號）、
 00878（國泰 `cathay`，FundCode `CN`）、00919（群益 `capital`，fundNo `195`）、
 00929（復華 `fhtrust`，fundID `ETF21`）、00712（復華 `fhtrust`，fundID `ETF07`）。
 
-- **只回補到 2026-01-01**（使用者指定「今年初開始」）。`PEER_ETFS` 這 6 筆都帶
+- **只回補到 2026-01-01**（使用者指定「今年初開始」）。`PEER_ETFS` 這 7 筆都帶
   `since='2026-01-01'`，否則 DB 裡 2025-12 那幾天會永遠被判成缺漏、每天白抓一輪。
 - **復華 fundID 的查法**：`GET /api/fundList` 回的每筆有 `fundID` 與 `etf002`（＝股票代號），
   對一次就有全表；官網掛維護頁時可退到 Wayback（`web.archive.org/web/<ts>id_/<url>`）。

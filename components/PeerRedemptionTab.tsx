@@ -100,15 +100,15 @@ const REDEMPTION_GROUPS: RedemptionGroup[] = [
     dbGroup: 'hot',
     // 被動式大型 ETF。DB 只回補到 2026-01-01（使用者指定「今年初開始」），
     // 更早的日期查詢會是空表 —— 那是沒入庫、不是抓不到。
-    // 依使用者指定的順序排（非規模序）。
+    // 依使用者指定的順序排（非規模序）；00631L 緊接 0050，兩檔同一個標的、看的是同一批資金。
     etfs: [
-      { ticker: '0050',  name: '元大台灣50',      source: 'yuanta',  key: '0050'  },
-      { ticker: '0056',  name: '元大高股息',      source: 'yuanta',  key: '0056'  },
-      { ticker: '00878', name: '國泰永續高股息',  source: 'cathay',  key: 'CN'    },  // 國泰 FundCode（申贖為推算值）
-      { ticker: '00919', name: '群益台灣精選高息', source: 'capital', key: '195'   },  // 群益 fundNo
-      { ticker: '00929', name: '復華台灣科技優息', source: 'fhtrust', key: 'ETF21' },  // 復華 fundID
-      { ticker: '00712', name: '復華富時不動產',  source: 'fhtrust', key: 'ETF07' },  // 海外 REITs → PCF 公告 +2
-      { ticker: '00631L', name: '元大台灣50正2', source: 'yuanta',  key: '00631L' },  // 槓桿型，PCF 形狀同 0050
+      { ticker: '0050',   name: '元大台灣50',      source: 'yuanta',  key: '0050'   },
+      { ticker: '00631L', name: '元大台灣50正2',   source: 'yuanta',  key: '00631L' },  // 槓桿型，PCF 形狀同 0050
+      { ticker: '0056',   name: '元大高股息',      source: 'yuanta',  key: '0056'   },
+      { ticker: '00878',  name: '國泰永續高股息',  source: 'cathay',  key: 'CN'     },  // 國泰 FundCode（申贖為推算值）
+      { ticker: '00919',  name: '群益台灣精選高息', source: 'capital', key: '195'    },  // 群益 fundNo
+      { ticker: '00929',  name: '復華台灣科技優息', source: 'fhtrust', key: 'ETF21'  },  // 復華 fundID
+      { ticker: '00712',  name: '復華富時不動產',  source: 'fhtrust', key: 'ETF07'  },  // 海外 REITs → PCF 公告 +2
     ],
   },
 ];
