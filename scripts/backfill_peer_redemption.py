@@ -79,19 +79,32 @@ def get_complete_dates(start: date, end: date) -> set:
     try:
         from supabase import create_client
         client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-        result = (
-            client.table('peer_redemption')
-            .select('date, ticker')
-            .gte('date', str(start))
-            .lte('date', str(end))
-            .execute()
-        )
+        # ⚠ PostgREST 一次最多回 1000 列且**靜默截斷**：觀測群 20+ 檔 × 半年就爆表，
+        # 拿被截過的結果去判完成度 → 每個日期都看起來缺、整段重抓（等於這個判斷失效）。
+        # 分頁排序要「全序」（date+ticker 是主鍵），否則邊界會漏列。
+        rows = []
+        PAGE = 1000
+        offset = 0
+        while True:
+            page = (
+                client.table('peer_redemption')
+                .select('date, ticker')
+                .gte('date', str(start))
+                .lte('date', str(end))
+                .order('date').order('ticker')
+                .range(offset, offset + PAGE - 1)
+                .execute()
+            ).data or []
+            rows.extend(page)
+            if len(page) < PAGE:
+                break
+            offset += PAGE
         # 只把「有接通爬蟲、且該日已經存在」的 ticker 算進完成度：
         # ① 尚未接通申贖來源的 ETF 永遠不會有資料 → 算進去會讓該日永遠標不成完成、被無限重抓；
         # ② 新掛牌的檔（如 00411A）掛牌前一樣抓不到 → expected_tickers_on 用 since 逐日排除，
         #    否則加一檔新 ETF 就會讓歷史上每一天都退回未完成、整段重抓一遍。
         counts = defaultdict(set)
-        for row in result.data:
+        for row in rows:
             counts[row['date']].add(row['ticker'])
         # ONLY_TICKERS 指定時，完成度只看那幾檔——否則「其他檔還沒補齊」會讓每個日期
         # 都算未完成，指定範圍就白指定了。

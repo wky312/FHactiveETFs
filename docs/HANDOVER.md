@@ -157,6 +157,13 @@ DRY_RUN=1 SCAN_DATE=2026-07-03 python scripts/highlight_scan.py
 - **`group='hot'` 是刻意隔離的**：亮點引擎 `fetch_peer_redemption_history` 寫死
   `group=eq.tw_active`，`build_peer_html` 也只收 tw_active，所以天條 5 的「同業第一」母體
   不受影響；Pushover 的淨申贖字串則另外排除 `group == 'hot'`（同業推播不混被動 ETF）。
+- ⚠⚠ **PostgREST 一次只回 1000 列、超過的部分靜默消失**（2026-09-12 修）。`peer_redemption`
+  是「一個交易日 × 一檔 ＝ 一列」，觀測群一大就很容易撞到：實測 `?group=tw_active` 拉
+  2026-01-01→09-12，**分頁只回得到 5/29 以後的 74 天**，前四個月憑空不見、而且不會報錯。
+  三個讀取點都已改成 `.range()` 分頁（排序要「全序」，`date`+`ticker` 就是主鍵）：
+  `app/api/peer-redemption-db/route.ts`、`backfill_peer_redemption.get_complete_dates`、
+  `daily_summary._fetch_existing_peer_keys`。**日後任何新的 peer_redemption 讀取一律照抄這個
+  分頁寫法**，不要再寫裸 select。
 - **只回補特定幾檔**：`backfill_peer_redemption.py` 吃 `ONLY_TICKERS='0050,0056,…'`
   （workflow 有對應的 `only_tickers` 輸入）。新增觀測群時每個舊日期都會少那幾檔 →
   完成度判斷會把整段區間標成未完成、連已入庫的 20 幾檔一起重抓（180 天 × 27 檔＝一小時起跳）。

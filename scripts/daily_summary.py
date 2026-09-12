@@ -2348,11 +2348,20 @@ def _fetch_existing_peer_keys(start: date, end: date):
     try:
         from supabase import create_client
         client = create_client(SUPABASE_URL, SUPABASE_SERVICE_KEY)
-        res = (client.table('peer_redemption')
-               .select('date, ticker')
-               .gte('date', str(start)).lte('date', str(end))
-               .execute())
-        return {(r['date'], r['ticker']) for r in res.data}
+        # PostgREST 靜默截在 1000 列。目前 15 個交易日 × 31 檔 = 465 還沒到頂，但觀測群
+        # 只會愈加愈多，被截到就會把「其實已入庫」誤判成缺漏、每天白抓一輪 → 直接分頁。
+        keys, PAGE, offset = set(), 1000, 0
+        while True:
+            page = (client.table('peer_redemption')
+                    .select('date, ticker')
+                    .gte('date', str(start)).lte('date', str(end))
+                    .order('date').order('ticker')
+                    .range(offset, offset + PAGE - 1)
+                    .execute()).data or []
+            keys.update((r['date'], r['ticker']) for r in page)
+            if len(page) < PAGE:
+                return keys
+            offset += PAGE
     except Exception as e:
         print(f'  gap repair: 讀取 Supabase 失敗（{e}），跳過')
         return None
