@@ -108,6 +108,7 @@ const REDEMPTION_GROUPS: RedemptionGroup[] = [
       { ticker: '00919', name: '群益台灣精選高息', source: 'capital', key: '195'   },  // 群益 fundNo
       { ticker: '00929', name: '復華台灣科技優息', source: 'fhtrust', key: 'ETF21' },  // 復華 fundID
       { ticker: '00712', name: '復華富時不動產',  source: 'fhtrust', key: 'ETF07' },  // 海外 REITs → PCF 公告 +2
+      { ticker: '00631L', name: '元大台灣50正2', source: 'yuanta',  key: '00631L' },  // 槓桿型，PCF 形狀同 0050
     ],
   },
 ];

@@ -366,6 +366,9 @@ PEER_ETFS = [
      'since': '2026-01-01'},
     {'ticker': '00712', 'name': '復華富時不動產',  'source': 'fhtrust', 'key': 'ETF07', 'group': 'hot',
      'since': '2026-01-01'},
+    # 槓桿型（元大台灣50正2）。PCF 形狀與 0050/0056 完全相同，直接沿用 fetch_yuanta_day。
+    {'ticker': '00631L', 'name': '元大台灣50正2', 'source': 'yuanta',  'key': '00631L', 'group': 'hot',
+     'since': '2026-01-01'},
 ]
 
 EZMONEY_HOST = 'www.ezmoney.com.tw'

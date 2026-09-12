@@ -144,7 +144,7 @@ DRY_RUN=1 SCAN_DATE=2026-07-03 python scripts/highlight_scan.py
 
 ### 熱門ETF 觀測群（`group='hot'`，2026-09-12 新增）
 
-申贖分頁第四顆按鈕，6 檔被動式大型 ETF：0050 / 0056（元大 `yuanta`，key 就是代號）、
+申贖分頁第四顆按鈕，7 檔被動式大型 ETF：0050 / 0056 / 00631L（元大 `yuanta`，key 就是代號）、
 00878（國泰 `cathay`，FundCode `CN`）、00919（群益 `capital`，fundNo `195`）、
 00929（復華 `fhtrust`，fundID `ETF21`）、00712（復華 `fhtrust`，fundID `ETF07`）。
 
@@ -157,7 +157,10 @@ DRY_RUN=1 SCAN_DATE=2026-07-03 python scripts/highlight_scan.py
   不受影響；Pushover 的淨申贖字串則另外排除 `group == 'hot'`（同業推播不混被動 ETF）。
 - **只回補特定幾檔**：`backfill_peer_redemption.py` 吃 `ONLY_TICKERS='0050,0056,…'`
   （workflow 有對應的 `only_tickers` 輸入）。新增觀測群時每個舊日期都會少那幾檔 →
-  完成度判斷會把整段區間標成未完成、連已入庫的 20 幾檔一起重抓（180 天 × 26 檔＝一小時起跳）。
+  完成度判斷會把整段區間標成未完成、連已入庫的 20 幾檔一起重抓（180 天 × 27 檔＝一小時起跳）。
+  ⚠ workflow 的 `ignore_complete` 其實一直是開著的：`github.event.inputs.<boolean>` 回的是
+  **字串** `'false'`，在 GH 運算式裡是 truthy → `IGNORE_COMPLETE` 永遠是 `'1'`。目前無害
+  （回補本來就要重抓），要真正關掉得改用 `inputs.ignore_complete`（新 context 才是真布林）。
 - **0050 於 2026-06-18 一拆四**：netSub 取「同日單位數差 × 同日每單位淨值」，拆分前後各自
   自洽，**不要**再另外做還原調整。
 - ⚠ 00712 是美國 REITs，PCF 公告落後 **T+2 交易日**；`fetch_fhtrust_day` 為此把公告日候選
