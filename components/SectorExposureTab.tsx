@@ -141,10 +141,13 @@ export default function SectorExposureTab() {
     return { custom, builtin: store.listAll().filter(g => g.builtin && !customNames.has(g.name)) };
   }, [custom, store]);
 
-  /* 族群搜尋：44 組內建＋自訂，肉眼找太慢，改用文字篩選（不分大小寫）。空字串時顯示全部。 */
+  /* 族群搜尋：44 組內建＋自訂，肉眼找太慢，改用文字篩選。空字串時顯示全部。
+     ⚠ 一定要 toLowerCase 再比：海外族群名稱與代碼是英文大寫（SPCX、CPO、AI…），
+     使用者打小寫 spcx 時 'SPCX'.includes('spcx') 是 false，會回「查無」——
+     這行原本的註解就寫著「不分大小寫」，但程式碼其實是大小寫敏感的。 */
   const groupMatches = useMemo(() => {
-    const q = groupQuery.trim();
-    const filt = (arr: SectorGroup[]) => (q ? arr.filter(g => g.name.includes(q)) : arr);
+    const q = groupQuery.trim().toLowerCase();
+    const filt = (arr: SectorGroup[]) => (q ? arr.filter(g => g.name.toLowerCase().includes(q)) : arr);
     return { custom: filt(groups.custom), builtin: filt(groups.builtin) };
   }, [groups, groupQuery]);
 
@@ -156,10 +159,13 @@ export default function SectorExposureTab() {
     return [...m.entries()].map(([stockid, stockname]) => ({ stockid, stockname })).sort((a, b) => a.stockid.localeCompare(b.stockid));
   }, [data, store]);
 
+  // 同上：海外代碼清一色大寫（SPCX / AXTI / FSLY…），小寫輸入必須也搜得到。
   const matches = useMemo(() => {
-    const q = query.trim();
+    const q = query.trim().toLowerCase();
     if (!q) return [];
-    return candidates.filter(c => c.stockid.includes(q) || c.stockname.includes(q)).slice(0, 12);
+    return candidates
+      .filter(c => c.stockid.toLowerCase().includes(q) || c.stockname.toLowerCase().includes(q))
+      .slice(0, 12);
   }, [candidates, query]);
 
   const result: SectorExposureResult | null = useMemo(

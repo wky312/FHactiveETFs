@@ -23,19 +23,35 @@ import { SectorGroup } from './sectorGroups';
    992.HK 聯想 → 伺服器整機與機構件；5274.TWO 信驊 → 算力與 IC 設計（fabless BMC 晶片）；
    AEM 艾格尼可鷹、EQT 天然氣 → 原物料能源貴金屬；NTRA → 醫療科技與生技，與同組 TEM 同性質）
    ＋開 1 個新組「消費網路與平台」（EXPE Expedia、DASH DoorDash，前 22 組接不住的線上旅遊／外送平台）。
-   現 22→23 組、174→182 檔。 */
+   現 22→23 組、174→182 檔。
+
+   2026-09-14：比對 00409A(50檔)／00411A(34檔)／00990A(48檔)／00988A(42檔) 最新持股（申報日
+   2026/09/10），補 11 檔進現有族群、**不開新組**（這批都接得住）。組數維持 23、182→193 檔。
+   ⚠ 台股後綴一律查 TWSE ISIN 確認，不要用「4 碼就是 .TW」猜：**3529 力旺與 6510 精測是上櫃
+   （.TWO）**，寫成 .TW 會在熱力圖/RRG 查無報價。
+     半導體設備測試 ← 6510.TWO 中華精測（探針卡，與同組 6223 旺矽同性質）、2360.TW 致茂
+       （量測設備）、7769.TW 鴻勁（測試分選機）、300757.SZ 羅博特科（收購 ficonTEC 後主攻
+       光電子封裝/測試設備，本質仍是設備廠）
+     算力與 IC 設計 ← 3529.TWO 力旺（矽智財，組名本來就含 IP，同組已有 3443 創意/3661 世芯）
+     光通訊與矽光子/CPO ← AXTI（InP/GaAs 基板是光通訊雷射晶片的上游材料；同組已有 3081 聯亞
+       這類上游磊晶/雷射晶片廠，故不另開「化合物半導體」單檔組）
+     軟體資安與 AI 雲端 ← FSLY Fastly（與同組 NET Cloudflare 是直接競品）
+     高速傳輸與網通介面 ← 3665.TW 貿聯-KY（AI 伺服器 224G 高速銅纜／線束）、NOK 諾基亞
+       （網通設備商，與同組 CSCO 同性質；併購 Infinera 後光通訊線也在內）
+     原物料能源貴金屬 ← KGC Kinross（金礦，同組已有 AEM/WPM/GDX）
+     醫療科技與生技 ← TWST Twist Bioscience（合成 DNA，與同組 NTRA/TEM 同性質） */
 
 export const BUILTIN_GROUPS_OVERSEAS: SectorGroup[] = [
-  { name: '算力與 IC 設計 (CPU / GPU / ASIC / IP)', codes: ['AMD', '2454.TW', 'ARM', 'INTC', 'NVDA', 'QCOM', 'AVGO', '3661.TW', '3443.TW', 'CDNS', 'CBRS', '5274.TWO'], builtin: true },
+  { name: '算力與 IC 設計 (CPU / GPU / ASIC / IP)', codes: ['AMD', '2454.TW', 'ARM', 'INTC', 'NVDA', 'QCOM', 'AVGO', '3661.TW', '3443.TW', 'CDNS', 'CBRS', '5274.TWO', '3529.TWO'], builtin: true },
   { name: 'AI 資料中心電力、燃料電池與核能基建', codes: ['BE', 'PLUG', 'FCEL', 'VRT', 'ETN', 'GEV', 'CEG', 'VST', 'OKLO', 'SMR', '6508.T', '034020.KS'], builtin: true },
   { name: '低軌衛星與太空科技 (LEO Satellite & Aerospace)', codes: ['ASTS', 'RKLB', 'IRDM', 'SATS', 'GSAT', 'PL', '3491.TWO', '6285.TW', 'SPCX'], builtin: true },
-  { name: '半導體設備、測試與探針卡', codes: ['6223.TWO', '6871.T', 'TER', 'FORM', 'AIXA.DE', 'AEHR', '095340.KS', 'ASML', 'AMAT', 'LRCX', 'KLAC', '8035.T', '6857.T', '6515.TW'], builtin: true },
+  { name: '半導體設備、測試與探針卡', codes: ['6223.TWO', '6871.T', 'TER', 'FORM', 'AIXA.DE', 'AEHR', '095340.KS', 'ASML', 'AMAT', 'LRCX', 'KLAC', '8035.T', '6857.T', '6515.TW', '6510.TWO', '2360.TW', '7769.TW', '300757.SZ'], builtin: true },
   { name: '晶圓代工與封測製造 (Foundry & OSAT)', codes: ['2330.TW', 'TSM', 'TSEM', '3711.TW', 'GFS', '2303.TW', 'AMKR', '2449.TW'], builtin: true },
-  { name: '光通訊與矽光子 / CPO (Optical & CPO)', codes: ['LITE', 'COHR', '300308.SZ', '3308.HK', '4979.TWO', 'FN', 'CIEN', '6442.TW', '3363.TWO', '3081.TWO'], builtin: true },
+  { name: '光通訊與矽光子 / CPO (Optical & CPO)', codes: ['LITE', 'COHR', '300308.SZ', '3308.HK', '4979.TWO', 'FN', 'CIEN', '6442.TW', '3363.TWO', '3081.TWO', 'AXTI'], builtin: true },
   { name: '載板與高階 PCB / 材料 (Substrates & PCB)', codes: ['3037.TW', '2383.TW', '301377.SZ', '8046.TW', '3189.TW', '4062.T', '6967.T', '2368.TW', '6274.TW', '600183.SS'], builtin: true },
   { name: '記憶體與高容量儲存 (Memory & Storage)', codes: ['MU', '285A.T', 'STX', 'WDC', '000660.KS', '005930.KS', 'PSTG', '8299.TWO', '2408.TW', 'SNDK'], builtin: true },
-  { name: '軟體、資安與 AI 雲端服務 (SaaS & Security)', codes: ['PANW', 'SNOW', 'PLTR', 'NET', 'TWLO', '4180.T', 'CRWD', 'NOW', 'DDOG', 'ZS', 'CRM', 'NTSK'], builtin: true },
-  { name: '高速傳輸與網通介面 (Transmission & Networking)', codes: ['CRDO', 'MRVL', '5801.T', 'ANET', 'ALAB', 'CSCO', '2379.TW', 'SMTC', '2345.TW'], builtin: true },
+  { name: '軟體、資安與 AI 雲端服務 (SaaS & Security)', codes: ['PANW', 'SNOW', 'PLTR', 'NET', 'TWLO', '4180.T', 'CRWD', 'NOW', 'DDOG', 'ZS', 'CRM', 'NTSK', 'FSLY'], builtin: true },
+  { name: '高速傳輸與網通介面 (Transmission & Networking)', codes: ['CRDO', 'MRVL', '5801.T', 'ANET', 'ALAB', 'CSCO', '2379.TW', 'SMTC', '2345.TW', '3665.TW', 'NOK'], builtin: true },
   { name: '被動元件與電子零組件 (Passive Components)', codes: ['009150.KS', '6981.T', '300408.SZ', '2327.TW', '6997.T', '6762.T', '6976.T', '2492.TW', '3026.TW', 'SITM'], builtin: true },
   { name: 'AI 伺服器電源與散熱 (Power & Cooling)', codes: ['2308.TW', '3017.TW', '3324.TW', '3653.TW', '2301.TW', 'SMCI', '8996.TW'], builtin: true },
   { name: '車用與功率半導體 (Power & Auto Chips)', codes: ['IFX.DE', 'MPWR', 'TXN', 'STM', 'ON', 'NXPI'], builtin: true },
@@ -55,8 +71,8 @@ export const BUILTIN_GROUPS_OVERSEAS: SectorGroup[] = [
   /* 以下 3 組為 2026-09-02 新增：比對 00409A（主動復華全球50）51 檔實際持股後，
      這批完全不屬於「科技供應鏈」視角，前一輪 19 組故意不收（見上一輪 commit 的
      「需要時再開新組」），現在真的需要了。 */
-  { name: '原物料、能源與貴金屬 (Commodities & Energy)', codes: ['GDX', 'COPX', 'WPM', 'PSX', 'AEM', 'EQT'], builtin: true },
-  { name: '醫療科技與生技 (Healthcare & Biotech)', codes: ['LLY', 'MRK', 'TEM', 'NTRA'], builtin: true },
+  { name: '原物料、能源與貴金屬 (Commodities & Energy)', codes: ['GDX', 'COPX', 'WPM', 'PSX', 'AEM', 'EQT', 'KGC'], builtin: true },
+  { name: '醫療科技與生技 (Healthcare & Biotech)', codes: ['LLY', 'MRK', 'TEM', 'NTRA', 'TWST'], builtin: true },
   // 精密光學元件目前只有大立光一檔——刻意不硬塞進「光通訊與矽光子」（那組是通訊用零組件，
   // 大立光是手機相機鏡頭，製程與客戶完全不同），寧可先開一組只有 1 檔的類別。
   { name: '精密光學元件 (Precision Optics)', codes: ['3008.TW'], builtin: true },
@@ -67,6 +83,10 @@ export const BUILTIN_GROUPS_OVERSEAS: SectorGroup[] = [
 ];
 
 export const STOCK_NAMES_OVERSEAS: Record<string, string> = {
+  // 2026-09-14 新增（比對 00409A/00411A/00990A/00988A 最新持股，補 11 檔進現有族群）
+  '6510.TWO': '中華精測', '2360.TW': '致茂', '7769.TW': '鴻勁', '300757.SZ': '羅博特科',
+  '3529.TWO': '力旺', 'AXTI': 'AXT', 'FSLY': 'Fastly', '3665.TW': '貿聯-KY',
+  'NOK': '諾基亞', 'KGC': 'Kinross黃金', 'TWST': 'Twist Bioscience',
   // 2026-09-07 新增（比對 00409A/00988A 最新持股，補 6 檔進現有族群 + 1 個新族群）
   '3308.HK': '中際旭創-H', '992.HK': '聯想集團', '5274.TWO': '信驊',
   'AEM': 'Agnico Eagle 礦業', 'EQT': 'EQT天然氣', 'NTRA': 'Natera',
