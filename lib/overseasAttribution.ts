@@ -52,7 +52,7 @@ const isoToSlash = (s: string) => s.replace(/-/g, '/');
 const slashToIso = (s: string) => s.replace(/\//g, '-');
 
 /* ── 現金/期貨/其他資產列過濾（合併 consensusOverseas.isCashLike + cmoneyHoldings.isCashRow）── */
-function isCashLike(stockid: string, stockname: string, ftype?: string): boolean {
+export function isCashLike(stockid: string, stockname: string, ftype?: string): boolean {
   if (ftype === '期貨' || ftype === '其他資產' || ftype === '現金') return true;
   if (!stockid.trim()) return true;
   if (/_(NTD|USD|TWD|HKD|JPY|EUR|RMB|CNY)\d*$/i.test(stockid)) return true;
@@ -62,7 +62,7 @@ function isCashLike(stockid: string, stockname: string, ftype?: string): boolean
 /* 同一檔個股在兩檔基金的持股表可能寫成不同的彭博後綴（例：三星電機 '009150 KP' vs '009150 KS'、
    英飛凌 'IFX GR' vs 'IFX GY'、輝達 'NVDA US' vs 裸 'NVDA'）——一律收斂成「解析後的 Yahoo 代號」
    當統一 key，否則會被當兩檔、差距互相抵消還各自出現在領先/落後表。比照 consensusOverseas.ts。 */
-function canonOf(stockid: string): string {
+export function canonOf(stockid: string): string {
   const { yfTicker } = resolveYfTicker(stockid, false);
   return (yfTicker || stockid).trim().toUpperCase();
 }
@@ -84,8 +84,9 @@ function forwardFillMap(raw: Map<string, number>, start: string, end: string): M
   return filled;
 }
 
-/* ── 某基金「逐交易日持股」對照表：先讀 git 存檔，再即時補到今天 ── */
-async function buildOverseasDayMap(cfg: OverseasFundConfig): Promise<Map<string, Holding[]>> {
+/* ── 某基金「逐交易日持股」對照表：先讀 git 存檔，再即時補到今天 ──
+   export：也給 lib/usImpact.ts（美股收盤影響）取用最新一筆持股快照，避免重複實作抓取邏輯。 */
+export async function buildOverseasDayMap(cfg: OverseasFundConfig): Promise<Map<string, Holding[]>> {
   const dayMap = new Map<string, Holding[]>();
   const stored = loadStoredHoldings(cfg.fundId);
   if (stored) {

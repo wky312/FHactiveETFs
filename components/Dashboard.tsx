@@ -17,6 +17,7 @@ import ScorecardTab from './ScorecardTab';
 import CumulativeReturnTab from './CumulativeReturnTab';
 import AttributionTab from './AttributionTab';
 import OverseasAttributionTab from './OverseasAttributionTab';
+import UsMarketImpactTab from './UsMarketImpactTab';
 import RiskTab from './RiskTab';
 import TurnoverTab from './TurnoverTab';
 import ConsensusTab from './ConsensusTab';
@@ -42,7 +43,7 @@ const BORDER = '#E8E3DF';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'attribution' | 'oseasattr' | 'risk' | 'turnover' | 'consensus' | 'sector' | 'sectorheatmap' | 'unitwatch' | 'beneficiary' | 'mktcap150' | 'newhigh150' | 'top300ytd' | 'breakissue';
+type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'attribution' | 'oseasattr' | 'usimpact' | 'risk' | 'turnover' | 'consensus' | 'sector' | 'sectorheatmap' | 'unitwatch' | 'beneficiary' | 'mktcap150' | 'newhigh150' | 'top300ytd' | 'breakissue';
 
 /* 頂部導覽分組（13 個分頁收進 4 個下拉選單；不改各分頁邏輯，只改呈現） */
 const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
@@ -60,6 +61,7 @@ const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
     { id: 'risk',        label: '風險指標' },
     { id: 'attribution', label: '國內個股歸因' },
     { id: 'oseasattr', label: '海外個股歸因' },
+    { id: 'usimpact', label: '美股收盤影響' },
     { id: 'sectorheatmap', label: '產業熱力圖' },
   ] },
   { label: '選股與預測', items: [
@@ -650,6 +652,12 @@ export default function Dashboard() {
         {activeTab === 'oseasattr' && (
           <Card title="海外個股歸因比較">
             <OverseasAttributionTab />
+          </Card>
+        )}
+
+        {activeTab === 'usimpact' && (
+          <Card title="美股收盤影響">
+            <UsMarketImpactTab />
           </Card>
         )}
 
