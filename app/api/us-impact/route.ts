@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
     const full = await getUsImpactCached();
     const funds = full.funds.filter((f) => requested.has(f.ticker));
     return NextResponse.json(
-      { usSessionDate: full.usSessionDate, prevSessionDate: full.prevSessionDate, funds, cacheSource: full.cacheSource },
+      { sessionDate: full.sessionDate, prevSessionDate: full.prevSessionDate, funds, cacheSource: full.cacheSource },
       { headers: { 'Cache-Control': 'no-store' } },
     );
   } catch (e) {

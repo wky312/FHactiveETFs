@@ -20,11 +20,11 @@ interface UsImpactStock {
   stockid: string; name: string; weight: number; sret: number; contribution: number; ticker: string;
 }
 interface UsImpactFundResult {
-  ticker: string; name: string; asOfHoldings: string; usWeight: number; coverage: number;
+  ticker: string; name: string; asOfHoldings: string; marketWeight: number; coverage: number;
   totalContribution: number; gainers: UsImpactStock[]; losers: UsImpactStock[]; warning?: string;
 }
 interface UsImpactResult {
-  usSessionDate: string; prevSessionDate: string; funds: UsImpactFundResult[];
+  sessionDate: string; prevSessionDate: string; funds: UsImpactFundResult[];
 }
 
 const pct = (x: number) => `${x >= 0 ? '+' : ''}${(x * 100).toFixed(2)}%`;
@@ -85,7 +85,7 @@ function FundCard({ f, topN, pinned }: { f: UsImpactFundResult; topN: number; pi
       </div>
       <p style={{ margin: '0 0 12px', fontSize: '.74rem', color: SUB, lineHeight: 1.6 }}>
         美股部位估計影響（僅涵蓋美股持股，非全基金報酬）<br />
-        美股持股占淨值 <b>{wpc(f.usWeight)}</b>（已涵蓋報價 {wpc(f.coverage)}）｜持股資料日 {f.asOfHoldings || '—'}
+        美股持股占淨值 <b>{wpc(f.marketWeight)}</b>（已涵蓋報價 {wpc(f.coverage)}）｜持股資料日 {f.asOfHoldings || '—'}
       </p>
       {f.warning && (
         <div style={{ background: '#FFF8E6', border: '1px solid #F2D98A', borderRadius: 6,
@@ -128,7 +128,6 @@ export default function UsMarketImpactTab() {
     } catch (e) {
       setErr(e instanceof Error ? e.message : '查詢失敗');
     } finally { setLoading(false); }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected, topN]);
 
   // 進站自動跑一次（含分享連結帶入的勾選/topN）
@@ -154,12 +153,12 @@ export default function UsMarketImpactTab() {
     if (!res) return;
     const r2 = (x: number) => Number((x * 100).toFixed(2));
     const aoa: (string | number)[][] = [
-      [`美股收盤影響（美股交易日 ${res.usSessionDate} ← ${res.prevSessionDate}）`],
+      [`美股收盤影響（美股交易日 ${res.sessionDate} ← ${res.prevSessionDate}）`],
       [],
     ];
     for (const f of res.funds) {
       aoa.push(
-        [`${f.ticker} ${f.name}`, '美股部位估計影響(%)', r2(f.totalContribution), '美股持股占淨值(%)', r2(f.usWeight), '持股資料日', f.asOfHoldings],
+        [`${f.ticker} ${f.name}`, '美股部位估計影響(%)', r2(f.totalContribution), '美股持股占淨值(%)', r2(f.marketWeight), '持股資料日', f.asOfHoldings],
         ['代號', '名稱', '權重(%)', '昨夜漲跌(%)', '對基金貢獻(%)'],
         ...f.gainers.slice(0, topN).map((s) => [s.stockid, s.name, r2(s.weight), r2(s.sret), r2(s.contribution)]),
         ...f.losers.slice(0, topN).map((s) => [s.stockid, s.name, r2(s.weight), r2(s.sret), r2(s.contribution)]),
@@ -170,12 +169,12 @@ export default function UsMarketImpactTab() {
     ws['!cols'] = [{ wch: 12 }, { wch: 16 }, { wch: 12 }, { wch: 12 }, { wch: 12 } ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, '美股收盤影響');
-    XLSX.writeFile(wb, `美股收盤影響_${res.usSessionDate}.xlsx`);
+    XLSX.writeFile(wb, `美股收盤影響_${res.sessionDate}.xlsx`);
   }, [res, topN]);
 
   const shareImage = useCallback(async () => {
     if (!resultRef.current || !res) return;
-    await captureAndShare(resultRef.current, `美股收盤影響_${res.usSessionDate}.jpg`, '復華主動式ETF 美股收盤影響');
+    await captureAndShare(resultRef.current, `美股收盤影響_${res.sessionDate}.jpg`, '復華主動式ETF 美股收盤影響');
   }, [res]);
 
   const orderedFunds = res
@@ -239,7 +238,7 @@ export default function UsMarketImpactTab() {
           <div ref={resultRef} style={{ background: '#FFFFFF', padding: 2 }}>
             <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 10,
               padding: '12px 18px', marginBottom: 18, fontSize: '.86rem', color: TEXT }}>
-              美股交易日 <b style={{ fontFamily: MONO }}>{res.usSessionDate || '—'}</b>
+              美股交易日 <b style={{ fontFamily: MONO }}>{res.sessionDate || '—'}</b>
               （對前一交易日 <span style={{ fontFamily: MONO }}>{res.prevSessionDate || '—'}</span>）
             </div>
 
