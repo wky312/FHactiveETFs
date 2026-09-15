@@ -16,6 +16,7 @@ import { buildOverseasDayMap, isCashLike, canonOf } from './overseasAttribution'
 import { resolveYfTicker, stockidToYfTicker, TW_BARE_CODE } from './exchangeMap';
 import { fetchTotalReturnSeries } from './yahooFinance';
 import { fetchFxSeries } from './fx';
+import { taipeiDateStr, readPageCache, writePageCache } from './pageCache';
 
 const BATCH = 8;
 const HOLD_CONCURRENCY = 3; // 持股抓取（CMoney/fhtrust）小併發，避免同時打太多請求
@@ -170,4 +171,35 @@ export async function computeUsImpact(tickers: string[]): Promise<UsImpactResult
     prevSessionDate: prevSessionDate ? slashToIso(prevSessionDate) : '',
     funds,
   };
+}
+
+/* ── 快取（比照 lib/top300Ytd.ts：L1 記憶體 10 分鐘 + L2 本專案 Supabase page_cache 跨 instance 共用）──
+   一律算「全部 10 檔候選 ETF」當共用快取本體，不管使用者這次勾了哪幾檔，都是從同一份快取切片，
+   避免不同勾選組合各自重算。一天（台北時區）只需算一次；GET /api/us-impact 無參數（或排程 ping）
+   時觸發計算並落地快取，之後同一天內任何請求（不論勾哪幾檔）都直接命中，不再重打 Yahoo/CMoney。 */
+const MEM_TTL_MS = 10 * 60 * 1000;
+let _memCache: { ts: number; dateKey: string; data: UsImpactResult } | null = null;
+
+export interface UsImpactCachedResult extends UsImpactResult {
+  cacheSource: 'memory' | 'supabase' | 'fresh';
+}
+
+export async function getUsImpactCached(): Promise<UsImpactCachedResult> {
+  const dateKey = taipeiDateStr();
+  const cacheKey = `us-impact:${dateKey}`;
+
+  if (_memCache && _memCache.dateKey === dateKey && Date.now() - _memCache.ts < MEM_TTL_MS) {
+    return { ..._memCache.data, cacheSource: 'memory' };
+  }
+
+  const cached = await readPageCache<UsImpactResult>(cacheKey);
+  if (cached) {
+    _memCache = { ts: Date.now(), dateKey, data: cached };
+    return { ...cached, cacheSource: 'supabase' };
+  }
+
+  const result = await computeUsImpact(OVERSEAS_FUNDS.map((f) => f.ticker));
+  _memCache = { ts: Date.now(), dateKey, data: result };
+  await writePageCache(cacheKey, result);
+  return { ...result, cacheSource: 'fresh' };
 }

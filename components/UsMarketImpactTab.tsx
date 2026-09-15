@@ -14,6 +14,7 @@ const DOWN   = '#1A6B45';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 const PIN_TICKER = '00409A'; // 使用者主力觀測標的，卡片一律釘選在最前面
+const DEFAULT_TICKERS = ['00409A', '00988A', '00411A', '00990A', '00998A']; // 使用者指定的預設觀測清單
 
 interface UsImpactStock {
   stockid: string; name: string; weight: number; sret: number; contribution: number; ticker: string;
@@ -40,14 +41,21 @@ const chipBtn = (active: boolean): React.CSSProperties => ({
   fontSize: '.8rem', fontWeight: 600, fontFamily: SANS,
 });
 
-/* 三欄迷你表：代號/名稱 權重 貢獻 */
-function MiniTable({ title, list, emptyText }: { title: string; list: UsImpactStock[]; emptyText: string }) {
+/* 四欄迷你表：代號/名稱 權重 昨夜漲跌 對基金貢獻 ── titleColor 依正/負貢獻區分（紅=正貢獻、綠=負貢獻） */
+const MINI_GRID = 'minmax(60px,1fr) 56px 64px 64px';
+function MiniTable({ title, titleColor, list, emptyText }:
+  { title: string; titleColor: string; list: UsImpactStock[]; emptyText: string }) {
   return (
     <div>
-      <h4 style={{ margin: '0 0 8px', fontSize: '.78rem', color: SUB, fontWeight: 700 }}>{title}</h4>
+      <h4 style={{ margin: '0 0 6px', fontSize: '.78rem', color: titleColor, fontWeight: 700 }}>{title}</h4>
+      <div style={{ display: 'grid', gridTemplateColumns: MINI_GRID, gap: 8,
+        fontSize: '.68rem', color: SUB, fontWeight: 600, padding: '0 0 4px', borderBottom: `1px solid ${BORDER}` }}>
+        <div>個股</div><div style={{ textAlign: 'right' }}>權重</div>
+        <div style={{ textAlign: 'right' }}>昨夜漲跌</div><div style={{ textAlign: 'right' }}>對基金貢獻</div>
+      </div>
       {list.length === 0 && <p style={{ color: '#B8B2AC', fontSize: '.8rem', margin: '4px 0 10px' }}>{emptyText}</p>}
       {list.map((s) => (
-        <div key={s.stockid} style={{ display: 'grid', gridTemplateColumns: 'minmax(60px,1fr) 56px 64px 64px',
+        <div key={s.stockid} style={{ display: 'grid', gridTemplateColumns: MINI_GRID,
           gap: 8, alignItems: 'center', padding: '6px 0', borderBottom: '1px solid #F0ECE8', fontSize: '.8rem' }}>
           <div style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: TEXT }}>
             {s.name || s.stockid}
@@ -86,8 +94,8 @@ function FundCard({ f, topN, pinned }: { f: UsImpactFundResult; topN: number; pi
         </div>
       )}
       <div style={{ display: 'grid', gap: 14 }}>
-        <MiniTable title={`正貢獻前 ${topN} 大`} list={f.gainers.slice(0, topN)} emptyText="無正貢獻個股" />
-        <MiniTable title={`負貢獻前 ${topN} 大`} list={f.losers.slice(0, topN)} emptyText="無負貢獻個股" />
+        <MiniTable title={`▲ 正貢獻前 ${topN} 大`} titleColor={UP} list={f.gainers.slice(0, topN)} emptyText="無正貢獻個股" />
+        <MiniTable title={`▼ 負貢獻前 ${topN} 大`} titleColor={DOWN} list={f.losers.slice(0, topN)} emptyText="無負貢獻個股" />
       </div>
     </div>
   );
@@ -97,7 +105,7 @@ export default function UsMarketImpactTab() {
   const sp0 = typeof window !== 'undefined' ? new URLSearchParams(window.location.search) : null;
   const allTickers = OVERSEAS_FUNDS.map((f) => f.ticker);
   const initFunds = sp0?.get('funds')?.split(',').filter((t) => allTickers.includes(t));
-  const [selected, setSelected] = useState<string[]>(initFunds?.length ? initFunds : allTickers);
+  const [selected, setSelected] = useState<string[]>(initFunds?.length ? initFunds : DEFAULT_TICKERS);
   const [topN, setTopN] = useState<number>(sp0?.get('topn') === '10' ? 10 : 5);
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState('');
