@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-09-14T20:07:33+08:00",
+  "updated_at": "2026-09-15T19:19:17+08:00",
   "pushed_dates": [
     "2026-07-03",
     "2026-07-06",
@@ -42,18 +42,6 @@
     "2026-09-09"
   ],
   "r3_events": {
-    "2303|2026/07/21": {
-      "direction": "trim",
-      "tier_pushed": 15
-    },
-    "2492|2026/07/21": {
-      "direction": "trim",
-      "tier_pushed": 15
-    },
-    "2344|2026/07/21": {
-      "direction": "trim",
-      "tier_pushed": 15
-    },
     "6223|2026/07/30": {
       "direction": "add",
       "tier_pushed": 30
@@ -75,10 +63,6 @@
       "tier_pushed": 30
     },
     "6669|2026/07/31": {
-      "direction": "add",
-      "tier_pushed": 15
-    },
-    "2408|2026/07/21": {
       "direction": "add",
       "tier_pushed": 15
     },
