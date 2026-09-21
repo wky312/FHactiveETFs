@@ -8,8 +8,12 @@ import {
   exportJsonOverseas, importJsonOverseas, normalizeCodeOverseas,
 } from '@/lib/groupStore';
 import { buildSectorMatrix, resolveStockName, resolveStockNameOverseas, ConsensusResult, SectorExposureResult } from '@/lib/sectorExposure';
+import { buildGicsMatrix, GicsExposureResult } from '@/lib/gicsExposure';
+import GicsExposureView from './GicsExposureView';
 
-type Market = 'tw' | 'overseas';
+/* 'gics' 與 'overseas' 共用同一份持股資料（/api/consensus-overseas）與同一套代碼空間，
+   只是呈現改成 GICS 類別彙總表；自訂族群、個股選擇那一整組介面在 gics 模式下不使用。 */
+type Market = 'tw' | 'overseas' | 'gics';
 
 const RED    = '#C00000';
 const GOLD   = '#B08F6E';
@@ -56,6 +60,7 @@ export default function SectorExposureTab() {
         normalizeCode: normalizeCodeOverseas, resolveName: resolveStockNameOverseas }
   ), [market]);
 
+  const [gicsSec, setGicsSec] = useState<string | null>(null);   // GICS 模式下展開中的類別 id
   const [codes, setCodes] = useState<string[]>([]);
   const [appliedGroups, setAppliedGroups] = useState<string[]>([]);  // 目前疊加套用中的族群名稱，可複數
   const [groupQuery, setGroupQuery] = useState('');       // 族群搜尋框輸入中的文字
@@ -103,8 +108,10 @@ export default function SectorExposureTab() {
     if (urlApplied.current) return;
     urlApplied.current = true;
     const sp = new URLSearchParams(window.location.search);
-    const urlMarket: Market = sp.get('market') === 'overseas' ? 'overseas' : 'tw';
+    const m = sp.get('market');
+    const urlMarket: Market = m === 'gics' ? 'gics' : m === 'overseas' ? 'overseas' : 'tw';
     if (urlMarket !== market) setMarket(urlMarket);
+    if (urlMarket === 'gics') { setGicsSec(sp.get('sec')); return; }   // GICS 模式沒有 codes/g
     const norm = urlMarket === 'tw' ? normalizeCode : normalizeCodeOverseas;
     const all = urlMarket === 'tw' ? listAll : listAllOverseas;
 
@@ -130,11 +137,12 @@ export default function SectorExposureTab() {
     if (!urlApplied.current) return;
     const sp = new URLSearchParams(window.location.search);
     if (sp.get('tab') !== 'sector') return;   // 只在本分頁作用中才動網址
-    if (market === 'overseas') sp.set('market', 'overseas'); else sp.delete('market');
-    if (codes.length) sp.set('codes', codes.join(',')); else sp.delete('codes');
-    if (appliedGroups.length) sp.set('g', appliedGroups.join(',')); else sp.delete('g');
+    if (market === 'tw') sp.delete('market'); else sp.set('market', market);
+    if (market !== 'gics' && codes.length) sp.set('codes', codes.join(',')); else sp.delete('codes');
+    if (market !== 'gics' && appliedGroups.length) sp.set('g', appliedGroups.join(',')); else sp.delete('g');
+    if (market === 'gics' && gicsSec) sp.set('sec', gicsSec); else sp.delete('sec');
     window.history.replaceState(null, '', `${window.location.pathname}?${sp.toString()}`);
-  }, [market, codes, appliedGroups]);
+  }, [market, codes, appliedGroups, gicsSec]);
 
   const groups = useMemo(() => {
     const customNames = new Set(custom.map(g => g.name));
@@ -171,6 +179,11 @@ export default function SectorExposureTab() {
   const result: SectorExposureResult | null = useMemo(
     () => (data && codes.length ? buildSectorMatrix(data, codes, store.resolveName) : null),
     [data, codes, store],
+  );
+
+  const gicsResult: GicsExposureResult | null = useMemo(
+    () => (market === 'gics' && data ? buildGicsMatrix(data) : null),
+    [data, market],
   );
 
   const fundRows = useMemo(() => {
@@ -243,6 +256,29 @@ export default function SectorExposureTab() {
     } catch { /* 剪貼簿不可用時略過 */ }
   };
 
+  const exportGicsExcel = () => {
+    if (!gicsResult) return;
+    const g = gicsResult;
+    const head = ['ETF', '名稱', '持股日', ...g.sectors.map(s => s.zh), '股票合計%'];
+    const body = g.funds.map(f => [
+      f.ticker, f.name, f.holdingDate ?? '', ...g.sectors.map(s => (f.bySector[s.id] ?? 0).toFixed(2)), f.total.toFixed(2),
+    ]);
+    const foot = [
+      ['全市場等權平均', '', '', ...g.sectors.map(s => s.equalAvg.toFixed(3)), g.totalEqualAvg.toFixed(3)],
+      ['持有檔數', '', '', ...g.sectors.map(s => String(s.heldBy)), ''],
+    ];
+    const ws = XLSX.utils.aoa_to_sheet([head, ...body, [], ...foot]);
+    // 第二張表：全部個股依類別列出，Excel 裡可自行篩選
+    const dHead = ['GICS類別', '代號', '名稱', '持有檔數', ...g.funds.map(f => f.ticker), '合計%'];
+    const dBody = g.sectors.flatMap(s => s.stocks.map(st => [
+      s.zh, st.stockid, st.stockname, st.heldBy, ...g.funds.map(f => (st.weights[f.ticker] ?? 0).toFixed(2)), st.sumWeight.toFixed(2),
+    ]));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'GICS類別曝險');
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([dHead, ...dBody]), '個股明細');
+    XLSX.writeFile(wb, `海外GICS類別曝險_${g.asOf}.xlsx`);
+  };
+
   const exportExcel = () => {
     if (!result) return;
     // 海外模式沒有可靠的規模來源（navProxy 恆為 null），拿掉「估計規模」欄與「市值加權」列，
@@ -270,26 +306,48 @@ export default function SectorExposureTab() {
   const switchMarket = (m: Market) => {
     if (m === market) return;
     setMarket(m);
-    setCodes([]); setAppliedGroups([]); setData(null); setError(''); setQuery(''); setGroupQuery('');
+    setCodes([]); setAppliedGroups([]); setData(null); setError(''); setQuery(''); setGroupQuery(''); setGicsSec(null);
   };
 
   return (
     <div style={{ fontFamily: SANS, color: TEXT }}>
       {/* ── 國內/海外切換 ── */}
       <div style={{ display: 'flex', gap: 0, marginBottom: 12, border: `1px solid ${BORDER}`, borderRadius: 8, width: 'fit-content', overflow: 'hidden' }}>
-        {([['tw', '國內'], ['overseas', '海外']] as const).map(([m, label]) => (
+        {([['tw', '國內族群'], ['overseas', '海外族群'], ['gics', '海外GICS分類']] as const).map(([m, label]) => (
           <button key={m} onClick={() => switchMarket(m)}
             style={{
               padding: '7px 20px', border: 'none', cursor: 'pointer', fontSize: '.84rem', fontFamily: SANS,
               fontWeight: market === m ? 700 : 500,
               background: market === m ? RED : CARD, color: market === m ? '#fff' : SUB,
             }}>
-            {label}族群
+            {label}
           </button>
         ))}
       </div>
 
+      {/* ── GICS 類別彙總（不使用下方的族群/個股選擇介面）── */}
+      {market === 'gics' && (
+        <>
+          <p style={{ color: SUB, fontSize: '.85rem', marginTop: 0 }}>
+            依 GICS 11 大類別，看海外 {data?.nFunds ?? 10} 檔主動式 ETF 的股票部位怎麼分配。
+          </p>
+          {loading && <p style={{ color: SUB, fontSize: '.85rem' }}>載入海外持股中…</p>}
+          {error && <p style={{ color: RED, fontSize: '.85rem' }}>{error}</p>}
+          {gicsResult && (
+            <>
+              <div style={{ display: 'flex', gap: 10, alignItems: 'center', marginBottom: 10, flexWrap: 'wrap' }}>
+                <div style={{ flex: 1 }} />
+                <button onClick={copyLink} style={toolBtn}>{copied ? '✓ 連結已複製' : '複製分享連結'}</button>
+                <button onClick={exportGicsExcel} style={toolBtn}>儲存成表格（Excel）</button>
+              </div>
+              <GicsExposureView data={gicsResult} sec={gicsSec} onSec={setGicsSec} />
+            </>
+          )}
+        </>
+      )}
+
       {/* ── 族群選擇 ── */}
+      {market !== 'gics' && (<>
       <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center', marginBottom: 10 }}>
         <div style={{ position: 'relative' }}>
           <input
@@ -522,6 +580,7 @@ export default function SectorExposureTab() {
           </p>
         </>
       )}
+      </>)}
     </div>
   );
 }
