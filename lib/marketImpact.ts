@@ -36,6 +36,9 @@ export interface MarketImpactSpec {
   weightBasis: 'latest' | 'prev-session';
   /** 這個交易日的收盤是否已定案。台股要等收盤＋報價落定，美股對台北是隔夜、恆為 true。 */
   isSessionSettled(sessionDate: string): boolean;
+  /** 這個交易日的結果可以寫進持久快取（Supabase page_cache）了嗎。省略＝一律可以。
+   *  台股在「剛收盤、日 K 應該已落定但沒實測」的緩衝時段回 false：結果只進記憶體快取，不鎖一整天。 */
+  canPersist?(sessionDate: string): boolean;
   /** 探快取鍵用的代表性標的（挑本市場一定有報價、不會下市的指標，例：'SPY' / '0050.TW'）。
    *  只為了先知道「現在該算哪個交易日」，避免拿日曆日當快取鍵而在假日重算。 */
   probeTicker: string;
@@ -137,7 +140,7 @@ export async function computeMarketImpact(spec: MarketImpactSpec, tickers: strin
   }
 
   // 交易日：由新到舊找第一個「已定案」的日期當 sessionDate，它前面那個是 prevSessionDate。
-  // 台股盤中（14:10 前）今天的收盤還沒定案 → 整個往前挪一天，不會把盤中價寫進當日快取。
+  // 台股盤中（13:50 前）今天的收盤還沒定案 → 整個往前挪一天，不會把盤中價寫進當日快取。
   const sortedDates = [...allDates].sort();
   let sessionDate = '';
   let prevSessionDate = '';
@@ -260,6 +263,7 @@ export async function getMarketImpactCached(spec: MarketImpactSpec): Promise<Cac
   const result = await computeMarketImpact(spec, spec.funds.map((f) => f.ticker));
   _memCache.set(cacheKey, { ts: Date.now(), data: result });
   // 只有真的算出交易日才落地，否則（Yahoo 全掛）會把一份空結果鎖在快取裡一整天。
-  if (result.sessionDate) await writePageCache(cacheKey, result);
+  // 緩衝時段（spec.canPersist 回 false）也只留在記憶體，等 TTL 過了重算。
+  if (result.sessionDate && (spec.canPersist?.(result.sessionDate) ?? true)) await writePageCache(cacheKey, result);
   return { ...result, cacheSource: 'fresh' };
 }

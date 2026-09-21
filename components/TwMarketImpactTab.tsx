@@ -241,7 +241,7 @@ export default function TwMarketImpactTab() {
               台股交易日 <b style={{ fontFamily: MONO }}>{res.sessionDate || '—'}</b>
               （對前一交易日 <span style={{ fontFamily: MONO }}>{res.prevSessionDate || '—'}</span>）
               <span style={{ color: SUB, fontSize: '.78rem', marginLeft: 8 }}>
-                台股 13:30 收盤、日 K 還要一段時間才落定，所以 14:10 前一律顯示前一個交易日。
+                台股 13:30 收盤，Yahoo 行情約延遲 20 分鐘，所以 13:50 前顯示前一個交易日。
               </span>
             </div>
 

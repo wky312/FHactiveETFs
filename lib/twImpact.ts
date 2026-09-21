@@ -7,7 +7,7 @@
  *      交易日都公布持股，拿得到；美股版沿用「最新一筆持股」的舊口徑，不在這次一起改。
  *   3. 上櫃退路：resolveYfTicker 回 .TW 主代號 + .TWO 退路，兩個都餵給報價層。不做這件事，
  *      上櫃成分股（例：3529 力旺、6510 精測）會整欄查無報價。
- *   4. 收盤時點閘門——見 isTwSessionSettled。
+ *   4. 收盤時點閘門——見 isTwSessionSettled／canPersistTwSession。
  */
 import { TW_ACTIVE_FUNDS } from './twActiveFunds';
 import { resolveYfTicker, TW_BARE_CODE, stockidToYfTicker } from './exchangeMap';
@@ -16,20 +16,39 @@ import {
   computeMarketImpact, getMarketImpactCached,
 } from './marketImpact';
 
-/** 台股收盤 13:30，但 Yahoo 的日 K 要再等一段才落定（盤中延遲 15–20 分鐘，日 K 通常 14:00
- *  前後才是最終收盤）。14:10 前一律不採用「今天」這根，改用前一個交易日。
+/** 台股收盤 13:30，Yahoo 台股行情約延遲 20 分鐘，所以 13:50 起「今天」那根日 K 才是最終收盤。
+ *  13:50 前一律不採用「今天」這根，改用前一個交易日。
+ *
+ *  兩道時點：
+ *   - 13:50（TW_SETTLE_HHMM）：開始採用今天的收盤價。
+ *   - 14:10（TW_PERSIST_HHMM）：才允許把結果寫進 Supabase 當日快取。13:50–14:10 是「應該已落定、
+ *     但延遲多久沒有實測過」的緩衝，算出來的結果只放記憶體（10 分鐘 TTL），萬一 Yahoo 那根還沒定案，
+ *     錯的數字最多留 10 分鐘，不會像寫進 page_cache 那樣鎖一整天。
  *
  *  ⚠ 這道閘門是台股版存在的理由之一：美股收盤對台北是隔夜，分頁再怎麼早開也不會撞到
  *  「盤中未定案」；台股會——早上十點打開分頁，若照美股版的寫法就會拿當下的盤中價當收盤，
  *  還會被寫進當日快取、一整天都是錯的。 */
-export function isTwSessionSettled(sessionDateIso: string, now: Date = new Date()): boolean {
+const TW_SETTLE_HHMM = '13:50';
+const TW_PERSIST_HHMM = '14:10';
+
+function twClockGate(sessionDateIso: string, now: Date, hhmmThreshold: string): boolean {
   const today = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Taipei' });
   if (sessionDateIso < today) return true;    // 過去的交易日，早就定案
   if (sessionDateIso > today) return false;   // 不該發生（時區怪異時保守拒收）
   const hhmm = now.toLocaleTimeString('en-GB', {
     timeZone: 'Asia/Taipei', hour12: false, hour: '2-digit', minute: '2-digit',
   });
-  return hhmm >= '14:10';
+  return hhmm >= hhmmThreshold;
+}
+
+/** 這個交易日的收盤價可以採用了嗎（13:50 起，見上方說明）。 */
+export function isTwSessionSettled(sessionDateIso: string, now: Date = new Date()): boolean {
+  return twClockGate(sessionDateIso, now, TW_SETTLE_HHMM);
+}
+
+/** 這個交易日的結果可以寫進跨 instance 的持久快取嗎（14:10 起）。 */
+export function canPersistTwSession(sessionDateIso: string, now: Date = new Date()): boolean {
+  return twClockGate(sessionDateIso, now, TW_PERSIST_HHMM);
 }
 
 /** 這筆持股算不算台股上市／上櫃。
@@ -53,6 +72,7 @@ export const TW_IMPACT_SPEC: MarketImpactSpec = {
   fxCurrency: null,                 // 台股台幣計價，不換匯
   weightBasis: 'prev-session',
   isSessionSettled: (d) => isTwSessionSettled(d),
+  canPersist: (d) => canPersistTwSession(d),
   probeTicker: '0050.TW',           // 台股一定有報價、不會下市的指標
 };
 
