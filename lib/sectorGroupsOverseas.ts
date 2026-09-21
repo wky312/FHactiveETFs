@@ -41,6 +41,15 @@ import { SectorGroup } from './sectorGroups';
      原物料能源貴金屬 ← KGC Kinross（金礦，同組已有 AEM/WPM/GDX）
      醫療科技與生技 ← TWST Twist Bioscience（合成 DNA，與同組 NTRA/TEM 同性質）
 
+   2026-09-21：比對 00409A/00988A/00411A/00990A/00998A 最新持股，補 8 檔進現有族群、**不開新組**。
+   組數維持 29、276→284 檔。
+     軟體資安與 AI 雲端 ← OKTA（身分驗證資安，與同組 CRWD/ZS/PANW 同性質）
+     消費網路與平台 ← 6098.T 瑞可利（Indeed/Glassdoor 求職平台，與同組 EXPE/DASH 同屬線上平台）
+     銀行 ← C 花旗、8411.T 瑞穗、055550.KS 新韓、KBC.BR 比利時聯合金融（KBC 雖是銀行保險集團，
+       營收以銀行為主）
+     保險 ← CS.PA 安盛、EQH 公平控股（美國壽險／退休金為主，旗下 AllianceBernstein 資管非主體）
+   ⚠ 00989A/00997A 另有一批未分類，使用者指示先列出、暫不補。
+
    2026-09-14（第二批）：把其餘四檔海外主動式ETF 一起補完——00998A(48檔)／00983A(44檔)／
    00402A(50檔)／00986A(36檔)。這批 85 檔有大半接不住，因為前 23 組清一色是「科技供應鏈／
    算力主線」視角，完全沒有金融、國防、媒體類別 → 開 6 個新組（銀行／保險／資產管理券商／
@@ -64,7 +73,7 @@ export const BUILTIN_GROUPS_OVERSEAS: SectorGroup[] = [
   { name: '光通訊與矽光子 / CPO (Optical & CPO)', codes: ['LITE', 'COHR', '300308.SZ', '3308.HK', '4979.TWO', 'FN', 'CIEN', '6442.TW', '3363.TWO', '3081.TWO', 'AXTI'], builtin: true },
   { name: '載板與高階 PCB / 材料 (Substrates & PCB)', codes: ['3037.TW', '2383.TW', '301377.SZ', '8046.TW', '3189.TW', '4062.T', '6967.T', '2368.TW', '6274.TW', '600183.SS'], builtin: true },
   { name: '記憶體與高容量儲存 (Memory & Storage)', codes: ['MU', '285A.T', 'STX', 'WDC', '000660.KS', '005930.KS', 'PSTG', '8299.TWO', '2408.TW', 'SNDK', 'SKHY', 'SIMO'], builtin: true },
-  { name: '軟體、資安與 AI 雲端服務 (SaaS & Security)', codes: ['PANW', 'SNOW', 'PLTR', 'NET', 'TWLO', '4180.T', 'CRWD', 'NOW', 'DDOG', 'ZS', 'CRM', 'NTSK', 'FSLY', 'FIG', 'IOT', 'MDB'], builtin: true },
+  { name: '軟體、資安與 AI 雲端服務 (SaaS & Security)', codes: ['PANW', 'SNOW', 'PLTR', 'NET', 'TWLO', '4180.T', 'CRWD', 'NOW', 'DDOG', 'ZS', 'CRM', 'NTSK', 'FSLY', 'FIG', 'IOT', 'MDB', 'OKTA'], builtin: true },
   { name: '高速傳輸與網通介面 (Transmission & Networking)', codes: ['CRDO', 'MRVL', '5801.T', 'ANET', 'ALAB', 'CSCO', '2379.TW', 'SMTC', '2345.TW', '3665.TW', 'NOK'], builtin: true },
   { name: '被動元件與電子零組件 (Passive Components)', codes: ['009150.KS', '6981.T', '300408.SZ', '2327.TW', '6997.T', '6762.T', '6976.T', '2492.TW', '3026.TW', 'SITM'], builtin: true },
   { name: 'AI 伺服器電源與散熱 (Power & Cooling)', codes: ['2308.TW', '3017.TW', '3324.TW', '3653.TW', '2301.TW', 'SMCI', '8996.TW'], builtin: true },
@@ -93,15 +102,15 @@ export const BUILTIN_GROUPS_OVERSEAS: SectorGroup[] = [
   /* 2026-09-07 新增：00409A 的 EXPE、00988A 的 DASH 都是「消費網路／平台經濟」，
      跟前 22 組（清一色科技供應鏈／算力主線）完全不同性質，故獨立成組。
      UBER 留在「電動車、自駕與出行平台」不動（那組的敘事是出行，不是純平台）。 */
-  { name: '消費網路與平台 (Consumer Internet & Platforms)', codes: ['EXPE', 'DASH', 'SHOP', 'BKNG', 'BABA'], builtin: true },
+  { name: '消費網路與平台 (Consumer Internet & Platforms)', codes: ['EXPE', 'DASH', 'SHOP', 'BKNG', 'BABA', '6098.T'], builtin: true },
   /* 2026-09-14 新增 6 組：00998A(全球金融)、00983A(ARK創新)、00402A(美國科技)、00986A(全球龍頭)
      的持股有大半接不住——前 23 組是「科技供應鏈／算力主線」視角，完全沒有金融、國防、媒體。
      ⚠ 一檔股票只能屬於一組（見上方 SMCI 的說明），所以 UBS/GS 這種「銀行 vs 券商」邊界股
         是照主要營收性質二選一，不是兩邊都放。 */
   // 商業銀行／universal bank。00998A 一檔就吃掉 27 檔，是目前最大的一組——它本來就是
   // 全球金融股票 ETF，這個數字反映的是基金本身的集中度，不是分類切太細。
-  { name: '銀行 (Banks)', codes: ['JPM', 'BAC', 'WFC', 'UBS', 'BNY', 'HSBA.L', 'BARC.L', 'LLOY.L', 'NWG.L', 'STAN.L', 'DBK.DE', 'BNP.PA', 'GLE.PA', 'INGA.AS', 'ABN.AS', 'CABK.MC', 'UCG.MI', 'BAMI.MI', 'BMPS.MI', 'ETE.AT', 'TPEIR.AT', 'BOCHGR.AT', '8306.T', '8308.T', '8309.T', '8331.T', '8377.T', '7167.T'], builtin: true },
-  { name: '保險 (Insurance)', codes: ['AV.L', 'ADM.L', 'LGEN.L', 'MNG.L', 'SDLF.L', 'AGN.AS', 'ASRNL.AS', 'G.MI', 'UNI.MI'], builtin: true },
+  { name: '銀行 (Banks)', codes: ['JPM', 'BAC', 'WFC', 'UBS', 'BNY', 'HSBA.L', 'BARC.L', 'LLOY.L', 'NWG.L', 'STAN.L', 'DBK.DE', 'BNP.PA', 'GLE.PA', 'INGA.AS', 'ABN.AS', 'CABK.MC', 'UCG.MI', 'BAMI.MI', 'BMPS.MI', 'ETE.AT', 'TPEIR.AT', 'BOCHGR.AT', '8306.T', '8308.T', '8309.T', '8331.T', '8377.T', '7167.T', 'C', '8411.T', '055550.KS', 'KBC.BR'], builtin: true },
+  { name: '保險 (Insurance)', codes: ['AV.L', 'ADM.L', 'LGEN.L', 'MNG.L', 'SDLF.L', 'AGN.AS', 'ASRNL.AS', 'G.MI', 'UNI.MI', 'CS.PA', 'EQH'], builtin: true },
   // 資產管理／另類投資／券商：GS 與 MRX 主要營收來自投行與經紀撮合，不放「銀行」。
   { name: '資產管理、券商與另類投資 (Asset Managers & Brokers)', codes: ['BLK', 'BX', 'ARES', 'AMUN.PA', 'GS', 'MRX'], builtin: true },
   // AXON 的 GICS 分類就是 Aerospace & Defense（執法／公共安全裝備＋無人機），不是 SaaS。
@@ -113,6 +122,9 @@ export const BUILTIN_GROUPS_OVERSEAS: SectorGroup[] = [
 ];
 
 export const STOCK_NAMES_OVERSEAS: Record<string, string> = {
+  // 2026-09-21 新增（比對 00409A/00988A/00411A/00990A/00998A 最新持股，補 8 檔進現有族群、不開新組）
+  'OKTA': 'Okta', '6098.T': '瑞可利控股', 'C': '花旗集團', '8411.T': '瑞穗金融集團',
+  '055550.KS': '新韓金融集團', 'KBC.BR': '比利時聯合金融', 'CS.PA': '安盛集團', 'EQH': '公平控股',
   // 2026-09-14 第二批（00998A / 00983A / 00402A / 00986A，補 6 個新組 + 併進既有組）
   // 銀行
   'WFC': '富國銀行', 'UBS': '瑞銀集團', 'BNY': '紐約梅隆銀行', 'HSBA.L': '匯豐控股',
