@@ -203,6 +203,8 @@ export async function fetchTotalReturnSeries(
   return { currency: data.currency, bars };
 }
 
+const PREV_CLOSE_TOLERANCE = 0.03;
+
 export async function fetchStockPerformance(
   stockid: string,
   stockname: string,
@@ -254,7 +256,14 @@ export async function fetchStockPerformance(
       ?? data.regularMarketPrice
       ?? (marketClosedToday ? sorted[0]?.close ?? null : null);
     // Priority: yf.quote() prevClose → chart prev close row
-    const prevClose = quote?.prevClose
+    // Yahoo quote 的昨收偶爾是壞的（0050 曾回 102、實際 109.85 → 當日漲幅假顯示 9%）。
+    // 昨收理應等於最近幾根 K 棒之一的收盤；與最近 3 根都差超過 3% 就不採信，退回 K 棒。
+    const recentCloses: number[] = sorted.slice(0, 3)
+      .map((r: any) => r.close).filter((c: unknown): c is number => typeof c === 'number' && c > 0);
+    const quotePrevOk = quote?.prevClose != null
+      && (recentCloses.length === 0
+        || recentCloses.some(c => Math.abs(c - quote!.prevClose!) / c <= PREV_CLOSE_TOLERANCE));
+    const prevClose = (quotePrevOk ? quote?.prevClose : null)
       ?? (marketClosedToday ? sorted[1]?.close : sorted[0]?.close);
 
     let pctCustom: number | null = null;
