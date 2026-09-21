@@ -31,6 +31,22 @@ export function isUsListed(stockid: string): boolean {
   return /^[A-Za-z][A-Za-z.\-]{0,5}$/.test(s); // 裸英文代號 → 視為美股
 }
 
+/** 美股收盤 16:00 ET，再留 30 分鐘讓 Yahoo 日 K 落定成最終收盤，之後才採用該交易日這根。
+ *
+ *  ⚠ 美股收盤對台北雖是隔夜，但「隔夜」正是台北的深夜～清晨：週五晚上 23:00 打開分頁就是美股盤中，
+ *  Yahoo 日 K 最後一根的 close 是當下即時價。舊版寫死 true，2026-09-18 盤中（11:05 ET）被開一次，
+ *  盤中價就被寫進以交易日為鍵的 page_cache、整天鎖死（HOOD 顯示 +7.70%，實際收盤 +9.12%）。
+ *  未定案時 computeMarketImpact 會自動退回前一個已收盤的交易日，也不會寫入當日快取。 */
+export function isUsSessionSettled(sessionDateIso: string, now: Date = new Date()): boolean {
+  const today = now.toLocaleDateString('en-CA', { timeZone: 'America/New_York' });
+  if (sessionDateIso < today) return true;    // 過去的交易日，早就定案
+  if (sessionDateIso > today) return false;   // 不該發生，保守拒收
+  const hhmm = now.toLocaleTimeString('en-GB', {
+    timeZone: 'America/New_York', hour12: false, hour: '2-digit', minute: '2-digit',
+  });
+  return hhmm >= '16:30';
+}
+
 export const US_IMPACT_SPEC: MarketImpactSpec = {
   cacheKeyPrefix: 'us-impact',
   funds: OVERSEAS_FUNDS,
@@ -40,8 +56,8 @@ export const US_IMPACT_SPEC: MarketImpactSpec = {
   // 美股版維持原口徑（最新一筆持股）。台股版改用 T−1 是因為台股主動式ETF 每日都公布持股、
   // 拿得到；這裡不順手改，避免既有分頁的數字無預警變動。
   weightBasis: 'latest',
-  // 美股收盤對台北時間是隔夜，分頁再怎麼早開都不會撞到「今天盤中還沒定案」。
-  isSessionSettled: () => true,
+  // 美股盤中（台北深夜～清晨）Yahoo 日 K 最後一根是即時價，要等 16:30 ET 後才算定案。
+  isSessionSettled: (d) => isUsSessionSettled(d),
   probeTicker: 'SPY',
 };
 
