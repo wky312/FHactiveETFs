@@ -1,0 +1,547 @@
+'use client';
+import { useEffect, useMemo, useState } from 'react';
+import PlotlyWrapper from './PlotlyWrapper';
+import type { CalendarPayload, Category, MarketEvent, Metric, ReactionStats } from '@/lib/marketCalendar/types';
+import { CATEGORY_META, METRIC_LABEL_ZH } from '@/lib/marketCalendar/config';
+
+/* ── 復華設計 token（與 Dashboard 一致）── */
+const RED    = '#C00000';   // 台股慣例：漲 / 高於預期 = 紅
+const GREEN  = '#1A6B45';   // 跌 / 低於預期 = 綠
+const GOLD   = '#B08F6E';
+const CARD   = '#FFFFFF';
+const HEADER = '#F7F4F0';
+const TEXT   = '#1C1C1E';
+const SUB    = '#6B6460';
+const BORDER = '#E8E3DF';
+const GRID   = '#EFEAE4';
+const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
+const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
+
+const CATS = Object.keys(CATEGORY_META) as Category[];
+const TZ = { tpe: { id: 'Asia/Taipei', label: '台灣時間' }, et: { id: 'America/New_York', label: '美東時間' } } as const;
+type TzKey = keyof typeof TZ;
+const DAY = 86400_000;
+
+/* ── helpers ── */
+const ymdIn = (ms: number, tz: string) => new Date(ms).toLocaleDateString('en-CA', { timeZone: tz });
+const addDays = (ymd: string, n: number) => {
+  const [y, m, d] = ymd.split('-').map(Number);
+  return new Date(Date.UTC(y, m - 1, d + n)).toISOString().slice(0, 10);
+};
+const WEEK = ['日', '一', '二', '三', '四', '五', '六'];
+const wd = (ymd: string) => WEEK[new Date(ymd + 'T00:00:00Z').getUTCDay()];
+const md = (ymd: string) => `${Number(ymd.slice(5, 7))}/${Number(ymd.slice(8, 10))}`;
+
+/* 事件在所選時區的日期與時間（整天事件用它自己的當地日期，不做時區換算） */
+function when(e: MarketEvent, tz: string): { date: string; time: string | null } {
+  if (e.allDay) return { date: e.date, time: null };
+  const ms = Date.parse(e.start);
+  const time = new Date(ms).toLocaleTimeString('en-GB', { timeZone: tz, hour: '2-digit', minute: '2-digit', hour12: false });
+  return { date: ymdIn(ms, tz), time };
+}
+
+const endMs = (e: MarketEvent) => e.allDay ? Date.parse(addDays(e.endDate ?? e.date, 1) + 'T00:00:00+08:00') : Date.parse(e.start);
+
+function countdown(ms: number): string {
+  if (ms <= 0) return '進行中';
+  const d = Math.floor(ms / DAY), h = Math.floor((ms % DAY) / 3600_000), m = Math.floor((ms % 3600_000) / 60_000);
+  return d > 0 ? `${d} 天 ${h} 小時` : h > 0 ? `${h} 小時 ${m} 分` : `${m} 分鐘`;
+}
+
+const num = (s: string | null | undefined) => {
+  if (!s) return null;
+  const v = parseFloat(s.replace(/[%K,]/g, ''));
+  return Number.isFinite(v) ? v : null;
+};
+const fin = (x: number | null | undefined): x is number => typeof x === 'number' && Number.isFinite(x);
+const signPct = (x: number | null | undefined, d = 2) => fin(x) ? `${x > 0 ? '+' : ''}${x.toFixed(d)}%` : '—';
+const upDown = (x: number | null | undefined) => fin(x) ? (x > 0 ? RED : x < 0 ? GREEN : TEXT) : SUB;
+
+/* ── 小元件 ── */
+function Section({ title, note, right, children }: { title: string; note?: string; right?: React.ReactNode; children: React.ReactNode }) {
+  return (
+    <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, overflow: 'hidden', boxShadow: '0 1px 3px rgba(28,28,30,.05)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '12px 18px', background: HEADER, borderBottom: `1px solid ${BORDER}`, flexWrap: 'wrap' }}>
+        <div>
+          <div style={{ fontSize: '.98rem', fontWeight: 700, color: TEXT, fontFamily: SANS }}>{title}</div>
+          {note && <div style={{ fontSize: '.76rem', color: SUB, marginTop: 2, fontFamily: SANS }}>{note}</div>}
+        </div>
+        {right}
+      </div>
+      <div style={{ padding: 18 }}>{children}</div>
+    </div>
+  );
+}
+
+function CatChip({ c, small }: { c: Category; small?: boolean }) {
+  const m = CATEGORY_META[c];
+  return (
+    <span style={{
+      display: 'inline-block', padding: small ? '1px 7px' : '2px 9px', borderRadius: 999, fontSize: small ? '.7rem' : '.74rem',
+      color: m.color, background: `${m.color}14`, border: `1px solid ${m.color}40`, fontWeight: 600, whiteSpace: 'nowrap',
+    }}>{m.label}</span>
+  );
+}
+
+const Stars = ({ n }: { n: number }) => (
+  <span title={`重要性 ${n}/3`} style={{ color: n === 3 ? RED : GOLD, letterSpacing: 1, fontSize: '.78rem', whiteSpace: 'nowrap' }}>
+    {'★'.repeat(n)}<span style={{ color: GRID }}>{'★'.repeat(3 - n)}</span>
+  </span>
+);
+
+const Tentative = () => (
+  <span style={{ fontSize: '.7rem', color: SUB, border: `1px dashed ${SUB}`, borderRadius: 4, padding: '0 5px', whiteSpace: 'nowrap' }}>預估</span>
+);
+
+function toggleBtn(active: boolean): React.CSSProperties {
+  return {
+    padding: '5px 12px', borderRadius: 999, cursor: 'pointer', fontSize: '.8rem', fontFamily: SANS, fontWeight: 600,
+    border: `1.4px solid ${active ? RED : BORDER}`, background: active ? RED : '#fff', color: active ? '#fff' : SUB,
+  };
+}
+
+/* ── 預期 vs 實際 ── */
+function Surprise({ m }: { m: Metric }) {
+  const a = num(m.actual), f = num(m.forecast);
+  if (a == null || f == null) return <span style={{ color: SUB }}>—</span>;
+  const d = +(a - f).toFixed(2);
+  if (d === 0) return <span style={{ color: TEXT }}>符合預期</span>;
+  return <span style={{ color: d > 0 ? RED : GREEN, fontWeight: 600 }}>{d > 0 ? '▲ 高於' : '▼ 低於'}預期 {Math.abs(d)}{m.actual?.includes('%') ? ' 個百分點' : m.actual?.includes('K') ? 'K' : ''}</span>;
+}
+
+function MetricsTable({ metrics }: { metrics: Metric[] }) {
+  const th: React.CSSProperties = { textAlign: 'right', padding: '6px 10px', color: SUB, fontWeight: 500, borderBottom: `1px solid ${BORDER}`, whiteSpace: 'nowrap' };
+  const td: React.CSSProperties = { textAlign: 'right', padding: '6px 10px', fontFamily: MONO, borderBottom: `1px solid ${GRID}`, whiteSpace: 'nowrap' };
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ borderCollapse: 'collapse', fontSize: '.82rem', minWidth: 460 }}>
+        <thead><tr>
+          <th style={{ ...th, textAlign: 'left' }}>項目</th><th style={th}>市場預期</th><th style={th}>前值</th><th style={th}>實際</th><th style={th}>意外幅度</th>
+        </tr></thead>
+        <tbody>
+          {metrics.map(m => (
+            <tr key={m.label}>
+              <td style={{ ...td, textAlign: 'left', fontFamily: SANS }}>{METRIC_LABEL_ZH[m.label] ?? m.label}</td>
+              <td style={td}>{m.forecast ?? '—'}</td>
+              <td style={td}>{m.previous ?? '—'}</td>
+              <td style={{ ...td, fontWeight: 700 }}>{m.actual ?? '—'}</td>
+              <td style={{ ...td, fontFamily: SANS }}><Surprise m={m} /></td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/* ── 歷史反應 ── */
+function ReactionTable({ h }: { h: ReactionStats }) {
+  const th: React.CSSProperties = { textAlign: 'right', padding: '6px 10px', color: SUB, fontWeight: 500, borderBottom: `1px solid ${BORDER}`, whiteSpace: 'nowrap' };
+  const td: React.CSSProperties = { textAlign: 'right', padding: '6px 10px', fontFamily: MONO, borderBottom: `1px solid ${GRID}`, whiteSpace: 'nowrap' };
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ borderCollapse: 'collapse', fontSize: '.82rem', minWidth: 620 }}>
+        <thead><tr>
+          <th style={{ ...th, textAlign: 'left' }}>市場</th>
+          <th style={th}>T+1 平均</th><th style={th}>T+1 中位數</th><th style={th}>T+1 上漲機率</th>
+          <th style={th}>T+5 平均</th><th style={th}>T+5 上漲機率</th><th style={th}>波動放大</th><th style={th}>樣本</th>
+        </tr></thead>
+        <tbody>
+          {h.markets.map(m => (
+            <tr key={m.symbol}>
+              <td style={{ ...td, textAlign: 'left', fontFamily: SANS, fontWeight: 600 }}>{m.name}</td>
+              <td style={{ ...td, color: upDown(m.t1.mean) }}>{signPct(m.t1.mean)}</td>
+              <td style={{ ...td, color: upDown(m.t1.median) }}>{signPct(m.t1.median)}</td>
+              <td style={td}>{fin(m.t1.upPct) ? `${m.t1.upPct}%` : '—'}</td>
+              <td style={{ ...td, color: upDown(m.t5.mean) }}>{signPct(m.t5.mean)}</td>
+              <td style={td}>{fin(m.t5.upPct) ? `${m.t5.upPct}%` : '—'}</td>
+              <td style={{ ...td, fontWeight: 700, color: fin(m.volRatio) && m.volRatio >= 1.3 ? RED : TEXT }}>{fin(m.volRatio) ? `${m.volRatio.toFixed(2)}x` : '—'}</td>
+              <td style={{ ...td, color: SUB }}>{m.n}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+function SamplesTable({ h }: { h: ReactionStats }) {
+  const syms = h.markets.map(m => m.symbol);
+  const th: React.CSSProperties = { textAlign: 'right', padding: '5px 8px', color: SUB, fontWeight: 500, borderBottom: `1px solid ${BORDER}`, whiteSpace: 'nowrap' };
+  const td: React.CSSProperties = { textAlign: 'right', padding: '5px 8px', fontFamily: MONO, borderBottom: `1px solid ${GRID}`, whiteSpace: 'nowrap' };
+  return (
+    <div style={{ overflowX: 'auto' }}>
+      <table style={{ borderCollapse: 'collapse', fontSize: '.78rem', minWidth: 560 }}>
+        <thead><tr>
+          <th style={{ ...th, textAlign: 'left' }}>日期</th><th style={{ ...th, textAlign: 'left' }}>事件</th>
+          {h.markets.map(m => <th key={m.symbol} style={th}>{m.name} T+1</th>)}
+        </tr></thead>
+        <tbody>
+          {h.samples.map(s => (
+            <tr key={s.id}>
+              <td style={{ ...td, textAlign: 'left' }}>{s.date}</td>
+              <td style={{ ...td, textAlign: 'left', fontFamily: SANS }}>{s.title}</td>
+              {syms.map(sym => <td key={sym} style={{ ...td, color: upDown(s.moves[sym]?.t1) }}>{signPct(s.moves[sym]?.t1)}</td>)}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/* ── 事件列 ── */
+function EventRow({ e, tz, now, open, onToggle, history }: {
+  e: MarketEvent; tz: string; now: number; open: boolean; onToggle: () => void; history?: ReactionStats;
+}) {
+  const w = when(e, tz);
+  const past = endMs(e) < now;
+  const lead = e.metrics?.find(m => m.actual || m.forecast);
+  const days = Math.ceil((Date.parse(e.allDay ? e.date + 'T00:00:00+08:00' : e.start) - now) / DAY);
+  return (
+    <div style={{ borderBottom: `1px solid ${GRID}`, opacity: past ? 0.62 : 1 }}>
+      <button onClick={onToggle} style={{
+        all: 'unset', boxSizing: 'border-box', width: '100%', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 12,
+        padding: '10px 6px', flexWrap: 'wrap', fontFamily: SANS,
+      }}>
+        <div style={{ width: 86, flexShrink: 0 }}>
+          <div style={{ fontFamily: MONO, fontWeight: 700, color: TEXT, fontSize: '.92rem' }}>
+            {md(w.date)}<span style={{ fontFamily: SANS, fontWeight: 500, color: SUB, fontSize: '.78rem' }}> ({wd(w.date)})</span>
+          </div>
+          <div style={{ fontFamily: MONO, color: SUB, fontSize: '.76rem' }}>
+            {w.time ?? (e.endDate ? `至 ${md(e.endDate)}` : '整天')}
+          </div>
+        </div>
+        <div style={{ flex: '1 1 240px', minWidth: 0 }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+            <Stars n={e.importance} />
+            <span style={{ fontWeight: 700, color: TEXT, fontSize: '.92rem' }}>{e.title}</span>
+            {e.tentative && <Tentative />}
+          </div>
+          {lead && (
+            <div style={{ fontSize: '.76rem', color: SUB, marginTop: 3, fontFamily: MONO }}>
+              {METRIC_LABEL_ZH[lead.label] ?? lead.label}：
+              {lead.forecast && <>預期 {lead.forecast}　</>}
+              {lead.actual && <b style={{ color: TEXT }}>實際 {lead.actual}</b>}
+            </div>
+          )}
+        </div>
+        <CatChip c={e.category} small />
+        <div style={{ width: 64, textAlign: 'right', fontSize: '.78rem', color: days <= 3 && !past ? RED : SUB, fontWeight: days <= 3 && !past ? 700 : 400 }}>
+          {past ? '已過' : days <= 0 ? '今天' : `${days} 天後`}
+        </div>
+        <span style={{ color: SUB, fontSize: '.8rem', width: 12 }}>{open ? '▾' : '▸'}</span>
+      </button>
+      {open && (
+        <div style={{ padding: '4px 6px 16px 104px', display: 'grid', gap: 14 }} className="mc-detail">
+          {e.note && <div style={{ fontSize: '.84rem', color: TEXT, lineHeight: 1.6 }}>{e.note}</div>}
+          {e.metrics && e.metrics.length > 0 && <MetricsTable metrics={e.metrics} />}
+          {history ? (
+            <div style={{ display: 'grid', gap: 8 }}>
+              <div style={{ fontSize: '.84rem', fontWeight: 700, color: TEXT }}>
+                歷史市場反應：{history.label}<span style={{ fontWeight: 400, color: SUB }}>（{history.n} 次樣本，事件後第 1 / 第 5 個交易日）</span>
+              </div>
+              <ReactionTable h={history} />
+              <details>
+                <summary style={{ cursor: 'pointer', fontSize: '.8rem', color: SUB }}>最近 {history.samples.length} 次明細</summary>
+                <div style={{ marginTop: 8 }}><SamplesTable h={history} /></div>
+              </details>
+            </div>
+          ) : (
+            <div style={{ fontSize: '.8rem', color: SUB }}>此類事件尚無歷史反應樣本。</div>
+          )}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ── 時間軸（未來 12 個月） ── */
+function Timeline({ events, now }: { events: MarketEvent[]; now: number }) {
+  const { traces, layout } = useMemo(() => {
+    const from = ymdIn(now, 'Asia/Taipei');
+    const to = addDays(from, 365);
+    const traces = CATS.map(c => {
+      const evs = events.filter(e => e.category === c);
+      return {
+        type: 'scatter', mode: 'markers', name: CATEGORY_META[c].label,
+        x: evs.map(e => e.allDay ? e.date : new Date(Date.parse(e.start) + 8 * 3600_000).toISOString().slice(0, 16).replace('T', ' ')),
+        y: evs.map(() => CATEGORY_META[c].label),
+        text: evs.map(e => `${e.title}${e.tentative ? '（預估）' : ''}<br>${e.allDay ? e.date : new Date(e.start).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false })}`),
+        hovertemplate: '%{text}<extra></extra>',
+        marker: {
+          color: CATEGORY_META[c].color, size: evs.map(e => 7 + e.importance * 4),
+          symbol: evs.map(e => e.tentative ? 'circle-open' : 'circle'), line: { width: 1.5, color: CATEGORY_META[c].color },
+          opacity: 0.85,
+        },
+      };
+    });
+    const layout = {
+      height: 230, margin: { l: 70, r: 16, t: 10, b: 36 }, showlegend: false,
+      font: { family: SANS, size: 11, color: SUB },
+      xaxis: { range: [from, to], type: 'date', gridcolor: GRID, tickformat: '%Y/%m', dtick: 'M1' },
+      yaxis: { categoryorder: 'array', categoryarray: CATS.map(c => CATEGORY_META[c].label).reverse(), gridcolor: GRID, fixedrange: true },
+      shapes: [{ type: 'line', x0: from, x1: from, yref: 'paper', y0: 0, y1: 1, line: { color: RED, width: 1.5, dash: 'dot' } }],
+      hoverlabel: { font: { family: SANS } },
+    };
+    return { traces, layout };
+  }, [events, now]);
+  return <PlotlyWrapper traces={traces} layout={layout} />;
+}
+
+/* ── 訂閱 ── */
+function Subscribe() {
+  const [cats, setCats] = useState<Category[]>([]);
+  const [min, setMin] = useState(1);
+  const [alarm, setAlarm] = useState(0);
+  const [copied, setCopied] = useState(false);
+  const [host, setHost] = useState('fhactiveetf.vercel.app');
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- 只在 client 讀網址主機（預覽網址也能產生正確訂閱連結）
+  useEffect(() => { setHost(window.location.host); }, []);
+
+  const qs = new URLSearchParams();
+  if (cats.length) qs.set('cat', cats.join(','));
+  if (min > 1) qs.set('min', String(min));
+  if (alarm) qs.set('alarm', String(alarm));
+  const path = `/api/market-calendar/ics${qs.toString() ? `?${qs}` : ''}`;
+  const webcal = `webcal://${host}${path}`;
+  const https = `https://${host}${path}`;
+  const google = `https://calendar.google.com/calendar/r?cid=${encodeURIComponent(webcal)}`;
+
+  const copy = async () => {
+    try { await navigator.clipboard.writeText(https); setCopied(true); setTimeout(() => setCopied(false), 1800); } catch { /* 無剪貼簿權限 */ }
+  };
+  const btn = (primary: boolean): React.CSSProperties => ({
+    display: 'inline-block', padding: '8px 16px', borderRadius: 8, fontSize: '.84rem', fontWeight: 700, fontFamily: SANS,
+    textDecoration: 'none', cursor: 'pointer', border: `1.4px solid ${RED}`, background: primary ? RED : '#fff', color: primary ? '#fff' : RED,
+  });
+  const label: React.CSSProperties = { fontSize: '.78rem', color: SUB, marginRight: 8 };
+
+  return (
+    <div style={{ display: 'grid', gap: 14 }}>
+      <div style={{ display: 'flex', gap: 16, flexWrap: 'wrap', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', alignItems: 'center' }}>
+          <span style={label}>類別</span>
+          <button style={toggleBtn(cats.length === 0)} onClick={() => setCats([])}>全部</button>
+          {CATS.map(c => (
+            <button key={c} style={toggleBtn(cats.includes(c))}
+              onClick={() => setCats(cs => cs.includes(c) ? cs.filter(x => x !== c) : [...cs, c])}>
+              {CATEGORY_META[c].label}
+            </button>
+          ))}
+        </div>
+        <label style={{ fontSize: '.8rem', color: SUB }}>
+          <span style={label}>重要性</span>
+          <select value={min} onChange={e => setMin(Number(e.target.value))} style={{ padding: '4px 8px', border: `1px solid ${BORDER}`, borderRadius: 6 }}>
+            <option value={1}>全部</option><option value={2}>★★ 以上</option><option value={3}>只要 ★★★</option>
+          </select>
+        </label>
+        <label style={{ fontSize: '.8rem', color: SUB }}>
+          <span style={label}>提醒</span>
+          <select value={alarm} onChange={e => setAlarm(Number(e.target.value))} style={{ padding: '4px 8px', border: `1px solid ${BORDER}`, borderRadius: 6 }}>
+            <option value={0}>不提醒</option><option value={30}>前 30 分鐘</option><option value={60}>前 1 小時</option><option value={1440}>前 1 天</option>
+          </select>
+        </label>
+      </div>
+      <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+        <a href={webcal} style={btn(true)}>iPhone / Mac 訂閱</a>
+        <a href={google} target="_blank" rel="noreferrer" style={btn(false)}>加入 Google 日曆（Android）</a>
+        <button onClick={copy} style={btn(false)}>{copied ? '已複製 ✓' : '複製訂閱網址'}</button>
+      </div>
+      <code style={{ fontFamily: MONO, fontSize: '.76rem', color: SUB, background: HEADER, padding: '6px 10px', borderRadius: 6, wordBreak: 'break-all' }}>{https}</code>
+      <div style={{ fontSize: '.8rem', color: SUB, lineHeight: 1.8 }}>
+        <div><b style={{ color: TEXT }}>iPhone：</b>用手機開本頁點「iPhone / Mac 訂閱」→ 訂閱；或到「設定 → App → 行事曆 → 行事曆帳號 → 加入帳號 → 其他 → 加入已訂閱的行事曆」，貼上網址。</div>
+        <div><b style={{ color: TEXT }}>Android：</b>Google 日曆 App 不能直接加網址，請用電腦開「加入 Google 日曆」（或 Google 日曆網頁版「其他日曆 ＋ → 透過網址」貼上網址），手機就會自動同步。</div>
+        <div>訂閱後事件日期異動、數據公布後的實際值都會自動更新（iPhone 約數小時、Google 約 8～24 小時同步一次）。</div>
+      </div>
+    </div>
+  );
+}
+
+/* ── 主元件 ── */
+export default function MarketCalendarTab() {
+  const [data, setData] = useState<CalendarPayload | null>(null);
+  const [error, setError] = useState('');
+  const [now, setNow] = useState(() => Date.now());
+  const [cats, setCats] = useState<Category[]>([]);
+  const [minImp, setMinImp] = useState(1);
+  const [tzKey, setTzKey] = useState<TzKey>('tpe');
+  const [showPast, setShowPast] = useState(false);
+  const [openId, setOpenId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    fetch('/api/market-calendar')
+      .then(async r => { const j = await r.json(); if (!r.ok) throw new Error(j.error ?? `HTTP ${r.status}`); return j as CalendarPayload; })
+      .then(j => { if (alive) setData(j); })
+      .catch(e => { if (alive) setError(e instanceof Error ? e.message : String(e)); });
+    const t = setInterval(() => setNow(Date.now()), 30_000);
+    return () => { alive = false; clearInterval(t); };
+  }, []);
+
+  const tz = TZ[tzKey].id;
+  const filtered = useMemo(() => (data?.events ?? []).filter(e =>
+    (!cats.length || cats.includes(e.category)) && e.importance >= minImp), [data, cats, minImp]);
+  const upcoming = useMemo(() => filtered.filter(e => endMs(e) >= now), [filtered, now]);
+  const listed = useMemo(() => {
+    const cutoff = now - 90 * DAY;
+    return filtered.filter(e => endMs(e) >= (showPast ? cutoff : now));
+  }, [filtered, now, showPast]);
+
+  const byMonth = useMemo(() => {
+    const m = new Map<string, MarketEvent[]>();
+    for (const e of listed) {
+      const k = when(e, tz).date.slice(0, 7);
+      m.set(k, [...(m.get(k) ?? []), e]);
+    }
+    return [...m.entries()];
+  }, [listed, tz]);
+
+  const next = upcoming.find(e => e.importance === 3 && Date.parse(e.allDay ? e.date + 'T00:00:00+08:00' : e.start) > now);
+  const today = ymdIn(now, 'Asia/Taipei');
+  const monday = addDays(today, -((new Date(today + 'T00:00:00Z').getUTCDay() + 6) % 7));
+  const inWeek = (e: MarketEvent, from: string) => {
+    const d = when(e, 'Asia/Taipei').date, end = e.endDate ?? d;
+    return end >= from && d <= addDays(from, 6);
+  };
+  const thisWeek = upcoming.filter(e => inWeek(e, monday));
+  const nextWeek = upcoming.filter(e => inWeek(e, addDays(monday, 7)));
+
+  const historyRank = useMemo(() => Object.values(data?.history ?? {})
+    .map(h => ({ h, tw: h.markets.find(m => m.symbol === '^TWII')?.volRatio ?? NaN, us: h.markets.find(m => m.symbol === '^IXIC')?.volRatio ?? NaN }))
+    .sort((a, b) => (fin(b.tw) ? b.tw : 0) - (fin(a.tw) ? a.tw : 0)), [data]);
+
+  if (error) return <div style={{ padding: 24, color: RED, fontFamily: SANS }}>載入失敗：{error}</div>;
+  if (!data) return <div style={{ padding: 40, textAlign: 'center', color: SUB, fontFamily: SANS }}>載入行事曆中…（首次載入需整理各資料來源，約 20 秒）</div>;
+
+  const weekList = (evs: MarketEvent[]) => evs.length ? evs.map(e => {
+    const w = when(e, 'Asia/Taipei');
+    return (
+      <div key={e.id} style={{ display: 'flex', gap: 8, alignItems: 'baseline', padding: '4px 0', fontSize: '.84rem' }}>
+        <span style={{ fontFamily: MONO, color: SUB, width: 124, flexShrink: 0, whiteSpace: 'nowrap' }}>{md(w.date)}({wd(w.date)}) {w.time ?? ''}</span>
+        <span style={{ color: e.importance === 3 ? TEXT : SUB, fontWeight: e.importance === 3 ? 700 : 400 }}>{e.title}</span>
+        {e.tentative && <Tentative />}
+      </div>
+    );
+  }) : <div style={{ fontSize: '.84rem', color: SUB }}>無</div>;
+
+  const failed = Object.entries(data.sources).filter(([, s]) => !s.ok);
+
+  return (
+    <div style={{ display: 'grid', gap: 18, fontFamily: SANS }}>
+      <style>{`@media (max-width: 640px) { .mc-detail { padding-left: 6px !important; } }`}</style>
+
+      {/* 倒數＋本週 */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(260px, 1fr))', gap: 14 }}>
+        <div style={{ background: RED, color: '#fff', borderRadius: 12, padding: '18px 20px', display: 'grid', gap: 6 }}>
+          <div style={{ fontSize: '.8rem', opacity: 0.85 }}>距離下一個重大事件（★★★）</div>
+          {next ? <>
+            <div style={{ fontSize: '1.9rem', fontWeight: 800, fontFamily: MONO, lineHeight: 1.1 }}>
+              {countdown(Date.parse(next.allDay ? next.date + 'T00:00:00+08:00' : next.start) - now)}
+            </div>
+            <div style={{ fontSize: '1rem', fontWeight: 700 }}>{next.title}{next.tentative ? '（預估）' : ''}</div>
+            <div style={{ fontSize: '.8rem', opacity: 0.85 }}>
+              {(() => { const w = when(next, 'Asia/Taipei'); return `${w.date}（${wd(w.date)}）${w.time ? ` ${w.time} 台灣時間` : ''}`; })()}
+            </div>
+          </> : <div>近期無</div>}
+        </div>
+        <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: '14px 18px' }}>
+          <div style={{ fontSize: '.86rem', fontWeight: 700, color: TEXT, marginBottom: 6 }}>本週重點 <span style={{ fontWeight: 400, color: SUB, fontSize: '.76rem' }}>{md(monday)}–{md(addDays(monday, 6))}</span></div>
+          {weekList(thisWeek)}
+        </div>
+        <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: '14px 18px' }}>
+          <div style={{ fontSize: '.86rem', fontWeight: 700, color: TEXT, marginBottom: 6 }}>下週重點 <span style={{ fontWeight: 400, color: SUB, fontSize: '.76rem' }}>{md(addDays(monday, 7))}–{md(addDays(monday, 13))}</span></div>
+          {weekList(nextWeek)}
+        </div>
+      </div>
+
+      {/* 篩選 */}
+      <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: '12px 16px' }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <button style={toggleBtn(cats.length === 0)} onClick={() => setCats([])}>全部</button>
+          {CATS.map(c => (
+            <button key={c} style={toggleBtn(cats.includes(c))}
+              onClick={() => setCats(cs => cs.includes(c) ? cs.filter(x => x !== c) : [...cs, c])}>{CATEGORY_META[c].label}</button>
+          ))}
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {[1, 2, 3].map(n => <button key={n} style={toggleBtn(minImp === n)} onClick={() => setMinImp(n)}>{n === 1 ? '所有重要性' : `${'★'.repeat(n)} 以上`}</button>)}
+        </div>
+        <div style={{ display: 'flex', gap: 6 }}>
+          {(Object.keys(TZ) as TzKey[]).map(k => <button key={k} style={toggleBtn(tzKey === k)} onClick={() => setTzKey(k)}>{TZ[k].label}</button>)}
+        </div>
+        <label style={{ fontSize: '.8rem', color: SUB, display: 'flex', alignItems: 'center', gap: 6, cursor: 'pointer' }}>
+          <input type="checkbox" checked={showPast} onChange={e => setShowPast(e.target.checked)} /> 顯示近 90 天已過事件
+        </label>
+      </div>
+
+      <Section title="未來 12 個月時間軸" note="點越大越重要；空心點＝日期尚未官方確認。紅色虛線為今天。美國 CPI／PPI／非農／PCE 只會排到官方已公布的日程（通常到年底），新年度日程公布後自動補上。">
+        <Timeline events={upcoming} now={now} />
+      </Section>
+
+      <Section title="事件列表" note={`時間以${TZ[tzKey].label}顯示；點一下展開市場預期、實際值與歷史市場反應。`}>
+        {byMonth.length === 0 && <div style={{ color: SUB, fontSize: '.86rem' }}>沒有符合條件的事件。</div>}
+        {byMonth.map(([month, evs]) => (
+          <div key={month} style={{ marginBottom: 14 }}>
+            <div style={{ fontSize: '.84rem', fontWeight: 700, color: GOLD, borderBottom: `2px solid ${GOLD}`, padding: '4px 6px', marginBottom: 2 }}>
+              {month.slice(0, 4)} 年 {Number(month.slice(5))} 月
+            </div>
+            {evs.map(e => (
+              <EventRow key={e.id} e={e} tz={tz} now={now} open={openId === e.id}
+                onToggle={() => setOpenId(id => id === e.id ? null : e.id)} history={data.history[e.historyKey]} />
+            ))}
+          </div>
+        ))}
+      </Section>
+
+      <Section title="哪類事件最容易掀起波動？" note="波動放大＝事件後首個交易日平均絕對漲跌 ÷ 平常日平均絕對漲跌；≥1.3x 標紅。依加權指數排序，樣本 2015 年起。">
+        <div style={{ overflowX: 'auto' }}>
+          <table style={{ borderCollapse: 'collapse', fontSize: '.82rem', minWidth: 640, width: '100%' }}>
+            <thead><tr>
+              {['事件類型', '樣本', '加權 波動放大', '加權 T+1 平均', '加權 T+1 上漲機率', 'NASDAQ 波動放大', 'NASDAQ T+1 平均', '費半 T+1 平均'].map((h, i) => (
+                <th key={h} style={{ textAlign: i < 1 ? 'left' : 'right', padding: '6px 10px', color: SUB, fontWeight: 500, borderBottom: `1px solid ${BORDER}`, whiteSpace: 'nowrap' }}>{h}</th>
+              ))}
+            </tr></thead>
+            <tbody>
+              {historyRank.map(({ h, tw, us }) => {
+                const twm = h.markets.find(m => m.symbol === '^TWII');
+                const usm = h.markets.find(m => m.symbol === '^IXIC');
+                const sox = h.markets.find(m => m.symbol === '^SOX');
+                const td: React.CSSProperties = { textAlign: 'right', padding: '6px 10px', fontFamily: MONO, borderBottom: `1px solid ${GRID}`, whiteSpace: 'nowrap' };
+                return (
+                  <tr key={h.historyKey}>
+                    <td style={{ ...td, textAlign: 'left', fontFamily: SANS, fontWeight: 600 }}>{h.label}</td>
+                    <td style={{ ...td, color: SUB }}>{h.n}</td>
+                    <td style={{ ...td, fontWeight: 700, color: fin(tw) && tw >= 1.3 ? RED : TEXT }}>{fin(tw) ? `${tw.toFixed(2)}x` : '—'}</td>
+                    <td style={{ ...td, color: upDown(twm?.t1.mean) }}>{signPct(twm?.t1.mean)}</td>
+                    <td style={td}>{fin(twm?.t1.upPct) ? `${twm!.t1.upPct}%` : '—'}</td>
+                    <td style={{ ...td, fontWeight: 700, color: fin(us) && us >= 1.3 ? RED : TEXT }}>{fin(us) ? `${us.toFixed(2)}x` : '—'}</td>
+                    <td style={{ ...td, color: upDown(usm?.t1.mean) }}>{signPct(usm?.t1.mean)}</td>
+                    <td style={{ ...td, color: upDown(sox?.t1.mean) }}>{signPct(sox?.t1.mean)}</td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+        <div style={{ fontSize: '.74rem', color: SUB, marginTop: 10, lineHeight: 1.7 }}>
+          時點對齊：以事件公布時間為準，取公布前最後一個收盤為基準。例如美國 CPI 於台股收盤後公布，台股的 T+1 是隔天。
+          政治事件（選舉、會晤）樣本少，僅供參考；加權指數未還原息、0050 為還原價。
+        </div>
+      </Section>
+
+      <Section title="訂閱到手機行事曆" note="iPhone、Android、Mac、Outlook 都可訂閱，事件更新會自動同步。">
+        <Subscribe />
+      </Section>
+
+      <div style={{ fontSize: '.74rem', color: SUB, lineHeight: 1.8, padding: '0 4px' }}>
+        <div>資料來源：Fed 官網（FOMC）、FRED（CPI / PPI / 非農 / PCE 公布日與實際值）、ForexFactory（市場預期）、Yahoo Finance（財報日、股價）、央行與中選會公告（手動維護）。</div>
+        <div>市場預期值自本功能上線起逐週累積，較早的事件沒有預期值；ISM 實際值以下一期公布時的前值回填，會延遲一個月。</div>
+        <div>資料更新：{new Date(data.generatedAt).toLocaleString('zh-TW', { timeZone: 'Asia/Taipei', hour12: false })}
+          {data.historyGeneratedAt && `｜歷史反應：${new Date(data.historyGeneratedAt).toLocaleDateString('zh-TW', { timeZone: 'Asia/Taipei' })}`}
+          {failed.length > 0 && <span style={{ color: RED }}>｜⚠ 暫時無法取得：{failed.map(([k]) => k).join('、')}</span>}
+        </div>
+      </div>
+    </div>
+  );
+}

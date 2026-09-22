@@ -1,4 +1,7 @@
 {
   "regions": ["hnd1"],
-  "alias": ["fhactiveetf.vercel.app"]
+  "alias": ["fhactiveetf.vercel.app"],
+  "crons": [
+    { "path": "/api/market-calendar?refresh=1", "schedule": "0 22 * * *" }
+  ]
 }

@@ -45,6 +45,14 @@
 
 ⚠️ **新基金掛牌前 `data/holdings/{fundId}.json` 是空的，不代表 `update_holdings.py` 壞了**：00409A 的持股復華是**掛牌日（2026/09/02）才對外開放**，在那之前每天排程都是 `ETF26: +0 天，共 0 天`，掛牌後手動觸發一次就補齊成立日以來 8 天。**診斷時別被 CI 日誌的時間戳誤導**——Python stdout 在 CI 是塊緩衝、所有 print 到最後一起 flush，兩行只差 0.8 毫秒**不代表**迴圈沒跑；要看的是有沒有 stderr 的 `! {fund} {date} fetch error`。
 
+**市場重要行事曆**（2026-09-22 新增，分頁 `?tab=calendar`，分組「市場行事曆」）：FOMC、美國數據、財報法說、選舉政治的時間軸＋手機訂閱 `webcal://fhactiveetf.vercel.app/api/market-calendar/ics`（`cat=`/`min=`/`alarm=` 可篩）。只放公開事件，**不得加入任何行銷切角**（天條 2）。
+- **程式**：`lib/marketCalendar/`（`build.ts` 組裝、`sources/*` 各來源、`history.ts` 歷史反應、`store.ts` 快取、`ics.ts`）、`app/api/market-calendar/{route,ics/route}.ts`、`components/MarketCalendarTab.tsx`。
+- **來源**：Fed 官網 HTML（FOMC，`*`＝SEP 點陣圖）、FRED（CPI/PPI/非農/PCE：歷史公布日用 `output_type=4` 首次公布日、未來排程用 `release/dates`；實際值取**公布當天的 ALFRED vintage** 才會跟新聞一致）、ForexFactory 週曆 JSON（市場預期）、Yahoo `calendarEvents`（NVDA/TSM 財報日）、`config/market-events.json`（選舉/外交/台灣央行/GTC＋歷史種子，**改完要 `vercel --prod`**）。財報觀察清單在 `lib/marketCalendar/config.ts` 的 `EARNINGS_WATCHLIST`。
+- **快取**：本專案 Supabase `page_cache` 三個 key：`market_calendar_events_v1`（頁面讀）、`market_calendar_state_v1`（累積的預期值/實際值，**刪了會丟失歷史預期值，無法重建**）、`market_calendar_history_v1`（歷史反應，約每週或有新樣本滿 T+5 時重算）。超過 3 小時、或剛有事件公布，開頁時會用 `after()` 背景刷新。Vercel env 需 `FRED_API_KEY`、`CRON_SECRET`。
+- ⚠️ **FRED 數列有缺月**（2025/10 政府關門 CPI 未公布）→ 月增/年增一律**用日期對齊前期**，不可用陣列位置（曾因此把 CPI 年增算成 3.7%，官方 3.4%）。
+- ⚠️ **ForexFactory 會 429**：一小時最多抓一次（`ffFetchedAt`）；它只給本週，預期值自上線日起逐週累積。**ISM 沒有免費實際值來源**，用下一期的「前值」回填上一期（晚一個月）。FRED 實際值每次刷新最多回補 12 筆（每分鐘 120 次上限）。
+- ISM 公布日依「每月第一個營業日（避開元旦、勞動節）」推算，本週被 ForexFactory 列出才算確認；CPI 等只排到 BLS 已公布的日程（通常到年底）。
+
 ## 2. 每日排程時序（台北時間）
 
 | 名目時間 | 實際落地 | 任務 | 產出 |
@@ -52,6 +60,7 @@
 | 14:00（UTC 06:00） | 約 16:00–18:00（GH cron 延遲 2–4h） | `highlight_scan.yml` | LINE 亮點推播＋`data/highlights/*.json` |
 | 17:15（cron-job.org 觸發，準時） | 17:15 | `daily_summary.yml` | Pushover 摘要＋`peer_redemption` 入庫 |
 | 17:30（UTC 09:30，GH cron） | 約 19:50–21:50 | `update_holdings.yml` | `data/holdings/*.json` commit |
+| 06:00（UTC 22:00，**Vercel Cron**） | 同左（誤差 1 小時內） | `/api/market-calendar?refresh=1` | 市場行事曆刷新（page_cache） |
 
 由此而來的兩個設計事實（改排程前務必理解）：
 - 亮點掃描拿**當日持股**靠 fhtrust **即時補抓**（git 存檔那時還停在前一日）。

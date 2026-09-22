@@ -1,0 +1,50 @@
+{
+  "_說明": "無法自動抓取的事件（選舉、外交、產業大會、台灣央行）與歷史種子。只放公開事件，不放內部行銷內容。time 省略＝整天事件（市場反應以當地 20:00 計）。改完需 vercel --prod 才生效。",
+  "events": [
+    { "id": "xi-us-visit-2026", "type": "diplomacy", "category": "politics", "title": "習近平訪美（國事訪問）", "date": "2026-09-23", "endDate": "2026-09-25", "tz": "America/New_York", "importance": 3, "historyKey": "diplomacy_uscn", "note": "應川普邀請進行國事訪問；9/24 白宮歡迎儀式、閉門會談與國宴。" },
+    { "id": "us-midterm-2026", "type": "election", "category": "politics", "title": "美國期中選舉", "date": "2026-11-03", "tz": "America/New_York", "importance": 3, "historyKey": "election_us", "note": "改選眾議院全數席次與約三分之一參議院席次。" },
+    { "id": "tw-local-2026", "type": "election", "category": "politics", "title": "台灣九合一地方選舉", "date": "2026-11-28", "tz": "Asia/Taipei", "importance": 3, "historyKey": "election_tw", "note": "直轄市長與縣市長等地方公職選舉，同日舉行核電公投。" },
+    { "id": "tw-presidential-2028", "type": "election", "category": "politics", "title": "台灣總統暨立委選舉", "date": "2028-01-15", "tz": "Asia/Taipei", "importance": 3, "historyKey": "election_tw", "tentative": true, "note": "中選會尚未公告，依慣例推估為 1 月中旬週六。" },
+    { "id": "us-presidential-2028", "type": "election", "category": "politics", "title": "美國總統大選", "date": "2028-11-07", "tz": "America/New_York", "importance": 3, "historyKey": "election_us" },
+    { "id": "gtc-2027", "type": "conference", "category": "industry", "title": "Nvidia GTC 2027（聖荷西）", "date": "2027-03-14", "endDate": "2027-03-18", "tz": "America/Los_Angeles", "importance": 2, "historyKey": "gtc", "tentative": true, "note": "黃仁勳主題演講日期待官方公布。" },
+
+    { "id": "twcb-2026-12-17", "type": "twcb", "category": "central_bank", "title": "台灣央行理監事會", "date": "2026-12-17", "time": "16:00", "tz": "Asia/Taipei", "importance": 2, "historyKey": "twcb" },
+    { "id": "twcb-2026-09-17", "type": "twcb", "category": "central_bank", "title": "台灣央行理監事會", "date": "2026-09-17", "time": "16:00", "tz": "Asia/Taipei", "importance": 2, "historyKey": "twcb" },
+    { "id": "twcb-2026-06-18", "type": "twcb", "category": "central_bank", "title": "台灣央行理監事會", "date": "2026-06-18", "time": "16:00", "tz": "Asia/Taipei", "importance": 2, "historyKey": "twcb" },
+    { "id": "twcb-2026-03-19", "type": "twcb", "category": "central_bank", "title": "台灣央行理監事會", "date": "2026-03-19", "time": "16:00", "tz": "Asia/Taipei", "importance": 2, "historyKey": "twcb" },
+    { "id": "twcb-2025-12-18", "type": "twcb", "category": "central_bank", "title": "台灣央行理監事會", "date": "2025-12-18", "time": "16:00", "tz": "Asia/Taipei", "importance": 2, "historyKey": "twcb" },
+    { "id": "twcb-2025-09-18", "type": "twcb", "category": "central_bank", "title": "台灣央行理監事會", "date": "2025-09-18", "time": "16:00", "tz": "Asia/Taipei", "importance": 2, "historyKey": "twcb" },
+    { "id": "twcb-2025-06-19", "type": "twcb", "category": "central_bank", "title": "台灣央行理監事會", "date": "2025-06-19", "time": "16:00", "tz": "Asia/Taipei", "importance": 2, "historyKey": "twcb" },
+    { "id": "twcb-2025-03-20", "type": "twcb", "category": "central_bank", "title": "台灣央行理監事會", "date": "2025-03-20", "time": "16:00", "tz": "Asia/Taipei", "importance": 2, "historyKey": "twcb" },
+    { "id": "twcb-2024-12-19", "type": "twcb", "category": "central_bank", "title": "台灣央行理監事會", "date": "2024-12-19", "time": "16:00", "tz": "Asia/Taipei", "importance": 2, "historyKey": "twcb" },
+    { "id": "twcb-2024-09-19", "type": "twcb", "category": "central_bank", "title": "台灣央行理監事會", "date": "2024-09-19", "time": "16:00", "tz": "Asia/Taipei", "importance": 2, "historyKey": "twcb" },
+    { "id": "twcb-2024-06-13", "type": "twcb", "category": "central_bank", "title": "台灣央行理監事會", "date": "2024-06-13", "time": "16:00", "tz": "Asia/Taipei", "importance": 2, "historyKey": "twcb" },
+    { "id": "twcb-2024-03-21", "type": "twcb", "category": "central_bank", "title": "台灣央行理監事會", "date": "2024-03-21", "time": "16:00", "tz": "Asia/Taipei", "importance": 2, "historyKey": "twcb" },
+
+    { "id": "trump-beijing-2026", "type": "diplomacy", "category": "politics", "title": "川普訪北京（川習會）", "date": "2026-05-14", "endDate": "2026-05-15", "tz": "Asia/Shanghai", "importance": 3, "historyKey": "diplomacy_uscn" },
+    { "id": "busan-2025", "type": "diplomacy", "category": "politics", "title": "釜山川習會", "date": "2025-10-30", "tz": "Asia/Seoul", "importance": 3, "historyKey": "diplomacy_uscn" },
+    { "id": "sf-apec-2023", "type": "diplomacy", "category": "politics", "title": "舊金山拜習會（APEC）", "date": "2023-11-15", "tz": "America/Los_Angeles", "importance": 3, "historyKey": "diplomacy_uscn" },
+    { "id": "osaka-2019", "type": "diplomacy", "category": "politics", "title": "大阪 G20 川習會", "date": "2019-06-29", "tz": "Asia/Tokyo", "importance": 3, "historyKey": "diplomacy_uscn" },
+    { "id": "ba-g20-2018", "type": "diplomacy", "category": "politics", "title": "布宜諾斯艾利斯 G20 川習會", "date": "2018-12-01", "tz": "America/Argentina/Buenos_Aires", "importance": 3, "historyKey": "diplomacy_uscn" },
+    { "id": "trump-beijing-2017", "type": "diplomacy", "category": "politics", "title": "川普訪北京", "date": "2017-11-08", "endDate": "2017-11-10", "tz": "Asia/Shanghai", "importance": 3, "historyKey": "diplomacy_uscn" },
+
+    { "id": "liberation-day-2025", "type": "policy", "category": "politics", "title": "美國「解放日」對等關稅", "date": "2025-04-02", "time": "16:00", "tz": "America/New_York", "importance": 3, "historyKey": "policy" },
+    { "id": "tariff-pause-2025", "type": "policy", "category": "politics", "title": "對等關稅暫緩 90 天", "date": "2025-04-09", "time": "13:18", "tz": "America/New_York", "importance": 3, "historyKey": "policy" },
+
+    { "id": "us-presidential-2024", "type": "election", "category": "politics", "title": "美國總統大選", "date": "2024-11-05", "tz": "America/New_York", "importance": 3, "historyKey": "election_us" },
+    { "id": "us-midterm-2022", "type": "election", "category": "politics", "title": "美國期中選舉", "date": "2022-11-08", "tz": "America/New_York", "importance": 3, "historyKey": "election_us" },
+    { "id": "us-presidential-2020", "type": "election", "category": "politics", "title": "美國總統大選", "date": "2020-11-03", "tz": "America/New_York", "importance": 3, "historyKey": "election_us" },
+    { "id": "us-midterm-2018", "type": "election", "category": "politics", "title": "美國期中選舉", "date": "2018-11-06", "tz": "America/New_York", "importance": 3, "historyKey": "election_us" },
+    { "id": "us-presidential-2016", "type": "election", "category": "politics", "title": "美國總統大選", "date": "2016-11-08", "tz": "America/New_York", "importance": 3, "historyKey": "election_us" },
+    { "id": "tw-recall-2025", "type": "election", "category": "politics", "title": "台灣大罷免投票", "date": "2025-07-26", "tz": "Asia/Taipei", "importance": 2, "historyKey": "election_tw" },
+    { "id": "tw-presidential-2024", "type": "election", "category": "politics", "title": "台灣總統暨立委選舉", "date": "2024-01-13", "tz": "Asia/Taipei", "importance": 3, "historyKey": "election_tw" },
+    { "id": "tw-local-2022", "type": "election", "category": "politics", "title": "台灣九合一地方選舉", "date": "2022-11-26", "tz": "Asia/Taipei", "importance": 3, "historyKey": "election_tw" },
+    { "id": "tw-presidential-2020", "type": "election", "category": "politics", "title": "台灣總統暨立委選舉", "date": "2020-01-11", "tz": "Asia/Taipei", "importance": 3, "historyKey": "election_tw" },
+    { "id": "tw-local-2018", "type": "election", "category": "politics", "title": "台灣九合一地方選舉", "date": "2018-11-24", "tz": "Asia/Taipei", "importance": 3, "historyKey": "election_tw" },
+    { "id": "tw-presidential-2016", "type": "election", "category": "politics", "title": "台灣總統暨立委選舉", "date": "2016-01-16", "tz": "Asia/Taipei", "importance": 3, "historyKey": "election_tw" }
+  ],
+  "earningsHistory": {
+    "NVDA": ["2023-02-22", "2023-05-24", "2023-08-23", "2023-11-21", "2024-02-21", "2024-05-22", "2024-08-28", "2024-11-20", "2025-02-26", "2025-05-28", "2025-08-27", "2025-11-19", "2026-02-25", "2026-05-20", "2026-08-26"],
+    "TSMC": ["2023-01-12", "2023-04-20", "2023-07-20", "2023-10-19", "2024-01-18", "2024-04-18", "2024-07-18", "2024-10-17", "2025-01-16", "2025-04-17", "2025-07-17", "2025-10-16", "2026-01-15", "2026-04-16", "2026-07-16"]
+  }
+}
