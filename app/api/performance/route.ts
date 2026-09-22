@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { fetchHoldings } from '@/lib/fhtrust';
 import { resolveYfTicker } from '@/lib/exchangeMap';
 import { fetchStockPerformance, StockPerformance } from '@/lib/yahooFinance';
+import { fetchTwseLive } from '@/lib/twseLive';
+
+// 純數字代碼＝台股（上市或上櫃），才查得到 MIS 即時報價；美股/其他海外標的的 stockid 帶國別後綴（如 'PLTR US'）
+const isTwCode = (id: string): boolean => /^\d+$/.test(id);
 
 const BATCH = 8;
 
@@ -40,10 +44,19 @@ export async function GET(request: NextRequest) {
 
     const isTwOnly = fundId === 'ETF23';
 
+    // 批量查台股標的的 MIS 即時報價，交叉驗證 Yahoo 現價/昨收（見 lib/twseLive.ts）。
+    // 0050 基準列也是台股代碼，一併查（見下方 TW_BENCHES）。
+    const twCodes = stocks.map(h => h.stockid).filter(isTwCode);
+    if (isTwOnly) twCodes.push('0050');
+    const twseLiveMap = await fetchTwseLive(twCodes);
+
     const results: StockPerformance[] = await batchAll(stocks, h => {
       const { yfTicker: raw, fallback } = resolveYfTicker(h.stockid, isTwOnly);
       const yfTicker = TICKER_OVERRIDES[raw] ?? raw;
-      return fetchStockPerformance(h.stockid, h.stockname, h.prate_addaccint, yfTicker, fallback, customStart, customEnd);
+      return fetchStockPerformance(
+        h.stockid, h.stockname, h.prate_addaccint, yfTicker, fallback, customStart, customEnd,
+        undefined, twseLiveMap.get(h.stockid),
+      );
     });
 
     /* 基準列：供使用者一眼看出個股/整體相對強弱。台股基金拿 0050(含息) 與加權指數比，
@@ -63,7 +76,10 @@ export async function GET(request: NextRequest) {
     ];
     const benchmarks: StockPerformance[] = await Promise.all(
       (isTwOnly ? TW_BENCHES : US_BENCHES)
-        .map(b => fetchStockPerformance(b.stockid, b.stockname, 0, b.yf, undefined, customStart, customEnd)),
+        .map(b => fetchStockPerformance(
+          b.stockid, b.stockname, 0, b.yf, undefined, customStart, customEnd,
+          undefined, twseLiveMap.get(b.stockid),
+        )),
     );
 
     return NextResponse.json(

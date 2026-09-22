@@ -1,3 +1,5 @@
+import type { TwseLiveQuote } from './twseLive';
+
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const YahooFinance = require('yahoo-finance2').default;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -204,6 +206,8 @@ export async function fetchTotalReturnSeries(
 }
 
 const PREV_CLOSE_TOLERANCE = 0.03;
+// Yahoo 算出的當日漲跌與 MIS 現價/昨收算出的值差超過幾個百分點，視為 Yahoo 現價延遲/停更。
+const TODAY_MISMATCH_PP = 1.5;
 
 export async function fetchStockPerformance(
   stockid: string,
@@ -214,6 +218,7 @@ export async function fetchStockPerformance(
   customStart?: Date,
   customEnd?: Date,
   highSince?: Date, // 「前高 vs 突破後新高」比較基準日；不帶時沿用 ytdTarget（今年1/1）
+  twseLive?: TwseLiveQuote, // MIS 即時報價，用來交叉驗證 Yahoo 現價/昨收（見 lib/twseLive.ts）
 ): Promise<StockPerformance> {
   try {
     const today   = new Date();
@@ -266,6 +271,17 @@ export async function fetchStockPerformance(
     const prevClose = (quotePrevOk ? quote?.prevClose : null)
       ?? (marketClosedToday ? sorted[1]?.close : sorted[0]?.close);
 
+    // Yahoo 免費報價每 15~20 分鐘才更新一批，剛好卡在空檔時「現價」會暫時停在昨收，
+    // 當日漲跌假顯示 0%（曾見 8299 群聯電子）。用 MIS 現價/昨收換算的當日漲跌交叉驗證，
+    // 差距超過門檻就改用 MIS（現價與漲跌一起換，避免畫面上「價格沒動、%卻在跳」的不一致）。
+    const yahooToday = pct(curPrice ?? undefined, prevClose ?? undefined);
+    const misToday = (twseLive?.price != null && twseLive?.prevClose != null)
+      ? pct(twseLive.price, twseLive.prevClose) : null;
+    const useMis = misToday != null
+      && (yahooToday == null || Math.abs(yahooToday - misToday) > TODAY_MISMATCH_PP);
+    const finalPrice = useMis ? twseLive!.price : curPrice;
+    const finalToday = useMis ? misToday : yahooToday;
+
     let pctCustom: number | null = null;
     let customStartPrice: number | null = null;
     let customEndPrice: number | null = null;
@@ -304,8 +320,8 @@ export async function fetchStockPerformance(
     // 突破＝比較基準日以後的最高價，高於比較基準日以前的前高（沒有前高可比時，只要有 postHigh 就算突破）
     const isNewHigh = postHigh != null && (priorHigh == null || postHigh > priorHigh + 1e-6);
     const referenceHigh = isNewHigh ? postHigh : priorHigh;
-    const distFromHighPct = curPrice != null && referenceHigh != null && referenceHigh > 0
-      ? Math.abs(pct(curPrice ?? undefined, referenceHigh ?? undefined) as number)
+    const distFromHighPct = finalPrice != null && referenceHigh != null && referenceHigh > 0
+      ? Math.abs(pct(finalPrice ?? undefined, referenceHigh ?? undefined) as number)
       : null;
 
     return {
@@ -313,9 +329,9 @@ export async function fetchStockPerformance(
       stockname,
       prate,
       ticker: usedTicker,
-      currentPrice: curPrice,
-      priceAsOf: quote?.priceAsOf ?? null,
-      today: pct(curPrice ?? undefined, prevClose ?? undefined),
+      currentPrice: finalPrice,
+      priceAsOf: useMis ? (twseLive!.asOf ?? quote?.priceAsOf ?? null) : (quote?.priceAsOf ?? null),
+      today: finalToday,
       d3:    pct(adj(sorted[0]), adj(sorted[3])),
       d5:    pct(adj(sorted[0]), adj(sorted[5])),
       m1:    pct(adj(sorted[0]), adj(sorted.find((d: any) => dn(d.date) <= dn(m1Target)))),
