@@ -15,10 +15,8 @@ import PeerPerformanceTab from './PeerPerformanceTab';
 import StockTrajectoryTab from './StockTrajectoryTab';
 import ScorecardTab from './ScorecardTab';
 import CumulativeReturnTab from './CumulativeReturnTab';
-import AttributionTab from './AttributionTab';
-import OverseasAttributionTab from './OverseasAttributionTab';
-import UsMarketImpactTab from './UsMarketImpactTab';
-import TwMarketImpactTab from './TwMarketImpactTab';
+import StockAttributionTab from './StockAttributionTab';
+import MarketImpactTab from './MarketImpactTab';
 import TopHoldingsTab from './TopHoldingsTab';
 import RiskTab from './RiskTab';
 import TurnoverTab from './TurnoverTab';
@@ -46,7 +44,15 @@ const BORDER = '#E8E3DF';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'attribution' | 'oseasattr' | 'usimpact' | 'twimpact' | 'top10' | 'risk' | 'turnover' | 'consensus' | 'sector' | 'sectorheatmap' | 'unitwatch' | 'beneficiary' | 'mktcap150' | 'newhigh150' | 'top300ytd' | 'breakissue' | 'calendar';
+type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'stockattr' | 'impact' | 'top10' | 'risk' | 'turnover' | 'consensus' | 'sector' | 'sectorheatmap' | 'unitwatch' | 'beneficiary' | 'mktcap150' | 'newhigh150' | 'top300ytd' | 'breakissue' | 'calendar';
+
+/* 舊分頁 id → 合併後的新 id（讓分享出去的舊連結不會直接壞掉，掉回首頁）。
+   對應的子範圍（台股/美股、國內/海外）由各自的合併元件自己讀 URL 上的舊 tab 值還原，見
+   MarketImpactTab.tsx / StockAttributionTab.tsx。 */
+const LEGACY_TAB_MAP: Record<string, Tab> = {
+  attribution: 'stockattr', oseasattr: 'stockattr',
+  usimpact: 'impact', twimpact: 'impact',
+};
 
 /* 頂部導覽分組（13 個分頁收進 4 個下拉選單；不改各分頁邏輯，只改呈現） */
 const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
@@ -62,10 +68,8 @@ const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
     { id: 'trajectory',  label: '個股軌跡' },
     { id: 'cumret',      label: '累積報酬走勢' },
     { id: 'risk',        label: '風險指標' },
-    { id: 'attribution', label: '國內個股歸因' },
-    { id: 'oseasattr', label: '海外個股歸因' },
-    { id: 'usimpact', label: '美股收盤影響' },
-    { id: 'twimpact', label: '台股收盤影響' },
+    { id: 'stockattr', label: '個股歸因' },
+    { id: 'impact', label: '收盤影響' },
     { id: 'sectorheatmap', label: '產業熱力圖' },
   ] },
   { label: '選股與預測', items: [
@@ -223,11 +227,10 @@ export default function Dashboard() {
     const t = sp.get('tab') as Tab | null;
     const e = sp.get('etf');
     const etf = e ? ETF_LIST.find(x => x.ticker === e.trim().toUpperCase()) : undefined;
+    const mappedT = t && LEGACY_TAB_MAP[t] ? LEGACY_TAB_MAP[t] : t;
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 一次性還原網址狀態，不會串連渲染
-    if (t && ALL_TABS.includes(t)) setActiveTab(t);
-    // eslint-disable-next-line react-hooks/set-state-in-effect -- 同上
+    if (mappedT && ALL_TABS.includes(mappedT)) setActiveTab(mappedT);
     if (etf) setSelectedEtf(etf);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
@@ -651,33 +654,21 @@ export default function Dashboard() {
           </Card>
         )}
 
-        {activeTab === 'attribution' && (
-          <Card title="國內個股歸因比較">
-            <AttributionTab />
+        {activeTab === 'stockattr' && (
+          <Card title="個股歸因比較">
+            <StockAttributionTab />
           </Card>
         )}
 
-        {activeTab === 'oseasattr' && (
-          <Card title="海外個股歸因比較">
-            <OverseasAttributionTab />
-          </Card>
-        )}
-
-        {activeTab === 'usimpact' && (
-          <Card title="美股收盤影響">
-            <UsMarketImpactTab />
+        {activeTab === 'impact' && (
+          <Card title="收盤影響">
+            <MarketImpactTab />
           </Card>
         )}
 
         {activeTab === 'top10' && (
           <Card title="前十大持股">
             <TopHoldingsTab />
-          </Card>
-        )}
-
-        {activeTab === 'twimpact' && (
-          <Card title="台股收盤影響">
-            <TwMarketImpactTab />
           </Card>
         )}
 

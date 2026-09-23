@@ -125,7 +125,7 @@ export default function OverseasAttributionTab() {
   const run = useCallback(async () => {
     setLoading(true); setErr(''); setRes(null);
     const sp = new URLSearchParams(window.location.search);
-    sp.set('tab', 'oseasattr'); sp.set('a', a); sp.set('b', b); sp.set('start', start);
+    sp.set('a', a); sp.set('b', b); sp.set('start', start);
     if (end) sp.set('end', end); else sp.delete('end');
     sp.set('total', total ? '1' : '0');
     window.history.replaceState(null, '', `${window.location.pathname}?${sp.toString()}`);

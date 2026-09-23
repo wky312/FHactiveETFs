@@ -118,7 +118,7 @@ export default function TwMarketImpactTab() {
     if (!selected.length) { setErr('請至少勾選一檔 ETF。'); return; }
     setLoading(true); setErr(''); setRes(null);
     const sp = new URLSearchParams(window.location.search);
-    sp.set('tab', 'twimpact'); sp.set('funds', selected.join(',')); sp.set('topn', String(topN));
+    sp.set('funds', selected.join(',')); sp.set('topn', String(topN));
     window.history.replaceState(null, '', `${window.location.pathname}?${sp.toString()}`);
     try {
       const r = await fetch(`/api/tw-impact?tickers=${selected.join(',')}`, { cache: 'no-store' });
