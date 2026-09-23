@@ -16,12 +16,19 @@ import { OVERSEAS_FUNDS, OverseasFundConfig } from './overseasFunds';
 import { loadStoredHoldings } from './holdingsStore';
 import { fetchCmoneyHoldings } from './cmoneyHoldings';
 import { fetchHoldings } from './fhtrust';
+import { fetchYuantaHoldings } from './yuantaHoldings';
 import { resolveYfTicker } from './exchangeMap';
 import { fetchTotalReturnSeries } from './yahooFinance';
 import { currencyForStockid, fetchFxSeries } from './fx';
 import { Holding } from './types';
 
 const BATCH = 8;
+
+/* 這些基金的 CMoney 揭露落後其官方投信網站的自家 API 2-3 個交易日（2026-09-22 實測：
+   00990A CMoney 停 09/18，元大官網/API 已到 09/21；同期比對過 00988A/00411A 的統一投信官網
+   ezmoney.com.tw，資料跟 CMoney 完全一致停在 09/18，代表是統一投信自己揭露就慢，沒有更新
+   的來源可補，所以這份清單目前只有元大一檔）。*/
+const YUANTA_HOLDINGS_TICKERS = new Set(['00990A']);
 
 /* ── 日期工具（對齊 lib/stockTrajectory.ts）───────────────────────── */
 function toMs(s: string): number { return new Date(s.replace(/\//g, '-')).getTime(); }
@@ -109,6 +116,15 @@ export async function buildOverseasDayMap(cfg: OverseasFundConfig): Promise<Map<
       () => new Map<string, Holding[]>(),
     );
     for (const [date, holdings] of live) dayMap.set(date, holdings);
+
+    // 官方來源比 CMoney 新的基金（見上方 YUANTA_HOLDINGS_TICKERS 註解）：用官網 API 補最新幾天，
+    // 官方資料蓋過 CMoney（同一天兩邊有值時，官方版本才是正確的那份）。
+    if (YUANTA_HOLDINGS_TICKERS.has(cfg.ticker)) {
+      const lastDate = [...dayMap.keys()].sort().pop();
+      const sinceIso = lastDate ? slashToIso(lastDate) : slashToIso(addDays(todayTW(), -10));
+      const yuanta = await fetchYuantaHoldings(cfg.ticker, sinceIso).catch(() => new Map<string, Holding[]>());
+      for (const [date, holdings] of yuanta) dayMap.set(date, holdings);
+    }
   } else {
     // 復華 fhtrust：只即時補「最後存檔日之後」到今天（通常 0–數天）。
     const end = todayTW();

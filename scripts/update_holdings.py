@@ -36,6 +36,16 @@ CMONEY_FUNDS = {
     '00402A': '00402A',  # 主動安聯美國科技
 }
 
+# 元大投信自家 API（同 lib/yuantaScale.ts 用的 etfapi.yuantaetfs.com）：CMoney 對 00990A 的揭露
+# 落後元大官網 2-3 個交易日（2026-09-22 實測：CMoney 停 09/18、元大官網/API 已到 09/21；同期
+# 比對過 00988A/00411A 的統一投信官網 ezmoney.com.tw，資料跟 CMoney 完全一致停在 09/18，是統一
+# 投信自己揭露就慢、沒有更新來源可補，所以這份清單只有元大一檔）。收在 CMoney 更新之後跑，
+# 官方資料覆蓋 CMoney 的同日舊值。
+YUANTA_FUNDS = {
+    '00990A': '00990A',  # fundId 與 ticker 相同
+}
+YUANTA_API = 'https://etfapi.yuantaetfs.com/ectranslation/api/bridge'
+
 
 def _is_cash_row(sid: str, name: str) -> bool:
     """CMoney 持股夾帶的現金/操作列（C_NTD / DA_NTD / CASH …）非真實個股，排除。"""
@@ -219,6 +229,71 @@ def update_cmoney_fund(fund_id: str, assign_id: str) -> int:
     return added
 
 
+def fetch_yuanta_days(ticker: str, since: date):
+    """查 `since`（不含）之後到「今天+3」的每個交易日，回傳 (days, names)。
+    `date` 查詢參數是基準日，回應的 `PCF.trandate` 才是實際資料日、常落後基準日 1 個交易日，
+    所以要連未來日期一起查（同 lib/yuantaHoldings.ts::fetchYuantaHoldings 的處理）。"""
+    days, names = {}, {}
+    end = date.today() + timedelta(days=3)
+    for d in weekdays(since + timedelta(days=1), end):
+        params = {
+            'APIType': 'ETFAPI', 'CompanyName': 'YUANTAFUNDS',
+            'FuncId': 'PCF/Daily', 'ticker': ticker, 'date': date_to_api(d).replace('/', ''),
+        }
+        try:
+            try:
+                r = requests.get(YUANTA_API, params=params, headers=HEADERS, timeout=20)
+            except requests.exceptions.SSLError:
+                # etfapi.yuantaetfs.com 憑證缺 Subject Key Identifier，同 CMoney 那段處理，
+                # 只對此唯讀公開端點退回不驗證。
+                import urllib3
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                r = requests.get(YUANTA_API, params=params, headers=HEADERS, timeout=20, verify=False)
+            r.raise_for_status()
+            j = r.json() or {}
+        except Exception as e:
+            print(f'  ! {ticker} yuanta {date_to_api(d)} fetch error: {e}', file=sys.stderr)
+            continue
+        pcf = j.get('PCF') or {}
+        trandate = pcf.get('trandate')
+        sw = ((j.get('FundWeights') or {}).get('StockWeights')) or []
+        if not trandate or not sw:
+            continue
+        date_key = f'{str(trandate)[0:4]}/{str(trandate)[4:6]}/{str(trandate)[6:8]}'
+        records = []
+        for s in sw:
+            sid = str(s.get('code') or '').strip()
+            weight = parse_num(s.get('weights'))
+            if not sid or weight <= 0:
+                continue
+            records.append({'c': sid, 'q': int(parse_num(s.get('qty'))), 'm': 0, 'p': round(weight, 4)})
+            names[sid] = str(s.get('name') or '').strip()
+        if records:
+            days[date_key] = records
+        time.sleep(0.15)
+    return days, names
+
+
+def update_yuanta_fund(fund_id: str, ticker: str) -> int:
+    """用元大官網 API 補 CMoney 落後的最新幾天（見 YUANTA_FUNDS 註解）。回傳新增天數。"""
+    data = load(fund_id)
+    before = len(data['days'])
+    last = max((api_to_date(k) for k in data['days']), default=FLOOR)
+    try:
+        days, names = fetch_yuanta_days(ticker, last)
+    except Exception as e:
+        print(f'  ! {fund_id} yuanta fetch error: {e}', file=sys.stderr)
+        print(f'{fund_id}: +0 天（元大 API 失敗）')
+        return 0
+    data['days'].update(days)
+    data['names'].update(names)
+    added = len(data['days']) - before
+    if days:
+        save(fund_id, data)
+    print(f'{fund_id}: +{added} 天，共 {len(data["days"])} 天（元大官網）')
+    return added
+
+
 def main():
     total = 0
     for fund_id in FUND_IDS:
@@ -227,6 +302,9 @@ def main():
     for fund_id, assign_id in CMONEY_FUNDS.items():
         print(f'== {fund_id} (CMoney) ==')
         total += update_cmoney_fund(fund_id, assign_id)
+    for fund_id, ticker in YUANTA_FUNDS.items():
+        print(f'== {fund_id} (元大官網) ==')
+        total += update_yuanta_fund(fund_id, ticker)
     print(f'完成，共新增 {total} 天')
 
 
