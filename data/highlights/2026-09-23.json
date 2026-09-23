@@ -1,0 +1,177 @@
+{
+  "date": "2026-09-23",
+  "scanned_at": "2026-09-23T18:59:22+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": "0050"
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "tw_active"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "ok",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R1-2408-2026-09-23",
+      "rule": "R1",
+      "score": 31.75,
+      "selected": true,
+      "fact": "南亞科技今日 +3.62%，00991A 持股 8.77%、為全市場 20 檔主動 ETF 中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "南亞科技大漲 3.62%，00991A 以 8.77% 持股居全市場主動 ETF 之冠，經理人重押命中。",
+      "data": {
+        "stockid": "2408",
+        "pct_change": 3.62,
+        "weight_pct": 8.77,
+        "is_heaviest_among_universe": true,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R1-2383-2026-09-23",
+      "rule": "R1",
+      "score": 28.75,
+      "selected": true,
+      "fact": "台光電子今日 +3.29%，00991A 持股 8.74%、為全市場 20 檔主動 ETF 中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "台光電子大漲 3.29%，00991A 以 8.74% 持股居全市場主動 ETF 之冠，經理人重押命中。",
+      "data": {
+        "stockid": "2383",
+        "pct_change": 3.29,
+        "weight_pct": 8.74,
+        "is_heaviest_among_universe": true,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R1-3037-2026-09-23",
+      "rule": "R1",
+      "score": 26.63,
+      "selected": true,
+      "fact": "欣興電子今日 +3.57%，00991A 持股 7.46%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "欣興電子大漲 3.57%，00991A 以 7.46% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "3037",
+        "pct_change": 3.57,
+        "weight_pct": 7.46,
+        "is_heaviest_among_universe": false,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R3-3711-20260911-t8",
+      "rule": "R3",
+      "score": 24.27,
+      "selected": true,
+      "fact": "9/11 加碼的 日月光投 至今 +12.1%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/11 加碼日月光投，至今上漲 12.1%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "3711",
+        "event_date": "2026-09-11",
+        "direction": "add",
+        "qty_change_pct": 27677.8,
+        "weight_pct": 1.991,
+        "return_since_pct": 12.14,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R1-8046-2026-09-23",
+      "rule": "R1",
+      "score": 19.45,
+      "selected": true,
+      "fact": "南亞電路今日 +3.86%，00991A 持股 5.04%、為全市場 20 檔主動 ETF 中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "南亞電路大漲 3.86%，00991A 以 5.04% 持股居全市場主動 ETF 之冠，經理人重押命中。",
+      "data": {
+        "stockid": "8046",
+        "pct_change": 3.86,
+        "weight_pct": 5.04,
+        "is_heaviest_among_universe": true,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R3-2303-20260917-t8",
+      "rule": "R3",
+      "score": 16.95,
+      "selected": false,
+      "fact": "9/17 加碼的 聯華電子 至今 +8.5%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/17 加碼聯華電子，至今上漲 8.5%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "2303",
+        "event_date": "2026-09-17",
+        "direction": "add",
+        "qty_change_pct": 115455.6,
+        "weight_pct": 2.037,
+        "return_since_pct": 8.47,
+        "tier": 8
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 632,
+    "line_status": 200,
+    "candidate_count": 6,
+    "selected_count": 5
+  }
+}
