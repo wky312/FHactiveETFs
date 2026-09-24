@@ -25,9 +25,10 @@ import { Holding } from './types';
 const BATCH = 8;
 
 /* 這些基金的 CMoney 揭露落後其官方投信網站的自家 API 2-3 個交易日（2026-09-22 實測：
-   00990A CMoney 停 09/18，元大官網/API 已到 09/21；同期比對過 00988A/00411A 的統一投信官網
-   ezmoney.com.tw，資料跟 CMoney 完全一致停在 09/18，代表是統一投信自己揭露就慢，沒有更新
-   的來源可補，所以這份清單目前只有元大一檔）。*/
+   00990A CMoney 停 09/18，元大官網/API 已到 09/21）。
+   統一投信（00988A/00411A）官網 ezmoney.com.tw/ETF/Transaction/GetPCF 也有逐日持股，但前面
+   擋防爬（需先 GET 首頁＋帶 fundCode 的 PCF 頁拿兩個 cookie 才放行 POST），這裡是前端即時補，
+   沒接；統一改由排程 scripts/update_holdings.py 的 update_ezmoney_fund 補進 data/holdings 存檔。*/
 const YUANTA_HOLDINGS_TICKERS = new Set(['00990A']);
 
 /* ── 日期工具（對齊 lib/stockTrajectory.ts）───────────────────────── */

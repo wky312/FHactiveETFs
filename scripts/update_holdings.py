@@ -9,9 +9,10 @@
 
 import json
 import os
+import re
 import sys
 import time
-from datetime import date, timedelta
+from datetime import date, datetime, timedelta, timezone
 
 import requests
 
@@ -37,14 +38,34 @@ CMONEY_FUNDS = {
 }
 
 # 元大投信自家 API（同 lib/yuantaScale.ts 用的 etfapi.yuantaetfs.com）：CMoney 對 00990A 的揭露
-# 落後元大官網 2-3 個交易日（2026-09-22 實測：CMoney 停 09/18、元大官網/API 已到 09/21；同期
-# 比對過 00988A/00411A 的統一投信官網 ezmoney.com.tw，資料跟 CMoney 完全一致停在 09/18，是統一
-# 投信自己揭露就慢、沒有更新來源可補，所以這份清單只有元大一檔）。收在 CMoney 更新之後跑，
-# 官方資料覆蓋 CMoney 的同日舊值。
+# 落後元大官網 2-3 個交易日（2026-09-22 實測：CMoney 停 09/18、元大官網/API 已到 09/21）。
+# 收在 CMoney 更新之後跑，官方資料覆蓋 CMoney 的同日舊值。
+#
+# 2026-09-23 更正：先前以為統一投信（00988A/00411A）官網跟 CMoney 一樣停在 09/18、沒有更新
+# 來源可補——查錯了，見下方 EZMONEY_FUNDS，統一投信官網其實也有更新的逐日持股，只是查詢
+# 端點 ezmoney.com.tw/ETF/Transaction/GetPCF 前面擋了防爬（單純 POST 或漏帶 fundCode 會被
+# 導回原頁 HTML、狀態碼仍是 200，很容易誤判成「查了、資料跟 CMoney 一樣」）。
 YUANTA_FUNDS = {
     '00990A': '00990A',  # fundId 與 ticker 相同
 }
 YUANTA_API = 'https://etfapi.yuantaetfs.com/ectranslation/api/bridge'
+
+# 統一投信官網 PCF 查詢（同 lib/ezmoneyScale.ts 已驗證過、正式站在用的 cookie 流程）：
+# CMoney 對 00988A/00411A 的揭露落後統一投信官網，用官網 GetPCF 補最新幾天，官方資料覆蓋
+# CMoney 的同日舊值。防爬檢查需要「先 GET 首頁拿 __nxquid、再 GET 帶 fundCode 的 PCF 頁拿
+# ASP.NET_SessionId」兩個 cookie 都有才會放行 POST，兩者缺一 POST 一樣回 200 但 body 是
+# 原頁 HTML（不是查詢失敗，是被防爬導回，parse 時會因為抓不到 JSON 欄位而回 None 靜靜跳過，
+# 不會誤植髒資料，但也不會警覺自己被擋——排查時要注意）。
+#
+# GetPCF 的 `date` 參數是「公告日」（通常 T+1，遇假日更晚），不是資料本身的交易日；要用回應
+# 裡的 `TranDate` 才是實際持股日，兩者常常不同（比照 lib/ezmoneyScale.ts::fetchEzmoneyRange）。
+EZMONEY_FUNDS = {
+    '00988A': '61YTW',  # 主動統一全球創新，fundCode 是統一投信內部代號（非 ticker）
+    '00411A': '64YTW',  # 主動統一前沿科技
+}
+EZMONEY_HOST = 'https://www.ezmoney.com.tw'
+EZMONEY_UA = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+              '(KHTML, like Gecko) Chrome/124.0 Safari/537.36')
 
 
 def _is_cash_row(sid: str, name: str) -> bool:
@@ -294,6 +315,117 @@ def update_yuanta_fund(fund_id: str, ticker: str) -> int:
     return added
 
 
+def _net_date_to_taipei(raw) -> date | None:
+    """解析 GetPCF 回應的日期欄位 → 台北日期。同一支 API 在不同次回應會混用兩種序列化格式
+    （2026-09-23 實測交替出現，不是查詢參數決定的）：
+      - ASP.NET JSON 格式 `/Date(ms)/`：ms 是 UTC epoch，本地已是台北 00:00 時刻，要 +8 小時
+        換算才不會少算一天；負值是 .NET DateTime.MinValue 的序列化結果（查無該公告日資料）。
+      - 純 ISO 字串 `2026-09-18T00:00:00`：已經是台北時間本身，直接取日期，不能再 +8 小時
+        （會多算一天）。"""
+    s = str(raw or '')
+    m = re.search(r'/Date\((-?\d+)\)/', s)
+    if m:
+        ms = int(m.group(1))
+        if ms < 0:
+            return None
+        return (datetime.fromtimestamp(ms / 1000, tz=timezone.utc) + timedelta(hours=8)).date()
+    m = re.match(r'(\d{4})-(\d{2})-(\d{2})', s)
+    if m:
+        return date(int(m.group(1)), int(m.group(2)), int(m.group(3)))
+    return None
+
+
+def _ezmoney_session(fund_code: str) -> requests.Session | None:
+    """防爬需要的兩段式 cookie：先首頁拿 __nxquid，再帶 fundCode 的 PCF 頁拿
+    ASP.NET_SessionId。缺一，後面 GetPCF 的 POST 一樣回 200，但 body 是原頁 HTML。"""
+    s = requests.Session()
+    s.headers.update({'User-Agent': EZMONEY_UA})
+    try:
+        s.get(f'{EZMONEY_HOST}/', timeout=20)
+        s.get(f'{EZMONEY_HOST}/ETF/Transaction/PCF?fundCode={fund_code}', timeout=20)
+        return s
+    except Exception as e:
+        print(f'  ! ezmoney {fund_code} session init error: {e}', file=sys.stderr)
+        return None
+
+
+def fetch_ezmoney_days(fund_code: str, since: date):
+    """查 `since`（不含）之後到「今天+4」的每個公告日，回傳 (days, names)。
+    `date` 查詢參數是公告日不是資料日，要讀回應的 TranDate 才是實際持股日（見 EZMONEY_FUNDS
+    註解），同一個 TranDate 可能被好幾個公告日查詢命中（假日群聚），用 date_key 是否已存在跳過
+    重複的那幾次。"""
+    days: dict = {}
+    names: dict = {}
+    sess = _ezmoney_session(fund_code)
+    if sess is None:
+        return days, names
+
+    end = date.today()
+    for d in weekdays(since + timedelta(days=1), end + timedelta(days=4)):
+        roc = f'{d.year - 1911}/{d.month:02d}/{d.day:02d}'
+        try:
+            r = sess.post(
+                f'{EZMONEY_HOST}/ETF/Transaction/GetPCF',
+                json={'fundCode': fund_code, 'date': roc, 'specificDate': True},
+                headers={
+                    'Content-Type': 'application/json; charset=utf-8',
+                    'Accept': 'application/json, */*; q=0.01',
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Referer': f'{EZMONEY_HOST}/ETF/Transaction/PCF?fundCode={fund_code}',
+                },
+                timeout=20,
+            )
+            r.raise_for_status()
+            j = r.json()
+        except Exception as e:
+            print(f'  ! {fund_code} ezmoney {roc} fetch error: {e}', file=sys.stderr)
+            continue
+
+        assets = j.get('asset') or []
+        details = [row for a in assets if a.get('AssetCode') == 'ST' for row in (a.get('Details') or [])]
+        if not details:
+            continue
+        tran_date = _net_date_to_taipei(details[0].get('TranDate'))
+        if not tran_date or tran_date <= since or tran_date > end:
+            continue
+        date_key = date_to_api(tran_date)
+        if date_key in days:
+            continue
+
+        records = []
+        for row in details:
+            sid = str(row.get('DetailCode') or '').strip()
+            weight = parse_num(row.get('NavRate'))
+            if not sid or weight <= 0:
+                continue
+            records.append({'c': sid, 'q': int(parse_num(row.get('Share'))), 'm': 0, 'p': round(weight, 4)})
+            names[sid] = str(row.get('DetailName') or '').strip()
+        if records:
+            days[date_key] = records
+        time.sleep(0.2)
+    return days, names
+
+
+def update_ezmoney_fund(fund_id: str, fund_code: str) -> int:
+    """用統一投信官網 GetPCF 補 CMoney 落後的最新幾天（見 EZMONEY_FUNDS 註解）。回傳新增天數。"""
+    data = load(fund_id)
+    before = len(data['days'])
+    last = max((api_to_date(k) for k in data['days']), default=FLOOR)
+    try:
+        days, names = fetch_ezmoney_days(fund_code, last)
+    except Exception as e:
+        print(f'  ! {fund_id} ezmoney fetch error: {e}', file=sys.stderr)
+        print(f'{fund_id}: +0 天（統一投信官網失敗）')
+        return 0
+    data['days'].update(days)
+    data['names'].update(names)
+    added = len(data['days']) - before
+    if days:
+        save(fund_id, data)
+    print(f'{fund_id}: +{added} 天，共 {len(data["days"])} 天（統一投信官網）')
+    return added
+
+
 def main():
     total = 0
     for fund_id in FUND_IDS:
@@ -305,6 +437,9 @@ def main():
     for fund_id, ticker in YUANTA_FUNDS.items():
         print(f'== {fund_id} (元大官網) ==')
         total += update_yuanta_fund(fund_id, ticker)
+    for fund_id, fund_code in EZMONEY_FUNDS.items():
+        print(f'== {fund_id} (統一投信官網) ==')
+        total += update_ezmoney_fund(fund_id, fund_code)
     print(f'完成，共新增 {total} 天')
 
 
