@@ -52,6 +52,8 @@ export interface ImpactStock {
 export interface ImpactFundResult {
   ticker: string; name: string; asOfHoldings: string; marketWeight: number; coverage: number;
   totalContribution: number; gainers: ImpactStock[]; losers: ImpactStock[]; warning?: string;
+  /** 持股資料日落後基準交易日超過 3 天。有任何一檔為 true 時，整份結果不寫進持久快取。 */
+  holdingsLagging?: boolean;
 }
 export interface MarketImpactResult {
   sessionDate: string; prevSessionDate: string; funds: ImpactFundResult[];
@@ -191,6 +193,7 @@ export async function computeMarketImpact(spec: MarketImpactSpec, tickers: strin
     const losers = stocks.filter((s) => s.contribution < 0).sort((a, b) => a.contribution - b.contribution);
 
     const warnParts: string[] = [];
+    let holdingsLagging = false;
     // 該比對哪一天，取決於這個市場「本來就打算用哪天的權重」：
     //   weightBasis='prev-session' → 基準日就是 prevSessionDate；
     //   weightBasis='latest'（美股）→ 沿用原本的口徑，跟 sessionDate 比。
@@ -199,6 +202,7 @@ export async function computeMarketImpact(spec: MarketImpactSpec, tickers: strin
     if (snap.date && basisDate) {
       const gapDays = (new Date(slashToIso(basisDate)).getTime() - new Date(slashToIso(snap.date)).getTime()) / 86400000;
       if (gapDays > 3) {
+        holdingsLagging = true;
         warnParts.push(`持股資料日（${slashToIso(snap.date)}）落後基準交易日（${slashToIso(basisDate)}）超過 3 天，影響估計可能失真。`);
       }
     }
@@ -210,6 +214,7 @@ export async function computeMarketImpact(spec: MarketImpactSpec, tickers: strin
       ticker: h.cfg.ticker, name: h.cfg.name, asOfHoldings: slashToIso(snap.date),
       marketWeight, coverage, totalContribution: total, gainers, losers,
       warning: warnParts.length ? warnParts.join(' ') : undefined,
+      holdingsLagging: holdingsLagging || undefined,
     };
   });
 
@@ -264,6 +269,9 @@ export async function getMarketImpactCached(spec: MarketImpactSpec): Promise<Cac
   _memCache.set(cacheKey, { ts: Date.now(), data: result });
   // 只有真的算出交易日才落地，否則（Yahoo 全掛）會把一份空結果鎖在快取裡一整天。
   // 緩衝時段（spec.canPersist 回 false）也只留在記憶體，等 TTL 過了重算。
-  if (result.sessionDate && (spec.canPersist?.(result.sessionDate) ?? true)) await writePageCache(cacheKey, result);
+  // 任一檔持股資料落後（來源還沒更新）也不落地：快取鍵只有交易日，落地會把「當時落後的持股」
+  // 鎖一整天（2026-09-22 實例：CMoney 停在 09/18 時算的結果，來源追上後仍讀到舊值）。
+  const holdingsLagging = result.funds.some((f) => f.holdingsLagging);
+  if (result.sessionDate && !holdingsLagging && (spec.canPersist?.(result.sessionDate) ?? true)) await writePageCache(cacheKey, result);
   return { ...result, cacheSource: 'fresh' };
 }
