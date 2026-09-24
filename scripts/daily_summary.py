@@ -409,14 +409,28 @@ def _parse_tran_date(raw) -> str | None:
     return None
 
 
+# ezmoney 公告日往後掃幾個「日曆日」。⚠ 這個數字必須跨得過台股最長的連假：
+#   ・2026/09/24 的清單要到 09/29 才公告（09/25 中秋 + 週末 + 09/28 教師節，連休四天）→ T+5
+#   ・2026 春節休 02/12–02/20：02/11 的清單 02/23 才公告 → T+12；統一的海外檔是 T−2 個
+#     交易日，同一天要等到 02/24 → T+13
+# 舊值 4 只夠平常的週末，遇到連假就靜靜回 None，而且補洞每天重試也一樣掃不到那個公告日
+# → 該交易日**永久留白**（2026/09/24 統一四檔就是這樣整排不見的）。
+# 同一個坑在元大/群益/國泰/復華已於 2026-08 放寬過（14 日曆日 / 10 營業日 / 16 日曆日），
+# 當時漏掉 ezmoney。留 16 是給春節後再疊一天颱風假的餘裕。
+EZMONEY_ANNOUNCE_MAX_OFFSET = 16
+
+
 def fetch_ezmoney_day(fund_code: str, transaction_date: date,
                       session: requests.Session | None = None) -> dict | None:
     """Return {'netSub': float, 'aum': float} for given transaction date, or None.
-    Tries announcement offsets +1..+4 days to handle weekends and holidays."""
+
+    公告日 = 交易日之後第 1..EZMONEY_ANNOUNCE_MAX_OFFSET 個日曆日，逐日往後掃，
+    以 API 自報的 TranDate 對齊目標交易日（休市日會回 TranDate=0001-01-01、金額全 0）。
+    """
     try:
         s = session or _get_ezmoney_session(fund_code)
         target_str = str(transaction_date)  # YYYY-MM-DD
-        for offset in range(1, 5):
+        for offset in range(1, EZMONEY_ANNOUNCE_MAX_OFFSET + 1):
             announce = transaction_date + timedelta(days=offset)
             payload = {'fundCode': fund_code, 'date': _roc_date(announce), 'specificDate': True}
             try:
@@ -435,7 +449,13 @@ def fetch_ezmoney_day(fund_code: str, transaction_date: date,
             if not pcf:
                 continue
             tran_date = _parse_tran_date(pcf[0].get('TranDate'))
-            if not tran_date or tran_date != target_str:
+            if not tran_date:
+                continue
+            # TranDate 隨公告日單調遞增；一旦越過目標日就不可能再對上 → 提早收工。
+            # 休市日的哨兵值 '0001-01-01' 比任何目標日都小，不會誤觸這個出口。
+            if tran_date > target_str:
+                return None
+            if tran_date != target_str:
                 continue
             get = lambda code: next((parse_num(p['Amount']) for p in pcf if p.get('PCFCode','').upper() == code), 0)
             diff_unit = get('DIFF_UNIT')

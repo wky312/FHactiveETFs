@@ -145,8 +145,12 @@ async function fetchOneDay(
     const pcf: any[] = json?.pcf ?? [];
     if (!pcf.length) return null;
 
-    // Use TranDate from first entry as the actual transaction date label
-    const tranDate = parseTranDate(pcf[0]?.TranDate) ?? announceDate;
+    // Use TranDate from first entry as the actual transaction date label.
+    // 解析不出來就回 null，**不可** fallback 成公告日：視窗放寬後會掃到一整排休市的公告日，
+    // 那些天 ezmoney 照樣回 10 列（TranDate=0001-01-01、金額全 0），用公告日當標籤會生出
+    // 「9/25 有申贖」這種不存在的交易日。
+    const tranDate = parseTranDate(pcf[0]?.TranDate);
+    if (!tranDate) return null;
 
     const get = (code: string) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -171,6 +175,12 @@ async function fetchOneDay(
   }
 }
 
+// 公告日往後掃幾個「日曆日」。⚠ 必須跨得過台股最長的連假，否則區間結尾那幾個交易日會靜靜消失：
+//   ・2026/09/24 的清單 09/29 才公告（09/25 中秋 + 週末 + 09/28 教師節連休四天）→ T+5
+//   ・2026 春節休 02/12–02/20：02/11 的清單 02/23 才公告 → T+12（海外檔 T−2 交易日更晚一天）
+// 舊值 4 只夠一般週末。與 daily_summary.py 的 EZMONEY_ANNOUNCE_MAX_OFFSET 保持一致。
+const ANNOUNCE_MAX_OFFSET = 16;
+
 export async function fetchEzmoneyRange(
   fundCode: string,
   startDateIn: string,  // YYYY/MM/DD 或 YYYY-MM-DD — transaction date range
@@ -179,10 +189,10 @@ export async function fetchEzmoneyRange(
   // 內部一律用斜線比字串大小；傳連字號進來會在最後的區間過濾被全部濾掉（'/'>'-'）而靜靜回空陣列。
   const startDate = startDateIn.replace(/-/g, '/');
   const endDate   = endDateIn.replace(/-/g, '/');
-  // Query announcement dates: startDate+1 to endDate+4
-  // (PCF is announced T+1; extend by a few days for weekends/holidays)
+  // Query announcement dates: startDate+1 to endDate+ANNOUNCE_MAX_OFFSET
+  // (PCF is announced T+1; extend far enough to clear the longest market closure)
   const announceStart = addDays(startDate, 1);
-  const announceEnd   = addDays(endDate, 4);
+  const announceEnd   = addDays(endDate, ANNOUNCE_MAX_OFFSET);
   const announceDates = weekdaysBetween(announceStart, announceEnd);
   if (!announceDates.length) return [];
 

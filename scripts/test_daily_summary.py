@@ -451,3 +451,75 @@ def test_fetch_fhtrust_day_stops_once_overshot(monkeypatch):
     })
     assert ds.fetch_fhtrust_day('ETF21', date(2026, 9, 19)) is None
     assert calls == ['2026/09/19', '2026/09/20', '2026/09/21', '2026/09/22']  # 不是硬掃滿 14 天
+
+
+# ── ezmoney 公告日掃描視窗：要跨得過連假 ──────────────────────────────────────
+
+class _FakeEzResp:
+    """模擬 ezmoney GetPCF 回應。announced=None 代表那天沒掛清單（回全 0、TranDate 哨兵值）。"""
+
+    status_code = 200
+    headers = {'content-type': 'application/json'}
+
+    def __init__(self, tran_date, diff_unit=0.0, p_unit=0.0, nav=0.0):
+        self._tran_date = tran_date or '0001-01-01'
+        self._amounts = {'DIFF_UNIT': diff_unit, 'P_UNIT': p_unit, 'NAV': nav}
+
+    def json(self):
+        return {'pcf': [
+            {'PCFCode': code, 'Amount': amt, 'TranDate': f'{self._tran_date}T00:00:00'}
+            for code, amt in self._amounts.items()
+        ]}
+
+
+class _FakeEzSession:
+    """by_announce: {公告日 date → TranDate 字串}；其餘公告日視為休市（全 0）。"""
+
+    def __init__(self, by_announce):
+        self.by_announce = by_announce
+        self.queried = []
+
+    def post(self, url, json=None, headers=None, timeout=None):
+        roc = json['date']                      # 'YYY/MM/DD'
+        y, m, d = roc.split('/')
+        announce = date(int(y) + 1911, int(m), int(d))
+        self.queried.append(announce)
+        tran = self.by_announce.get(announce)
+        if tran is None:
+            return _FakeEzResp(None)            # 休市：TranDate=0001-01-01、P_UNIT=0
+        return _FakeEzResp(tran, diff_unit=-1_000_000.0, p_unit=10.0, nav=1e10)
+
+
+def test_fetch_ezmoney_day_crosses_four_day_holiday():
+    """2026/09/24 的清單要到 09/29 才公告（09/25 中秋～09/28 教師節連休四天）。
+
+    舊版只掃 T+1..T+4 日曆日（09/25–09/28 全是休市）→ 永久留白。
+    """
+    sess = _FakeEzSession({date(2026, 9, 29): '2026-09-24'})
+    got = ds.fetch_ezmoney_day('49YTW', date(2026, 9, 24), session=sess)
+    assert got is not None, f'掃到的公告日只有 {sess.queried}'
+    assert round(got['netSub'], 4) == -0.1
+    assert round(got['aum'], 2) == 100.0
+
+
+def test_fetch_ezmoney_day_crosses_lunar_new_year():
+    """2026 春節休 02/12–02/20：02/11 的清單 02/23 才公告（T+12 日曆日）。"""
+    sess = _FakeEzSession({date(2026, 2, 23): '2026-02-11'})
+    assert ds.fetch_ezmoney_day('49YTW', date(2026, 2, 11), session=sess) is not None
+
+
+def test_fetch_ezmoney_day_stops_once_announcement_passes_target():
+    """公告日的 TranDate 單調遞增；越過目標日就不可能再對上 → 提早收工，別把視窗掃完。"""
+    sess = _FakeEzSession({
+        date(2026, 9, 23): '2026-09-22',
+        date(2026, 9, 24): '2026-09-23',   # 已越過目標日 09/22
+    })
+    assert ds.fetch_ezmoney_day('49YTW', date(2026, 9, 21), session=sess) is None
+    assert sess.queried == [date(2026, 9, 22), date(2026, 9, 23)], sess.queried
+
+
+def test_fetch_ezmoney_day_ignores_holiday_sentinel_rows():
+    """休市日回 TranDate=0001-01-01、金額全 0 → 不可當成資料，也不可觸發提早收工。"""
+    sess = _FakeEzSession({date(2026, 9, 29): '2026-09-24'})
+    assert ds.fetch_ezmoney_day('49YTW', date(2026, 9, 24), session=sess) is not None
+    assert date(2026, 9, 25) in sess.queried
