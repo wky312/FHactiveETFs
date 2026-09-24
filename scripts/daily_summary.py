@@ -949,7 +949,14 @@ def _parse_flex_slash_date(s: str) -> date | None:
         return None
 
 
-ESTIMATE_ANNOUNCE_LOOKAHEAD = 3   # 含今天，往後掃幾個「公告日」
+# 含今天，往後掃幾個「公告日」候選。⚠ _next_biz_day 只跳週末、**不認國定假日**，所以這個
+# 數字必須大到連假期間那幾個「看起來是平日、其實休市」的候選也浪費得起：
+#   ・2026/09/24 的預估值在 09/29 那份清單裡，但 09/25(中秋)、09/28(教師節) 各吃掉一個候選
+#     → 需要第 4 個候選才掃得到（舊值 3 剛好差一個，當天海外預估整排停在 09/23）
+#   ・2026 春節休 02/12–02/20 共 7 個平日：02/11 的預估值要等第 9 個候選(02/23)
+# 放 10 是給春節再疊一天颱風假的餘裕。平常日不會真的掃這麼多——_newest_estimate 一抓到
+# 「今天」的預估就 break，正常只花 2 個候選。
+ESTIMATE_ANNOUNCE_LOOKAHEAD = 10
 
 
 def _announce_candidates(today: date, n: int = ESTIMATE_ANNOUNCE_LOOKAHEAD) -> list:

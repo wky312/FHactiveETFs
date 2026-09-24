@@ -523,3 +523,30 @@ def test_fetch_ezmoney_day_ignores_holiday_sentinel_rows():
     sess = _FakeEzSession({date(2026, 9, 29): '2026-09-24'})
     assert ds.fetch_ezmoney_day('49YTW', date(2026, 9, 24), session=sess) is not None
     assert date(2026, 9, 25) in sess.queried
+
+
+# ── 預估值公告日候選：也要跨得過連假 ────────────────────────────────────────
+
+def test_announce_candidates_default_crosses_four_day_holiday():
+    """2026/09/24 的預估值在 09/29 那份清單裡（09/25 中秋 + 週末 + 09/28 教師節連休四天）。
+
+    _next_biz_day 只跳週末、不認國定假日 → 預設 lookahead 必須夠深才掃得到 09/29，
+    否則連假那天的海外預估值整排停在前一個交易日。
+    """
+    assert date(2026, 9, 29) in ds._announce_candidates(date(2026, 9, 24))
+
+
+def test_announce_candidates_default_crosses_lunar_new_year():
+    """2026 春節休 02/12–02/20（7 個平日）：02/11 的預估值要等 02/23 那份清單。"""
+    assert date(2026, 2, 23) in ds._announce_candidates(date(2026, 2, 11))
+
+
+def test_newest_estimate_crosses_holiday_to_reach_today():
+    """休市的公告日回 None，不可讓掃描停住——要一路掃到連假後的第一個公告日。"""
+    by_ann = {
+        date(2026, 9, 24): {'date': date(2026, 9, 23), 'netSub': -1.61, 'aum': 533.98},
+        date(2026, 9, 29): {'date': date(2026, 9, 24), 'netSub': -3.73, 'aum': 531.52},
+    }
+    got = ds._newest_estimate(lambda ann: by_ann.get(ann), today=date(2026, 9, 24))
+    assert got['date'] == date(2026, 9, 24)
+    assert got['netSub'] == -3.73
