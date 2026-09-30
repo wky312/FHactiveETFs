@@ -11,6 +11,7 @@ import PerformanceTab from './PerformanceTab';
 import Prediction0050Tab from './Prediction0050Tab';
 import ScaleTab from './ScaleTab';
 import PeerRedemptionTab from './PeerRedemptionTab';
+import DailyChangeTab from './DailyChangeTab';
 import PeerPerformanceTab from './PeerPerformanceTab';
 import StockTrajectoryTab from './StockTrajectoryTab';
 import ScorecardTab from './ScorecardTab';
@@ -44,7 +45,7 @@ const BORDER = '#E8E3DF';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'peerperf' | 'cumret' | 'stockattr' | 'impact' | 'top10' | 'risk' | 'turnover' | 'consensus' | 'sector' | 'sectorheatmap' | 'unitwatch' | 'beneficiary' | 'mktcap150' | 'newhigh150' | 'top300ytd' | 'breakissue' | 'calendar';
+type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'dailychange' | 'peerperf' | 'cumret' | 'stockattr' | 'impact' | 'top10' | 'risk' | 'turnover' | 'consensus' | 'sector' | 'sectorheatmap' | 'unitwatch' | 'beneficiary' | 'mktcap150' | 'newhigh150' | 'top300ytd' | 'breakissue' | 'calendar';
 
 /* 舊分頁 id → 合併後的新 id（讓分享出去的舊連結不會直接壞掉，掉回首頁）。
    對應的子範圍（台股/美股、國內/海外）由各自的合併元件自己讀 URL 上的舊 tab 值還原，見
@@ -79,6 +80,7 @@ const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
   ] },
   { label: '同業觀測', items: [
     { id: 'peer',      label: '同業申贖觀測' },
+    { id: 'dailychange', label: '同業當日加減碼' },
     { id: 'peerperf',  label: '同業績效觀測' },
     { id: 'turnover',  label: '經理人換手率' },
     { id: 'consensus', label: '共識持股' },
@@ -609,6 +611,12 @@ export default function Dashboard() {
         {activeTab === 'peer' && (
           <Card title="同業申贖觀測">
             <PeerRedemptionTab />
+          </Card>
+        )}
+
+        {activeTab === 'dailychange' && (
+          <Card title="同業當日加減碼">
+            <DailyChangeTab />
           </Card>
         )}
 

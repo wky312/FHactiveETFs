@@ -68,7 +68,7 @@ function addDays(dateStr: string, delta: number): string {
   return dt.toISOString().slice(0, 10);
 }
 
-async function fetchAll<T>(build: (from: number, to: number) => PromiseLike<{ data: T[] | null }>): Promise<T[]> {
+export async function fetchAll<T>(build: (from: number, to: number) => PromiseLike<{ data: T[] | null }>): Promise<T[]> {
   const out: T[] = [];
   for (let from = 0; ; from += PAGE) {
     const { data } = await build(from, from + PAGE - 1);
@@ -79,7 +79,7 @@ async function fetchAll<T>(build: (from: number, to: number) => PromiseLike<{ da
   return out;
 }
 
-async function mapLimit<T, R>(items: T[], limit: number, fn: (x: T) => Promise<R>): Promise<R[]> {
+export async function mapLimit<T, R>(items: T[], limit: number, fn: (x: T) => Promise<R>): Promise<R[]> {
   const out: R[] = new Array(items.length);
   let idx = 0;
   await Promise.all(Array.from({ length: Math.min(limit, items.length) }, async () => {
@@ -88,7 +88,7 @@ async function mapLimit<T, R>(items: T[], limit: number, fn: (x: T) => Promise<R
   return out;
 }
 
-function isCashLike(stockid: string, stockname: string): boolean {
+export function isCashLike(stockid: string, stockname: string): boolean {
   if (!stockid.trim()) return true;
   return /^(CASH|現金|TWD|NTD)$|現金|存款|期貨|AFTER DEDUCTING/i.test(stockname.trim());
 }
@@ -99,7 +99,7 @@ interface PriceRow { stockid: string; close: number | string | null }
 /* 抓 date → (stockid → close)。各檔 ETF 的最新持股日通常相同，故先依日期分組再批次查。
    查「≤ date 且往前 PRICE_LOOKBACK_DAYS 天」的區間、依日期升冪排序，同一 stockid 的收盤
    會被較新的值覆蓋 —— 結果自然是「窗口內最接近 date 的一筆」，休市日也能拿到前一交易日收盤。 */
-async function closesByDate(dates: string[], stockids: string[]): Promise<Map<string, Map<string, number>>> {
+export async function closesByDate(dates: string[], stockids: string[]): Promise<Map<string, Map<string, number>>> {
   const out = new Map<string, Map<string, number>>();
   for (const d of dates) {
     const start = addDays(d, -PRICE_LOOKBACK_DAYS);
