@@ -60,7 +60,7 @@ export const METRIC_LABEL_ZH: Record<string, string> = {
   'Core PCE Price Index m/m': '核心 PCE 月增率', 'Core PCE Price Index y/y': '核心 PCE 年增率',
   'ISM Manufacturing PMI': 'ISM 製造業 PMI', 'ISM Manufacturing Prices': 'ISM 物價指數',
   'Federal Funds Rate': '聯邦基金利率（上限）',
-  'EPS': 'EPS（分析師均值）',
+  'EPS': 'EPS（每股盈餘，台積電為 ADR）',
 };
 
 export interface EarningsSpec {

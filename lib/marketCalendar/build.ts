@@ -17,10 +17,10 @@ export interface CalendarState {
 }
 
 const FF_MIN_INTERVAL_MS = 60 * 60_000;  // ForexFactory 對頻繁請求回 429，一小時抓一次就夠
-const ACTUALS_PER_RUN = 12;               // FRED 每分鐘 120 次上限；首次回補分多次刷新完成
+const ACTUALS_PER_RUN = 16;               // FRED 每分鐘 120 次上限；首次回補分多次刷新完成
 
 const NY = 'America/New_York';
-const ACTUALS_LOOKBACK_DAYS = 190;  // 首次上線回補近半年實際值（FRED 每分鐘 120 次上限）
+const ACTUALS_LOOKBACK_DAYS = 370;  // 回補近一年實際值（對應前端可回看一年；FRED 每分鐘 120 次上限，分多次刷新完成）
 const ISM_LABELS = ['ISM Manufacturing PMI', 'ISM Manufacturing Prices'];
 
 async function settle<T>(sources: Record<string, SourceStatus>, name: string, p: Promise<T>, count: (v: T) => number): Promise<T | null> {
@@ -117,13 +117,29 @@ export async function buildEvents(state: CalendarState, nowMs: number) {
 
   for (const info of earnings) {
     if (!info) continue;
-    if (info.lastCallDate) put(earningsEvent(info.spec, info.lastCallDate));
+    // lastCallDate 只補「已過且不與既有場次相近」的法說日：Yahoo 有時把即將到來的那場也填進去，會與 next 重複
+    const known = [...byId.values()].filter(e => e.historyKey === `earnings:${info.spec.key}`).map(e => e.date);
+    if (info.next) known.push(info.next.date);
+    const last = info.lastCallDate;
+    if (last && last < ymdInTz(nowMs, info.spec.tz) && !known.some(d => Math.abs(Date.parse(d) - Date.parse(last)) <= 3 * 86400_000)) {
+      put(earningsEvent(info.spec, last));
+    }
     if (info.next) {
       put(earningsEvent(info.spec, info.next.date, {
         source: 'yahoo', tentative: info.next.estimate || undefined,
         note: info.next.estimate ? 'Yahoo 預估日期，公司尚未正式公告。' : undefined,
         metrics: info.next.eps != null ? [{ label: 'EPS', forecast: info.next.eps.toFixed(2) }] : undefined,
       }));
+    }
+  }
+
+  // 財報實際 EPS：Yahoo 只給近 4 季，以「季末之後最早的一場」對應（TSMC 7 月法說 ↔ 6/30 季末）
+  for (const info of earnings) {
+    for (const h of info?.history ?? []) {
+      const ev = [...byId.values()]
+        .filter(e => e.historyKey === `earnings:${info!.spec.key}` && e.date > h.quarterEnd && e.date <= addDays(h.quarterEnd, 120) && e.date <= today)
+        .sort((a, b) => a.date.localeCompare(b.date))[0];
+      if (ev) put({ ...ev, metrics: [{ label: 'EPS', forecast: h.estimate?.toFixed(2) ?? null, actual: h.actual.toFixed(2) }] });
     }
   }
 
