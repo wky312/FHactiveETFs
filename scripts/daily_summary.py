@@ -1635,33 +1635,12 @@ def fetch_all_peer_data(transaction_date: date, etfs: list | None = None) -> lis
 
     results = []
     for etf in etfs:
-        data = None
-        if etf['source'] == 'ezmoney':
-            data = fetch_ezmoney_day(etf['key'], transaction_date, session=ezmoney_session)
-        elif etf['source'] == 'capital':
-            data = fetch_capital_day(etf['key'], transaction_date)
-        elif etf['source'] == 'fubon':
-            data = fetch_fubon_day(etf['key'], transaction_date)
-        elif etf['source'] == 'tsit':
-            data = fetch_tsit_day(etf['key'], transaction_date)
-        elif etf['source'] == 'ctbc':
-            data = fetch_ctbc_day(etf['key'], transaction_date)
-        elif etf['source'] == 'allianz':
-            data = fetch_allianz_day(etf['key'], transaction_date)
-        elif etf['source'] == 'yuanta':
-            data = fetch_yuanta_day(etf['key'], transaction_date)
-        elif etf['source'] == 'nomura':
-            data = fetch_nomura_day(etf['key'], transaction_date)
-        elif etf['source'] == 'cathay':
-            data = fetch_cathay_day(etf['key'], transaction_date)
-        elif etf['source'] == 'kgi':
-            data = fetch_kgi_day(etf['key'], transaction_date)
-        elif etf['source'] == 'cmoney':
-            data = fetch_cmoney_day(etf['key'], transaction_date)
-        elif etf['source'] == 'jpmorgan':
-            data = fetch_jpmorgan_day(etf['key'], transaction_date)
-        elif etf['source'] == 'fhtrust':
-            data = fetch_fhtrust_day(etf['key'], transaction_date)
+        # 一律走 fetch_peer_day（_SOURCE_FETCHERS 的 dispatcher）。
+        # ⚠ 這裡原本是一條獨立的 if/elif 來源鏈，和 _SOURCE_FETCHERS 兩份清單各自維護 ——
+        #   2026-10-03 加聯博/第一金/永豐/兆豐 時只加了 _SOURCE_FETCHERS，這條鏈沒加，於是
+        #   每日排程與回補對這四家**靜靜回 None**（回補跑完印「Stored: 0」卻是綠燈，193 筆
+        #   全 skip）。合併成一份就不可能再漏。新來源只要登記進 _SOURCE_FETCHERS 即可。
+        data = fetch_peer_day(etf, transaction_date, ezmoney_session=ezmoney_session)
         results.append({**etf, 'data': data})
     return results
 

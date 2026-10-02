@@ -581,3 +581,26 @@ def test_peer_etfs_keys_are_not_tickers_for_keyed_sources():
     keyed = {'fsitc', 'ctbc', 'allianz', 'jpmorgan', 'kgi', 'cathay', 'capital', 'ezmoney'}
     bad = [e['ticker'] for e in ds.PEER_ETFS if e['source'] in keyed and e['key'] == e['ticker']]
     assert not bad, f'這些檔的 key 被填成股票代號了: {bad}'
+
+
+def test_fetch_all_peer_data_routes_every_etf_through_the_dispatcher(monkeypatch):
+    """fetch_all_peer_data 必須對每一檔都呼叫 fetch_peer_day，不可自己維護第二份來源鏈。
+
+    2026-10-03 的實例：新增聯博/第一金/永豐/兆豐 時只登記了 _SOURCE_FETCHERS，
+    fetch_all_peer_data 裡那條獨立的 if/elif 鏈沒加 → 四家在每日排程與回補都靜靜回 None，
+    回補跑完印「Stored: 0  Skipped/failed: 193」卻還是綠燈。
+    """
+    seen = []
+    monkeypatch.setattr(ds, 'fetch_peer_day',
+                        lambda etf, d, ezmoney_session=None: seen.append(etf['ticker']) or {'netSub': 0.0, 'aum': 1.0})
+    monkeypatch.setattr(ds, '_get_ezmoney_session', lambda code: None)
+    etfs = [
+        {'ticker': 'A', 'name': 'a', 'source': 'ab',      'key': 'k', 'group': 'tw_active'},
+        {'ticker': 'B', 'name': 'b', 'source': 'fsitc',   'key': 'k', 'group': 'tw_active'},
+        {'ticker': 'C', 'name': 'c', 'source': 'sinopac', 'key': 'k', 'group': 'tw_active'},
+        {'ticker': 'D', 'name': 'd', 'source': 'mega',    'key': 'k', 'group': 'tw_active'},
+        {'ticker': 'E', 'name': 'e', 'source': 'ezmoney', 'key': 'k', 'group': 'tw_active'},
+    ]
+    res = ds.fetch_all_peer_data(date(2026, 10, 2), etfs)
+    assert seen == ['A', 'B', 'C', 'D', 'E'], seen
+    assert all(r['data'] is not None for r in res)
