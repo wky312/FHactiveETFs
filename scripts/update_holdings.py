@@ -449,6 +449,13 @@ ISSUER_FUNDS = {
     '00992A': '群益',   '00994A': '第一金', '00996A': '兆豐',   '00999A': '野村',
 }
 
+# 官網持股「支援依日期查詢」的來源（2026-10-03 實測；其餘只回最新一天）：
+#   00400A 國泰 SearchDate、00404A 聯博 ?date=、00405A 富邦 ddate — 要什麼日期就回什麼日期
+#   00994A 第一金 pStrDate — **填日期反而回前一個交易日**（留空才是當日），所以不能用要求的
+#          日期當 key，一律以 fetcher 自報的 date 為準（下面的回補迴圈本來就這樣做）。
+# 其餘 8 檔（摩根/野村×3/群益×2/台新/兆豐）忽略日期參數、永遠回最新一天 → 無法回補。
+ISSUER_DATE_CAPABLE = {'00400A', '00404A', '00405A', '00994A'}
+
 _TWSE_CAL: dict[str, set] = {}
 
 
@@ -541,8 +548,68 @@ def update_issuer_fund(fund_id: str, label: str) -> int:
     return 1
 
 
+def backfill_issuer_holdings(since: date) -> int:
+    """對 ISSUER_DATE_CAPABLE 的幾檔，逐日把 since→今天 的持股補進存檔。
+
+    opt-in（env `ISSUER_BACKFILL_SINCE=YYYY-MM-DD`）而不是每天跑：每檔每個交易日一次請求，
+    兩個月就幾百次，排在每日流程裡只是白耗。以 **fetcher 自報的日期** 當 key（第一金填日期
+    會回前一交易日，用要求的日期當 key 會整段錯位一天）。
+    """
+    try:
+        import issuers, issuers.sources  # noqa: F401
+    except Exception as e:
+        print(f'  ! issuers 套件載入失敗: {e}', file=sys.stderr)
+        return 0
+    end = date.today()
+    total = 0
+    for fund_id in sorted(ISSUER_DATE_CAPABLE):
+        fetcher = issuers.REGISTRY.get(fund_id)
+        if fetcher is None:
+            continue
+        data = load(fund_id)
+        before = len(data['days'])
+        for d in weekdays(since, end):
+            cal = twse_trading_days(d.year, d.month)
+            if cal is not None and d not in cal:
+                continue
+            try:
+                rows = fetcher(fund_id, d.isoformat())
+            except Exception:
+                continue
+            if not rows:
+                continue
+            got = api_to_date(rows[0]['date'].replace('-', '/'))
+            cal2 = twse_trading_days(got.year, got.month)
+            if cal2 is not None and got not in cal2:
+                continue
+            key = date_to_api(got)
+            if key in data['days']:
+                continue
+            recs, names = [], {}
+            for r in rows:
+                sid, q, w = str(r.get('stockid') or '').strip(), int(r.get('qshare') or 0), float(r.get('prate') or 0)
+                if not sid or q <= 0 or w <= 0:
+                    continue
+                recs.append({'c': sid, 'q': q, 'm': 0, 'p': round(w, 4)})
+                names[sid] = str(r.get('stockname') or '').strip()
+            if recs:
+                data['days'][key] = recs
+                data['names'].update(names)
+            time.sleep(0.2)
+        added = len(data['days']) - before
+        if added:
+            save(fund_id, data)
+        total += added
+        print(f'{fund_id}: +{added} 天，共 {len(data["days"])} 天（官網回補 {since}→{end}）')
+    return total
+
+
 def main():
     total = 0
+    backfill_since = os.environ.get('ISSUER_BACKFILL_SINCE', '').strip()
+    if backfill_since:
+        print(f'== 官網持股回補（ISSUER_BACKFILL_SINCE={backfill_since}）==')
+        total += backfill_issuer_holdings(datetime.strptime(backfill_since, '%Y-%m-%d').date())
     for fund_id in FUND_IDS:
         print(f'== {fund_id} ==')
         total += update_fund(fund_id)
