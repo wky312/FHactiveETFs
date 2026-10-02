@@ -16,8 +16,10 @@ const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
 // 申贖資料來源：每檔 ETF 對應一個投信爬蟲與其 key（fundId / fundCode / stkId）。
 // source 為 undefined 代表該家投信申贖爬蟲尚未接通 → 該欄一律顯示「—」。
+// 與 scripts/daily_summary.py 的 _SOURCE_FETCHERS 一一對應；加新來源兩邊都要加。
 type RedemptionSource = 'fhtrust' | 'ezmoney' | 'capital' | 'fubon' | 'tsit' | 'ctbc' | 'allianz'
-                      | 'yuanta' | 'cmoney' | 'nomura' | 'cathay' | 'kgi' | 'jpmorgan';
+                      | 'yuanta' | 'cmoney' | 'nomura' | 'cathay' | 'kgi' | 'jpmorgan'
+                      | 'ab' | 'fsitc' | 'sinopac' | 'mega';
 interface RedemptionEtf {
   ticker: string;
   name: string;
@@ -68,14 +70,16 @@ const REDEMPTION_GROUPS: RedemptionGroup[] = [
   },
   {
     id: 'tw_active_all',
-    label: '台股主動式ETF（全部17檔）',
+    label: '台股主動式ETF（全部22檔）',
     dbGroup: 'tw_active',
     /* 全市場台股型主動式ETF —— 基準是 TWSE/TPEx 的 ISIN 清單（`C_public.jsp?strMode=2|4`
        篩 `^00\d{3}A$`），2026-10-02 稽核出全市場 22 檔台股型，其中 17 檔已接通申贖來源。
        上面兩組是刻意的策展（核心六檔／百億以上），這一組才是「全貌」——想看大檔資金流看上面，
        想確認有沒有漏標的看這裡，兩者互不干擾。
-       依 2026-10-02 規模由大到小排。尚未接通的 5 檔（00404A 聯博、00408A/00994A 第一金、
-       00410A 永豐、00996A 兆豐）是這四家投信還沒寫爬蟲，不是漏列。 */
+       依 2026-10-02 規模由大到小排。2026-10-03 起 **22/22 全覆蓋**（最後五檔接通：聯博
+       00404A、第一金 00994A/00408A、永豐 00410A、兆豐 00996A）。
+       ⚠ 永豐與兆豐的官網**只拿得到最新一期**（無日期參數），所以它們只有 2026-10-02 之後的
+         紀錄，往前翻會是空的——那是來源沒有歷史，不是抓不到。 */
     etfs: [
       { ticker: '00981A', name: '統一981', source: 'ezmoney',  key: '49YTW' },
       { ticker: '00403A', name: '統一403', source: 'ezmoney',  key: '63YTW' },
@@ -95,6 +99,13 @@ const REDEMPTION_GROUPS: RedemptionGroup[] = [
       { ticker: '00995A', name: '中信995', source: 'ctbc',     key: 'E0036' },
       { ticker: '00401A', name: '摩根401', source: 'jpmorgan', key: 'TW00000401A1' },
       { ticker: '00987A', name: '台新987', source: 'tsit',     key: '00987A' },
+      // 以下五檔 2026-10-03 接通。⚠ key 是投信內部代號不是股票代號：第一金 182=00994A、
+      // 183=00408A（由 FundDetail.aspx?ID= 對出來）；兆豐 23 是 WebForms 的 fund_id。
+      { ticker: '00994A', name: '第一金994', source: 'fsitc',   key: '182' },
+      { ticker: '00404A', name: '聯博404', source: 'ab',        key: 'TW00000404A5' },
+      { ticker: '00996A', name: '兆豐996', source: 'mega',      key: '23' },
+      { ticker: '00410A', name: '永豐410', source: 'sinopac',   key: '00410A' },
+      { ticker: '00408A', name: '第一金408', source: 'fsitc',   key: '183' },
     ],
   },
   {

@@ -7,6 +7,7 @@ Runs Mon-Fri at 17:15 TST via GitHub Actions.
 import os
 import re
 import sys
+import json
 import time
 import asyncio
 import requests
@@ -338,6 +339,24 @@ PEER_ETFS = [
     # 只會讓 4~8 月每個交易日都掛著一個補不到的缺口。
     {'ticker': '00401A', 'name': '摩根401', 'source': 'jpmorgan', 'key': 'TW00000401A1', 'group': 'tw_active',
      'since': '2026-09-01'},
+    # 2026-10-03 接通的最後五檔 —— 全市場 22 檔台股主動式ETF 至此 22/22 全覆蓋。
+    # 聯博：webapi.alliancebernstein.com/.../basket，無 token、回應自報 asOfDate 與 sharesChange，
+    # date 參數可回溯 → since＝掛牌日。這家是所有來源裡最乾淨的一支。
+    {'ticker': '00404A', 'name': '聯博404', 'source': 'ab',     'key': 'TW00000404A5', 'group': 'tw_active',
+     'since': '2026-06-09'},
+    # 第一金：WebAPI.aspx/Get_BuySellA，key 是頁面 fundid（**不是股票代號**）：182=00994A、
+    # 183=00408A，由 FundDetail.aspx?ID= 與持股 API 的 pStrFundID 對出來。pStrDate 可回溯 → since＝掛牌日。
+    {'ticker': '00994A', 'name': '第一金994', 'source': 'fsitc', 'key': '182',  'group': 'tw_active',
+     'since': '2026-01-07'},
+    {'ticker': '00408A', 'name': '第一金408', 'source': 'fsitc', 'key': '183',  'group': 'tw_active',
+     'since': '2026-07-15'},
+    # 永豐 / 兆豐：⚠ 兩家都**只拿得到最新一期**（永豐試過 ?date=/?Date=/?dataDate=/路徑帶日期全
+    # 無效；兆豐是 WebForms postback，沒有日期控制項）→ since 設「開始追蹤日」而非掛牌日，
+    # 否則掛牌日到今天之間每個交易日都會永遠缺一檔。歷史只能放棄。
+    {'ticker': '00410A', 'name': '永豐410', 'source': 'sinopac', 'key': '00410A', 'group': 'tw_active',
+     'since': '2026-10-02'},
+    {'ticker': '00996A', 'name': '兆豐996', 'source': 'mega',    'key': '23',     'group': 'tw_active',
+     'since': '2026-10-02'},
     # 海外主動式ETF（step 3：逐家官方申贖來源；復華無官方來源 → CMoney 推算）
     {'ticker': '00983A', 'name': '中信ARK創新',  'source': 'ctbc',    'key': 'E0034',  'group': 'overseas'},
     {'ticker': '00986A', 'name': '台新全球龍頭', 'source': 'tsit',    'key': '00986A', 'group': 'overseas'},
@@ -711,6 +730,168 @@ def fetch_tsit_day(ticker: str, transaction_date: date) -> dict | None:
     except Exception as e:
         print(f'  tsit {ticker} {transaction_date}: {e}')
         return None
+
+
+def fetch_ab_day(isin: str, transaction_date: date) -> dict | None:
+    """聯博投信 00404A：GET /basket?date=<公告日>。這家是所有來源裡最乾淨的一支——
+    無 token、無 cookie、回應自報 `asOfDate`（資料日）與 `sharesChange`（與前日單位差異），
+    而且 **date 參數可回溯歷史**（實測 2026-06-12 仍查得到），所以能完整回補。
+
+    ⚠ 休市日查詢會回 shares/nav 為 null 的空殼（實測 2026-09-25 中秋），不可當成 0。
+    """
+    target = str(transaction_date)
+    for ann in _ann_days(transaction_date, n=16):   # 視窗要跨得過連假，同 ezmoney 的教訓
+        try:
+            r = _get_lax(f'https://webapi.alliancebernstein.com/v2/funds/tw/zh-tw/investor/'
+                         f'{isin}/basket?date={ann.isoformat()}', timeout=25)
+            if r.status_code != 200:
+                continue
+            j = r.json() or {}
+        except Exception:
+            continue
+        as_of = str(j.get('asOfDate') or '')[:10]
+        nav = j.get('nav')
+        shares = j.get('shares')
+        if not as_of or nav in (None, 0) or shares is None:
+            continue                      # 休市日的空殼
+        if as_of > target:
+            return None                   # asOfDate 隨公告日單調遞增，越過就不可能再對上
+        if as_of != target:
+            continue
+        chg = j.get('sharesChange')
+        aum = j.get('aum')
+        if chg is None or not aum:
+            return None
+        return {'netSub': float(chg) * float(nav) / 1e8, 'aum': float(aum) / 1e8}
+    return None
+
+
+def _fsitc_rows(fund_id: str, ann: date | None):
+    """第一金 Get_BuySellA → [{A: 標籤, B: 值}]。pStrDate 留空＝最新一期（公告日為次一交易日）。"""
+    body = {'pStrFundID': str(fund_id), 'pStrDate': ann.strftime('%Y/%m/%d') if ann else ''}
+    r = _post_lax('https://www.fsitc.com.tw/WebAPI.aspx/Get_BuySellA', json_body=body,
+                  headers={'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)',
+                           'Content-Type': 'application/json; charset=UTF-8'}, timeout=25)
+    if r.status_code != 200:
+        return []
+    inner = (r.json() or {}).get('d')
+    return json.loads(inner) if isinstance(inner, str) else (inner or [])
+
+
+def fetch_fsitc_day(fund_id: str, transaction_date: date) -> dict | None:
+    """第一金投信 00994A(fundid=182) / 00408A(fundid=183)：POST WebAPI.aspx/Get_BuySellA。
+
+    `pStrDate` 是**公告日**（留空＝次一交易日那期）；**資料日藏在標籤前綴**
+    「YYYY-MM-DD 每基數實際申購總價金(元)」裡（同台新/兆豐的作法），不是 sdate。
+    pStrDate 可回溯歷史（實測 2026-09-15 查得到）→ 可完整回補。
+    ⚠ 第一金憑證缺 Subject Key Identifier，必須走 _post_lax。
+    """
+    import re
+    target_dash = str(transaction_date)
+    for ann in _ann_days(transaction_date, n=16):
+        try:
+            rows = _fsitc_rows(fund_id, ann)
+        except Exception:
+            continue
+        if not rows or not rows[0].get('sdate'):
+            continue
+        labels = {str(x.get('A') or ''): x.get('B') for x in rows}
+        m = next((re.match(r'^(\d{4})-(\d{1,2})-(\d{1,2})\s*每基數實際申購總價金', k) for k in labels
+                  if re.match(r'^\d{4}-\d{1,2}-\d{1,2}\s*每基數實際申購總價金', k)), None)
+        if not m:
+            continue
+        data_date = f'{m.group(1)}-{int(m.group(2)):02d}-{int(m.group(3)):02d}'
+        if data_date > target_dash:
+            return None
+        if data_date != target_dash:
+            continue
+        get = lambda kw: next((v for k, v in labels.items() if kw in k), None)
+        diff = _pcf_num(get('與前日已發行單位差異數'))
+        pnav = _pcf_num(get('每受益權單位淨資產價值'))
+        nav  = _pcf_num(get('基金淨資產價值'))
+        if nav == 0 or pnav == 0:
+            return None
+        return {'netSub': diff * pnav / 1e8, 'aum': nav / 1e8}
+    return None
+
+
+def fetch_sinopac_day(ticker: str, transaction_date: date) -> dict | None:
+    """永豐投信 00410A：GET sitc.sinopac.com/SinopacEtfs/Etfs/Pcf/{代號}（server-render HTML）。
+
+    ⚠ **只有最新一期**：試過 ?date= / ?Date= / ?dataDate= / 路徑帶日期，全部回同一天
+    （資料日期永遠是最新的），所以這檔無法回補歷史，只能每天抓當天的。
+    資料日在頁面「資料日期：YYYY/MM/DD」。
+    """
+    import re
+    try:
+        r = _get_lax(f'https://sitc.sinopac.com/SinopacEtfs/Etfs/Pcf/{ticker}', timeout=25)
+        if r.status_code != 200:
+            return None
+        txt = re.sub(r'<[^>]+>', '|', r.text)
+    except Exception:
+        return None
+    m = re.search(r'資料日期：(\d{4})/(\d{1,2})/(\d{1,2})', txt)
+    if not m:
+        return None
+    if date(int(m.group(1)), int(m.group(2)), int(m.group(3))) != transaction_date:
+        return None   # 只有最新一期 → 對不上就是沒有
+    def field(label):
+        mm = re.search(rf'{re.escape(label)}[^|]*\|[\s|]*(?:NT\$|TWD\$?)?(?:&nbsp;|\s)*\|?[\s|]*([\d,().\-−]+)', txt)
+        return mm.group(1) if mm else None
+    diff = _pcf_num(field('差異數'))
+    pnav = _pcf_num(field('每受益權單位淨資產價值'))
+    nav  = _pcf_num(field('基金淨資產價值'))
+    if nav == 0 or pnav == 0:
+        return None
+    return {'netSub': diff * pnav / 1e8, 'aum': nav / 1e8}
+
+
+MEGA_PCF_URL = 'https://www.megafunds.com.tw/MEGA/etf/trade_pcf.aspx'
+
+
+def fetch_mega_day(fund_id: str, transaction_date: date) -> dict | None:
+    """兆豐投信 00996A：ASP.NET WebForms 頁，要先 GET 拿 __VIEWSTATE 再 POST 選基金。
+
+    ⚠ 頁面的 `?id=` 查詢參數**對 PCF 頁無效**（不管傳什麼都顯示兆豐藍籌30）——基金是靠
+    `ctl00$ContentPlaceHolder1$fund_id` 這個 select 的 postback 切換的（fund_id=23＝兆豐台灣
+    豐收主動式ETF＝00996A，與持股頁的 id=23 恰好同號但是不同機制）。
+    ⚠ **只有最新一期**，無法回補歷史。資料日在標籤前綴「YYYY/MM/DD 每基數實際申購總價金(元)」。
+    """
+    import re
+    try:
+        s = requests.Session()
+        s.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+        r0 = s.get(MEGA_PCF_URL, timeout=25)
+        form = {m[0]: m[1] for m in re.findall(
+            r'<input type="hidden" name="(__[A-Z]+\w*)"[^>]*value="([^"]*)"', r0.text)}
+        form['ctl00$ContentPlaceHolder1$category_id'] = '16'      # 主動式ETF
+        form['ctl00$ContentPlaceHolder1$fund_id'] = str(fund_id)
+        form['__EVENTTARGET'] = 'ctl00$ContentPlaceHolder1$fund_id'
+        form['__EVENTARGUMENT'] = ''
+        r = s.post(MEGA_PCF_URL, data=form, timeout=25,
+                   headers={'Content-Type': 'application/x-www-form-urlencoded',
+                            'Referer': MEGA_PCF_URL})
+        if r.status_code != 200:
+            return None
+        html = r.text
+    except Exception as e:
+        print(f'  mega {fund_id} {transaction_date}: {e}')
+        return None
+    ann = {k.strip(): v.strip() for k, v in re.findall(
+        r'class="ann-title">([^<]+)</div>\s*<div class="ann-content">([^<]*)</div>', html)}
+    m = next((re.match(r'^(\d{4})/(\d{1,2})/(\d{1,2})\s*每基數實際申購總價金', k) for k in ann
+              if re.match(r'^\d{4}/\d{1,2}/\d{1,2}\s*每基數實際申購總價金', k)), None)
+    if not m:
+        return None
+    if date(int(m.group(1)), int(m.group(2)), int(m.group(3))) != transaction_date:
+        return None
+    get = lambda kw: next((v for k, v in ann.items() if kw in k), None)
+    diff = _pcf_num(get('與前日已發行單位差異數'))
+    pnav = _pcf_num(get('每受益權單位淨資產價值'))
+    nav  = _pcf_num(get('基金淨資產價值'))
+    if nav == 0 or pnav == 0:
+        return None
+    return {'netSub': diff * pnav / 1e8, 'aum': nav / 1e8}
 
 
 def fetch_ctbc_day(fid: str, transaction_date: date) -> dict | None:
@@ -2074,7 +2255,16 @@ _SOURCE_FETCHERS = {
     'nomura':   fetch_nomura_day,
     'cathay':   fetch_cathay_day,
     'kgi':      fetch_kgi_day,
+    # 2026-10-03 接通的四家（全市場 22 檔台股主動式ETF 的最後 5 檔）
+    'ab':       fetch_ab_day,        # 聯博 00404A
+    'fsitc':    fetch_fsitc_day,     # 第一金 00994A/00408A
+    'sinopac':  fetch_sinopac_day,   # 永豐 00410A
+    'mega':     fetch_mega_day,      # 兆豐 00996A
 }
+
+# 只拿得到「最新一期」、無法回補歷史的來源。這些檔的 since 必須設在「開始追蹤的那天」而不是
+# 掛牌日，否則掛牌日到接通日之間的每個交易日都會永遠掛著補不到的缺口（見 test_daily_summary）。
+LATEST_ONLY_SOURCES = {'sinopac', 'mega'}
 
 _OVERSEAS_FETCHERS = _SOURCE_FETCHERS
 

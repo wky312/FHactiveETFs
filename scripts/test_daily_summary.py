@@ -550,3 +550,34 @@ def test_newest_estimate_crosses_holiday_to_reach_today():
     got = ds._newest_estimate(lambda ann: by_ann.get(ann), today=date(2026, 9, 24))
     assert got['date'] == date(2026, 9, 24)
     assert got['netSub'] == -3.73
+
+
+# ── PEER_ETFS 的 since 不變量 ────────────────────────────────────────────────
+
+def test_latest_only_sources_must_declare_since():
+    """只拿得到「最新一期」的來源（永豐/兆豐）一定要有 since。
+
+    沒 since 的話，expected_tickers_on 會從 DB 起始日就期待這一檔，而那些歷史日期永遠補不到
+    → 每個舊交易日都掛著一個補不完的缺口，補洞邏輯天天白跑（同 00411A 的教訓）。
+    """
+    missing = [e['ticker'] for e in ds.PEER_ETFS
+               if e['source'] in ds.LATEST_ONLY_SOURCES and not e.get('since')]
+    assert not missing, f'這些檔的來源只有最新一期卻沒給 since: {missing}'
+
+
+def test_every_tw_active_fund_has_a_registered_fetcher():
+    """台股組每一檔都要有登記的抓取器——漏登記不會報錯，只會靜靜整欄留白。"""
+    bad = [e['ticker'] for e in ds.PEER_ETFS
+           if e.get('group') == 'tw_active' and e['source'] not in ds._SOURCE_FETCHERS]
+    assert not bad, f'沒有對應抓取器: {bad}'
+
+
+def test_peer_etfs_keys_are_not_tickers_for_keyed_sources():
+    """第一金/中信/安聯/摩根/凱基/國泰的 key 是投信內部代號，不是股票代號。
+
+    寫成股票代號不會報錯（端點只會回空），但那一欄會永遠留白——實測第一金 182/183、
+    中信 E0036/E0038 都是這樣。這個測試把「順手填成 ticker」擋在 CI。
+    """
+    keyed = {'fsitc', 'ctbc', 'allianz', 'jpmorgan', 'kgi', 'cathay', 'capital', 'ezmoney'}
+    bad = [e['ticker'] for e in ds.PEER_ETFS if e['source'] in keyed and e['key'] == e['ticker']]
+    assert not bad, f'這些檔的 key 被填成股票代號了: {bad}'
