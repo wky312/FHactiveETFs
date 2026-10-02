@@ -320,6 +320,24 @@ PEER_ETFS = [
     {'ticker': '00985A', 'name': '野村985', 'source': 'nomura',  'key': '00985A', 'group': 'tw_active'},
     {'ticker': '00993A', 'name': '安聯993', 'source': 'allianz', 'key': 'E0002',  'group': 'tw_active'},
     {'ticker': '00984A', 'name': '安聯984', 'source': 'allianz', 'key': 'E0001',  'group': 'tw_active'},
+    # 2026-10-02 補：這三檔的投信早就有抓取器，只是從沒登記過 key（全市場 22 檔台股主動式
+    # ETF 對照 TWSE/TPEx ISIN 查出來的缺口）。since 一律＝「這個來源最早查得到的交易日」，
+    # 不給就會讓掛牌前/來源保留期外的每一天都被判缺漏、整段白抓（見 00411A 的教訓）。
+    # 00987A 台新優勢成長（2025/12/30 掛牌）：tsit key＝股票代號本身，實測掛牌日就查得到。
+    {'ticker': '00987A', 'name': '台新987', 'source': 'tsit',    'key': '00987A', 'group': 'tw_active',
+     'since': '2025-12-30'},
+    # 00995A 中信台灣卓越（2026/01/22 掛牌）：中信 FID＝E0036。FID 用掃 E0028~E0039 比對
+    # 「每受益權單位淨資產價值」對出來的（Buyback 回應不帶基金名稱／代號，只有淨值與規模）
+    # —— E0036 的 17.95 落在 00995A 09/30 收盤 17.78 與 10/02 收盤 18.10 之間，E0038 已知
+    # 是 00406A。實測可回溯到掛牌日。
+    {'ticker': '00995A', 'name': '中信995', 'source': 'ctbc',    'key': 'E0036',  'group': 'tw_active',
+     'since': '2026-01-22'},
+    # 00401A 摩根台灣鑫收（2026/04/10 掛牌）：jpmorgan key＝ISIN（同 00989A 的 TW00000989A5）。
+    # ⚠ 摩根那支 excel 端點只保留**約一個月**的歷史（實測 2026-08-28 ✗、09-01 ✓），所以
+    # since 只能設在「現在查得到的最早一天」而不是掛牌日 —— 更早的日期永遠補不回來，寫掛牌日
+    # 只會讓 4~8 月每個交易日都掛著一個補不到的缺口。
+    {'ticker': '00401A', 'name': '摩根401', 'source': 'jpmorgan', 'key': 'TW00000401A1', 'group': 'tw_active',
+     'since': '2026-09-01'},
     # 海外主動式ETF（step 3：逐家官方申贖來源；復華無官方來源 → CMoney 推算）
     {'ticker': '00983A', 'name': '中信ARK創新',  'source': 'ctbc',    'key': 'E0034',  'group': 'overseas'},
     {'ticker': '00986A', 'name': '台新全球龍頭', 'source': 'tsit',    'key': '00986A', 'group': 'overseas'},

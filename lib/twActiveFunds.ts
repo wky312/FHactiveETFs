@@ -9,6 +9,14 @@ import { OverseasFundConfig } from './overseasFunds';
    lib/overseasFunds.ts 的開頭就記過同樣的理由——避免一個分頁的編輯意外改掉另一個分頁的母體。
 
    2026-09-15 建立，22 檔全數實測 CMoney AssignID=代號 抓得到逐日持股。
+   ⚠ 2026-10-03 起 CMoney（pocket.tw）改回 {"Error":{"Code":101,"Message":"Auth Failed"}}（HTTP 200），
+     `source: 'cmoney'` 的即時補抓實質上是空轉。持股改由 `data/holdings/*.json` 存檔提供
+     —— scripts/update_holdings.py 已改用各家投信官網（scripts/issuers/，自 active-etf-tracker
+     移植）每日 commit 15 檔台股持股。buildOverseasDayMap 本來就「先讀存檔、再即時補」，所以
+     這裡的 source 維持 'cmoney' 不動：CMoney 哪天恢復就會自動再接上，掛著也只是 catch 掉。
+   ⚠ 存檔是打包進 bundle 的 → 新資料要等下次 `vercel --prod` 才會進站（見 HANDOVER）。
+   ⚠ 尚無官網持股來源的 4 檔：00984A/00993A（安聯）、00406A/00995A（中信）需 Playwright 渲染，
+     00407A（凱基）、00410A（永豐）兩家還沒研究過端點 —— 這 6 檔在 CMoney 恢復前沒有持股。
    00991A 刻意走 fhtrust(ETF23) 而非 CMoney：復華自家 API 是官方來源，且 T 日下午就掛出
    T 日持股（holdingsLag=0），比 CMoney 代理早也更準；其餘投信沒有可直接串的官方持股 API。 */
 export const TW_ACTIVE_FUNDS: OverseasFundConfig[] = [

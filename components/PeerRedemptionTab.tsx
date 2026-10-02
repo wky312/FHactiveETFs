@@ -67,6 +67,37 @@ const REDEMPTION_GROUPS: RedemptionGroup[] = [
     ],
   },
   {
+    id: 'tw_active_all',
+    label: '台股主動式ETF（全部17檔）',
+    dbGroup: 'tw_active',
+    /* 全市場台股型主動式ETF —— 基準是 TWSE/TPEx 的 ISIN 清單（`C_public.jsp?strMode=2|4`
+       篩 `^00\d{3}A$`），2026-10-02 稽核出全市場 22 檔台股型，其中 17 檔已接通申贖來源。
+       上面兩組是刻意的策展（核心六檔／百億以上），這一組才是「全貌」——想看大檔資金流看上面，
+       想確認有沒有漏標的看這裡，兩者互不干擾。
+       依 2026-10-02 規模由大到小排。尚未接通的 5 檔（00404A 聯博、00408A/00994A 第一金、
+       00410A 永豐、00996A 兆豐）是這四家投信還沒寫爬蟲，不是漏列。 */
+    etfs: [
+      { ticker: '00981A', name: '統一981', source: 'ezmoney',  key: '49YTW' },
+      { ticker: '00403A', name: '統一403', source: 'ezmoney',  key: '63YTW' },
+      { ticker: '00991A', name: '復華991', source: 'fhtrust',  key: 'ETF23' },
+      { ticker: '00406A', name: '中信406', source: 'ctbc',     key: 'E0038' },
+      { ticker: '00982A', name: '群益982', source: 'capital',  key: '399' },
+      { ticker: '00992A', name: '群益992', source: 'capital',  key: '500' },
+      { ticker: '00400A', name: '國泰400', source: 'cathay',   key: 'EA' },
+      { ticker: '00405A', name: '富邦405', source: 'fubon',    key: '00405A' },
+      { ticker: '00407A', name: '凱基407', source: 'kgi',      key: 'J024' },
+      { ticker: '00980A', name: '野村980', source: 'nomura',   key: '00980A' },
+      { ticker: '00985A', name: '野村985', source: 'nomura',   key: '00985A' },
+      { ticker: '00999A', name: '野村999', source: 'nomura',   key: '00999A' },
+      { ticker: '00993A', name: '安聯993', source: 'allianz',  key: 'E0002' },
+      { ticker: '00984A', name: '安聯984', source: 'allianz',  key: 'E0001' },
+      // 以下三檔 2026-10-02 才接通（投信早就有抓取器、只缺 key）。
+      { ticker: '00995A', name: '中信995', source: 'ctbc',     key: 'E0036' },
+      { ticker: '00401A', name: '摩根401', source: 'jpmorgan', key: 'TW00000401A1' },
+      { ticker: '00987A', name: '台新987', source: 'tsit',     key: '00987A' },
+    ],
+  },
+  {
     id: 'overseas',
     label: '海外主動式ETF',
     dbGroup: 'overseas',

@@ -62,6 +62,12 @@ YUANTA_API = 'https://etfapi.yuantaetfs.com/ectranslation/api/bridge'
 EZMONEY_FUNDS = {
     '00988A': '61YTW',  # 主動統一全球創新，fundCode 是統一投信內部代號（非 ticker）
     '00411A': '64YTW',  # 主動統一前沿科技
+    # 2026-10-03 補：CMoney（pocket.tw）自 2026-09-30/10-01 之間開始回
+    # {"Error":{"Code":101,"Message":"Auth Failed"}}（而且 HTTP 200，所以每檔只是靜靜印「+0 天」、
+    # workflow 照樣綠燈）。統一這兩檔台股的官網 GetPCF 一樣查得到逐日持股，實測可回溯到掛牌日
+    # （63YTW 自 2026/05/11 共 101 天），直接改吃官網、不再依賴 CMoney。
+    '00981A': '49YTW',  # 主動統一台股增長（fundCode 與申贖觀測同一個）
+    '00403A': '63YTW',  # 主動統一升級50
 }
 EZMONEY_HOST = 'https://www.ezmoney.com.tw'
 EZMONEY_UA = ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
@@ -83,6 +89,7 @@ FLOOR = date(2025, 5, 1)
 # 個別基金的回補下限（成立日）。晚成立的基金若沿用 FLOOR，每天都要空掃幾百個交易日才知道沒資料。
 FUND_FLOORS = {
     'ETF26': date(2026, 8, 20),   # 00409A 復華全球未來50，成立 2026/08/20、掛牌 2026/09/02
+    '00403A': date(2026, 5, 10),  # 主動統一升級50，掛牌 2026/05/12（統一官網最早回到 05/11）
 }
 
 OUT_DIR = os.path.join(os.path.dirname(__file__), '..', 'data', 'holdings')
@@ -410,7 +417,9 @@ def update_ezmoney_fund(fund_id: str, fund_code: str) -> int:
     """用統一投信官網 GetPCF 補 CMoney 落後的最新幾天（見 EZMONEY_FUNDS 註解）。回傳新增天數。"""
     data = load(fund_id)
     before = len(data['days'])
-    last = max((api_to_date(k) for k in data['days']), default=FLOOR)
+    # default 用 FUND_FLOORS：空檔的新基金若退回全域 FLOOR（2025-05），每天都要白掃幾百個
+    # 公告日才知道掛牌前沒資料（同 update_cmoney_fund 的處理）。
+    last = max((api_to_date(k) for k in data['days']), default=FUND_FLOORS.get(fund_id, FLOOR))
     try:
         days, names = fetch_ezmoney_days(fund_code, last)
     except Exception as e:
@@ -424,6 +433,112 @@ def update_ezmoney_fund(fund_id: str, fund_code: str) -> int:
         save(fund_id, data)
     print(f'{fund_id}: +{added} 天，共 {len(data["days"])} 天（統一投信官網）')
     return added
+
+
+# ── 各家投信官網持股（CMoney 的替代；scripts/issuers/ 是從 active-etf-tracker 移植的套件）──
+# 2026-10-03：CMoney（pocket.tw）開始回 {"Error":{"Code":101,"Message":"Auth Failed"}} 且
+# HTTP 200 —— 每檔只是靜靜印「+0 天」、workflow 照樣綠燈。改以各家投信官網為主要來源。
+# ⚠ 這些 fetcher **一次只回最新一天**（簽名 fetch(ticker, date=None) -> list[Row]），所以存檔
+#   是「從今天起逐日累積」，拿不回 CMoney 時代的歷史；要歷史得另外逐檔找支援日期參數的來源
+#   （聯博/國泰/摩根/第一金的端點有 date 參數，其餘沒有）。
+# ⚠ 名單刻意不含 00981A/00403A（走 EZMONEY_FUNDS，統一官網能回溯到掛牌日、比這裡更好）
+#   與 00991A（走 fhtrust 官方、T 日下午就有）。
+ISSUER_FUNDS = {
+    '00400A': '國泰',   '00401A': '摩根',   '00404A': '聯博',   '00405A': '富邦',
+    '00980A': '野村',   '00982A': '群益',   '00985A': '野村',   '00987A': '台新',
+    '00992A': '群益',   '00994A': '第一金', '00996A': '兆豐',   '00999A': '野村',
+}
+
+_TWSE_CAL: dict[str, set] = {}
+
+
+def twse_trading_days(year: int, month: int):
+    """該月的 TWSE 交易日集合，連不到回 None。FMTQIK 只列真正開市的日子，是「那天有沒有開市」
+    的權威來源（同 daily_summary._twse_trading_days）。未來日期一律不在裡面——它是盤後資料。"""
+    key = f'{year}{month:02d}'
+    if key in _TWSE_CAL:
+        return _TWSE_CAL[key]
+    try:
+        r = requests.get(
+            f'https://www.twse.com.tw/rwd/zh/afterTrading/FMTQIK?date={key}01&response=json',
+            headers={'User-Agent': 'Mozilla/5.0'}, timeout=20)
+        j = r.json()
+        if j.get('stat') != 'OK':
+            return None
+        days = set()
+        for row in j.get('data', []):
+            roc = str(row[0]).split('/')
+            days.add(date(int(roc[0]) + 1911, int(roc[1]), int(roc[2])))
+        _TWSE_CAL[key] = days
+        return days
+    except Exception as e:
+        print(f'  ! TWSE 行事曆 {key} 取得失敗: {e}', file=sys.stderr)
+        return None
+
+
+def update_issuer_fund(fund_id: str, label: str) -> int:
+    """用投信官網抓最新一天持股並併進存檔。回傳新增天數。"""
+    try:
+        import issuers, issuers.sources  # noqa: F401  （import 即註冊 REGISTRY）
+        fetcher = issuers.REGISTRY.get(fund_id)
+    except Exception as e:
+        print(f'  ! issuers 套件載入失敗: {e}', file=sys.stderr)
+        return 0
+    if fetcher is None:
+        print(f'{fund_id}: +0 天（{label}官網無對應抓取器）')
+        return 0
+    # 重試兩次：野村一站掛三檔（00980A/00985A/00999A）連續請求時偶發連線失敗（實測 00999A
+    # 單獨跑正常、排在第三個就斷）。上游 issuers._req 只對「憑證驗證失敗」退回重試，不處理
+    # 這種暫時性錯誤 —— 不補這層，每天都可能無聲掉一檔一天。
+    rows = None
+    for attempt in range(3):
+        try:
+            rows = fetcher(fund_id)
+            break
+        except Exception as e:
+            if attempt == 2:
+                print(f'  ! {fund_id} {label}官網抓取失敗（已重試 3 次）: {e}', file=sys.stderr)
+                print(f'{fund_id}: +0 天（{label}官網失敗）')
+                return 0
+            time.sleep(1.5 * (attempt + 1))
+    if not rows:
+        print(f'{fund_id}: +0 天（{label}官網回空）')
+        return 0
+
+    d = api_to_date(rows[0]['date'].replace('-', '/'))
+    # 非交易日一律不寫：群益/兆豐回的是「清單生效日＝下一交易日」，mk_row 已 clamp 到最近
+    # 平日，但國定假日（例如中秋連假那四天）仍可能落在非交易日上 → 用 TWSE 行事曆擋掉。
+    # 行事曆連不到時（回 None）照寫，不要因為「無法判斷」就漏掉一天。
+    cal = twse_trading_days(d.year, d.month)
+    if cal is not None and d not in cal:
+        print(f'{fund_id}: +0 天（{label}官網自報 {d} 非 TWSE 交易日，略過）')
+        return 0
+
+    data = load(fund_id)
+    key = date_to_api(d)
+    if key in data['days']:
+        print(f'{fund_id}: +0 天，共 {len(data["days"])} 天（{label}官網，{key} 已存在）')
+        return 0
+
+    records, names = [], {}
+    for r in rows:
+        sid = str(r.get('stockid') or '').strip()
+        q = int(r.get('qshare') or 0)
+        w = float(r.get('prate') or 0)
+        if not sid or q <= 0 or w <= 0:
+            continue
+        records.append({'c': sid, 'q': q, 'm': 0, 'p': round(w, 4)})
+        names[sid] = str(r.get('stockname') or '').strip()
+    if not records:
+        print(f'{fund_id}: +0 天（{label}官網全列無效）')
+        return 0
+
+    data['days'][key] = records
+    data['names'].update(names)
+    save(fund_id, data)
+    print(f'  + {fund_id} {key}: {len(records)} holdings（{label}官網）')
+    print(f'{fund_id}: +1 天，共 {len(data["days"])} 天（{label}官網）')
+    return 1
 
 
 def main():
@@ -440,6 +555,9 @@ def main():
     for fund_id, fund_code in EZMONEY_FUNDS.items():
         print(f'== {fund_id} (統一投信官網) ==')
         total += update_ezmoney_fund(fund_id, fund_code)
+    for fund_id, label in ISSUER_FUNDS.items():
+        print(f'== {fund_id} ({label}官網) ==')
+        total += update_issuer_fund(fund_id, label)
     print(f'完成，共新增 {total} 天')
 
 
