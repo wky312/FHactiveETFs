@@ -860,8 +860,25 @@ def fetch_mega_day(fund_id: str, transaction_date: date) -> dict | None:
     import re
     try:
         s = requests.Session()
-        s.headers['User-Agent'] = 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'
+        # ⚠ 兆豐站對資料中心 IP／簡略 UA 會回 **403**：本機住宅 IP 用截斷 UA
+        # （'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'）就過，GitHub runner 上同一支回 403。
+        # 先試反爬階梯第一級：完整瀏覽器 header 組（UA 帶 Chrome token ＋ Accept/Lang/Sec-Fetch）。
+        s.headers.update({
+            'User-Agent': ('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 '
+                           '(KHTML, like Gecko) Chrome/129.0.0.0 Safari/537.36'),
+            'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+            'Accept-Language': 'zh-TW,zh;q=0.9,en-US;q=0.8,en;q=0.7',
+            'Upgrade-Insecure-Requests': '1',
+            'Sec-Fetch-Dest': 'document',
+            'Sec-Fetch-Mode': 'navigate',
+            'Sec-Fetch-Site': 'same-origin',
+            'Sec-Fetch-User': '?1',
+        })
         r0 = s.get(MEGA_PCF_URL, timeout=25)
+        if r0.status_code != 200:
+            print(f'  mega {fund_id} {transaction_date}: 首頁 HTTP {r0.status_code}'
+                  f'（403＝資料中心 IP 被擋，見 scraping-antibot；此來源只有最新一期，跳過不影響其他檔）')
+            return None
         form = {m[0]: m[1] for m in re.findall(
             r'<input type="hidden" name="(__[A-Z]+\w*)"[^>]*value="([^"]*)"', r0.text)}
         form['ctl00$ContentPlaceHolder1$category_id'] = '16'      # 主動式ETF
