@@ -22,7 +22,7 @@ export async function GET(request: NextRequest) {
 
     // 一律從「全部 10 檔」共用快取切片，不論這次請求哪幾檔——同一天內第一個人查詢才會真的重算，
     // 之後任何人查任何組合都直接命中同一份快取（見 lib/usImpact.ts::getUsImpactCached）。
-    const full = await getUsImpactCached();
+    const full = await getUsImpactCached({ refresh: sp.get('refresh') === '1' });
     const funds = full.funds.filter((f) => requested.has(f.ticker));
     return NextResponse.json(
       { sessionDate: full.sessionDate, prevSessionDate: full.prevSessionDate, funds, cacheSource: full.cacheSource },

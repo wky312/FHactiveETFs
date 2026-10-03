@@ -80,6 +80,6 @@ export function computeTwImpact(tickers: string[]): Promise<MarketImpactResult> 
   return computeMarketImpact(TW_IMPACT_SPEC, tickers);
 }
 
-export function getTwImpactCached(): Promise<CachedMarketImpactResult> {
-  return getMarketImpactCached(TW_IMPACT_SPEC);
+export function getTwImpactCached(opts?: { refresh?: boolean }): Promise<CachedMarketImpactResult> {
+  return getMarketImpactCached(TW_IMPACT_SPEC, opts);
 }

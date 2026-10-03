@@ -252,17 +252,26 @@ async function probeSessionDate(spec: MarketImpactSpec): Promise<string> {
   return '';
 }
 
-export async function getMarketImpactCached(spec: MarketImpactSpec): Promise<CachedMarketImpactResult> {
+/* refresh=true 時跳過兩層快取、重算並覆寫。
+   為什麼需要這個：快取鍵只有「交易日」，所以同一個交易日內把 data/holdings 補齊後重新部署，
+   線上仍會讀到部署前算好的那份（Supabase 那層跨 instance 又不會隨部署失效）→ 新持股要等到
+   下一個交易日才看得到。2026-10-03 把 22 檔台股的官網持股補進存檔時就是卡在這裡。 */
+export async function getMarketImpactCached(
+  spec: MarketImpactSpec,
+  opts?: { refresh?: boolean },
+): Promise<CachedMarketImpactResult> {
   const probed = await probeSessionDate(spec);
   const cacheKey = `${spec.cacheKeyPrefix}:${probed || 'unknown'}`;
 
-  const mem = _memCache.get(cacheKey);
-  if (mem && Date.now() - mem.ts < MEM_TTL_MS) return { ...mem.data, cacheSource: 'memory' };
+  if (!opts?.refresh) {
+    const mem = _memCache.get(cacheKey);
+    if (mem && Date.now() - mem.ts < MEM_TTL_MS) return { ...mem.data, cacheSource: 'memory' };
 
-  const cached = await readPageCache<MarketImpactResult>(cacheKey);
-  if (cached) {
-    _memCache.set(cacheKey, { ts: Date.now(), data: cached });
-    return { ...cached, cacheSource: 'supabase' };
+    const cached = await readPageCache<MarketImpactResult>(cacheKey);
+    if (cached) {
+      _memCache.set(cacheKey, { ts: Date.now(), data: cached });
+      return { ...cached, cacheSource: 'supabase' };
+    }
   }
 
   const result = await computeMarketImpact(spec, spec.funds.map((f) => f.ticker));
