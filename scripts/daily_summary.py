@@ -660,12 +660,22 @@ def _get_lax(url, headers=None, timeout=20):
     Python 3.14 / 新版 runner 的嚴格 OpenSSL 3.x 會擋，curl/Node 接受。先驗證、SSLError 才對這些
     唯讀公開頁退回 verify=False（與 fetch_fubon_day 同策略，見 [[project_00998a_web]]）。"""
     headers = headers or {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64)'}
-    try:
-        return requests.get(url, headers=headers, timeout=timeout)
-    except requests.exceptions.SSLError:
-        import urllib3
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        return requests.get(url, headers=headers, timeout=timeout, verify=False)
+    # 逾時/連線中斷重試 3 次：台新 www.tsit.com.tw 在長區間回補時大量 Read timeout
+    # （實測 2025-12-30 起 190 個交易日有 81 筆逾時，單獨重試都拿得到 → 是站台不穩不是沒資料）。
+    # SSLError 不在重試範圍內，它要走下面的「退回不驗證」那條路。
+    last = None
+    for attempt in range(3):
+        try:
+            return requests.get(url, headers=headers, timeout=timeout)
+        except requests.exceptions.SSLError:
+            import urllib3
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            return requests.get(url, headers=headers, timeout=timeout, verify=False)
+        except (requests.exceptions.Timeout, requests.exceptions.ConnectionError) as e:
+            last = e
+            if attempt < 2:
+                time.sleep(1.5 * (attempt + 1))
+    raise last
 
 
 def _post_lax(url, data=None, json_body=None, headers=None, timeout=25):
