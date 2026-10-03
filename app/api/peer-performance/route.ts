@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { fetchTpexIndexRows } from '@/lib/tpexIndex';
 import { PEER_GROUPS, type PeerItem } from '@/lib/peerGroups';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -185,6 +186,9 @@ async function fetchTwseIndices(items: PeerItem[]): Promise<Map<string, IdxQuote
   return map;
 }
 
+// 歷史序列不走 Yahoo 的指數（Yahoo 已下架 ^TWOII，見 lib/tpexIndex.ts）
+const TPEX_INDEX_TICKERS = new Set(['^TWOII']);
+
 // Taiwan market closes at 13:30 UTC+8 = 05:30 UTC on weekdays
 function taiwanMarketClosed(): boolean {
   const now = new Date();
@@ -233,7 +237,7 @@ async function fetchOne(
     const marketClosed = taiwanMarketClosed();
     const todayStr = new Date().toISOString().split('T')[0];
 
-    const rows: DayRow[] = rawQuotes
+    let rows: DayRow[] = rawQuotes
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       .filter((q: any) => (q.adjClose ?? q.adjclose ?? q.close) != null)
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -245,6 +249,17 @@ async function fetchOne(
       // Exclude today's intraday data when market hasn't closed yet
       .filter(r => marketClosed || r.date.toISOString().split('T')[0] < todayStr)
       .sort((a, b) => a.date.getTime() - b.date.getTime());
+
+    // ^TWOII 已被 Yahoo 下架（chart/quote 都回 "symbol may be delisted"，替代代號也全查無）
+    // → 改用 TPEx 官方月報表當歷史序列。沒這段的話 rows 為空，櫃買那一列整列空白。
+    if (TPEX_INDEX_TICKERS.has(item.yfTicker)) {
+      const tpex = await fetchTpexIndexRows(from, period2).catch(() => []);
+      if (tpex.length) {
+        rows = tpex
+          .map(r => ({ date: r.date, adjClose: r.close, close: r.close }))
+          .filter(r => marketClosed || r.date.toISOString().split('T')[0] < todayStr);
+      }
+    }
 
     if (!rows.length) return base;
 
@@ -274,8 +289,16 @@ async function fetchOne(
     // 但若即時報價恰好等於最後一根 K 棒的「原始收盤價」，代表報價尚未更新到新交易日
     // —— 常見於除息日早盤：歷史價已還原、報價卻仍停在前一日。此時若併入，就會用「除息前原始價」
     // 去比「已還原基準」，把報酬灌高（曾出現 YTD 93.83% 的假數字）。故偵測到即略過，改用 K 棒還原價。
+    // ⚠ 但「報價等於最後一根 K 棒收盤」也可能只是**真的平盤**（小型 ETF 很常見）。
+    // 實例：00404A 2026-10-01 與 10-02 都收 9.88（TWSE 查證），被誤判成停更後整列停在 10-01、
+    // 還被標成 anomaly。用 MIS 交叉確認：若 MIS 的交易日比最後一根 K 棒新，而且 MIS 的昨收
+    // 正好等於那根 K 棒的收盤（＝確認它就是上一個交易日），那報價就是新交易日的收盤，不是停更。
+    const misConfirmsNewSession = twseLive?.date != null && twseLive.prevClose != null
+      && twseLive.date > lastRow.date.toISOString().slice(0, 10)
+      && round2(twseLive.prevClose) === round2(lastRow.close);
     const quoteStale = quote?.regularMarketPrice != null
-      && round2(quote.regularMarketPrice) === round2(lastRow.close);
+      && round2(quote.regularMarketPrice) === round2(lastRow.close)
+      && !misConfirmsNewSession;
 
     // 指數（^TWII/^TWOII）不用 Yahoo 即時報價（殭屍值）與可能停更的日 K，改用 MIS 補最新交易日：
     // 盤中 → 用昨收（y）對齊個股「以上一完整收盤為準」；收盤後 → 用當日指數值（z）。

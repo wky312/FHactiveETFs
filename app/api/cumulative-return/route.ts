@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { fetchTpexIndexRows } from '@/lib/tpexIndex';
 import { PEER_GROUPS } from '@/lib/peerGroups';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -23,9 +24,20 @@ export interface CumRetResult {
   series: CumRetSeries[];
 }
 
+// 歷史序列不走 Yahoo 的標的：^TWOII 已被 Yahoo 下架（見 lib/tpexIndex.ts），
+// 不接官方來源的話櫃買那條線會整條消失（實測 pct 全 22 點皆 null）。
+const TPEX_INDEX_TICKERS = new Set(['^TWOII']);
+
 // 抓某標的還原收盤(adjclose) → date(YYYY-MM-DD) → 還原價
 async function fetchAdjMap(yfTicker: string, from: Date, to: Date): Promise<Map<string, number>> {
   const period2 = new Date(to); period2.setDate(period2.getDate() + 1);
+  if (TPEX_INDEX_TICKERS.has(yfTicker)) {
+    const m = new Map<string, number>();
+    for (const r of await fetchTpexIndexRows(from, period2).catch(() => [])) {
+      m.set(r.date.toISOString().slice(0, 10), r.close);
+    }
+    return m;
+  }
   try {
     const chart = await yf.chart(yfTicker, { period1: from, period2, interval: '1d' }, { validateResult: false });
     const m = new Map<string, number>();
