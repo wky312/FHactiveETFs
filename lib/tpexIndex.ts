@@ -59,17 +59,45 @@ async function fetchMonth(key: string): Promise<TpexIndexRow[]> {
   return rows;
 }
 
+/* ⚠⚠ 區間上限與並發上限（安全邊界，別拿掉）。
+
+   呼叫端（/api/peer-performance、/api/cumulative-return）的 startDate/endDate 直接來自
+   公開 query 參數、沒有驗證。這支是**逐月**抓的，所以 `?startDate=1900-01-01` 會變成一次
+   對 tpex.org.tw 發一千多個請求 —— 1 進 1500 出的放大攻擊，而且是從 Vercel 的出口 IP 打出去。
+   真正的代價不是我們的 function 時間，而是**把 Vercel IP 送去被 TPEx 封鎖**（兆豐
+   megafunds.com.tw 已經在封資料中心 IP，見 scripts/daily_summary.py::fetch_mega_day）。
+
+   36 個月遠超實際需要：這一組的主動式 ETF 最早 2025-05 掛牌，route 自己的 baseFrom 也只回推
+   約 14 個月。超過就「保留最近 36 個月」而不是報錯——使用者體感上只是區間被截短。 */
+const MAX_MONTHS = 36;
+const FETCH_CONCURRENCY = 4;
+
 /** 回傳 [from, to] 區間內的櫃買指數每日收盤（由舊到新）。逐月抓，月份結果有快取。 */
 export async function fetchTpexIndexRows(from: Date, to: Date): Promise<TpexIndexRow[]> {
+  if (Number.isNaN(from.getTime()) || Number.isNaN(to.getTime())) return [];
+
+  // to 不可超過今天（未來日期只會多抓到空月份）；from 不可早於 to 往回 MAX_MONTHS。
+  const now = new Date();
+  const hi = new Date(Math.min(to.getTime(), now.getTime()));
+  const floor = new Date(hi.getFullYear(), hi.getMonth() - (MAX_MONTHS - 1), 1);
+  const lo = new Date(Math.max(from.getTime(), floor.getTime()));
+  if (lo.getTime() > hi.getTime()) return [];
+
   const keys: string[] = [];
-  const cur = new Date(from.getFullYear(), from.getMonth(), 1);
-  const end = new Date(to.getFullYear(), to.getMonth(), 1);
-  while (cur.getTime() <= end.getTime()) {
+  const cur = new Date(lo.getFullYear(), lo.getMonth(), 1);
+  const end = new Date(hi.getFullYear(), hi.getMonth(), 1);
+  while (cur.getTime() <= end.getTime() && keys.length < MAX_MONTHS) {
     keys.push(monthKey(cur));
     cur.setMonth(cur.getMonth() + 1);
   }
-  const months = await Promise.all(keys.map(fetchMonth));
-  const fromMs = from.getTime(), toMs = to.getTime();
+
+  // 分批而非一次 Promise.all 全開：就算是合法的 3 年區間也不要同時打 36 個請求。
+  const months: TpexIndexRow[][] = [];
+  for (let i = 0; i < keys.length; i += FETCH_CONCURRENCY) {
+    months.push(...await Promise.all(keys.slice(i, i + FETCH_CONCURRENCY).map(fetchMonth)));
+  }
+
+  const fromMs = lo.getTime(), toMs = hi.getTime();
   return months.flat()
     .filter(r => r.date.getTime() >= fromMs && r.date.getTime() <= toMs)
     .sort((a, b) => a.date.getTime() - b.date.getTime());
