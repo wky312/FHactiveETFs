@@ -355,6 +355,13 @@ PEER_ETFS = [
     # 否則掛牌日到今天之間每個交易日都會永遠缺一檔。歷史只能放棄。
     {'ticker': '00410A', 'name': '永豐410', 'source': 'sinopac', 'key': '00410A', 'group': 'tw_active',
      'since': '2026-10-02'},
+    # ⚠⚠ 兆豐 00996A：**megafunds.com.tw 對資料中心 IP 回 403**，所以這一檔在 GitHub Actions
+    #   上永遠抓不到（本機住宅 IP 正常）。反爬階梯第 1 級（完整瀏覽器 header 組：UA 帶 Chrome
+    #   token＋Accept/Accept-Language/Sec-Fetch-*）已試過、仍 403 → 判定為 IP 信譽問題
+    #   （見 skill scraping-antibot 的對照表，同 Dcard/CME 那一類）。同一個封鎖也讓
+    #   update_holdings.py 的 ISSUER_FUNDS 抓不到 00996A 的持股（CI 實測 12 檔中就只有它失敗）。
+    #   留在清單裡是刻意的：fetcher 會印一行 403 診斷後回 None、優雅跳過，不影響其他檔；
+    #   哪天改走住宅 IP／代理（例如加一支 /api/mega-scale 讓 Vercel 代打）就自動接上。
     {'ticker': '00996A', 'name': '兆豐996', 'source': 'mega',    'key': '23',     'group': 'tw_active',
      'since': '2026-10-02'},
     # 海外主動式ETF（step 3：逐家官方申贖來源；復華無官方來源 → CMoney 推算）
