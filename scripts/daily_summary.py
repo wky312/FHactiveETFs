@@ -306,20 +306,35 @@ def fetch_etf_price(yf_ticker: str) -> dict | None:
 # ── Peer ETF data fetchers ────────────────────────────────────────────────────
 
 PEER_ETFS = [
+    # ⚠ **每一檔都要有 since**（除了 DB 起始日 2025-12-08 當天就有資料的那幾檔）：
+    #   since ＝「這個來源最早查得到的交易日」，通常是掛牌日前一兩天。少了它，
+    #   expected_tickers_on 會從 DB 起始日就期待這一檔 → 掛牌前每個交易日都被判缺漏、
+    #   補洞天天白跑一輪（2026-08-26 那次標了 8 天一筆都補不到、還把 job 推過 timeout）。
+    #   2026-10-03 回頭把 9 檔舊有項目補上（值取自 DB 裡該檔實際最早的日期，實測
+    #   各檔自那天起覆蓋率 100%）。
     # 台股主動式ETF（規模百億以上＋擦邊三檔；key 皆為該投信 PCF API 的基金識別碼）
-    {'ticker': '00991A', 'name': '復華991', 'source': 'fhtrust',  'key': 'ETF23',  'group': 'tw_active'},
+    {'ticker': '00991A', 'name': '復華991', 'source': 'fhtrust',  'key': 'ETF23',  'group': 'tw_active',
+     'since': '2025-12-17'},
     {'ticker': '00981A', 'name': '統一981', 'source': 'ezmoney',  'key': '49YTW',  'group': 'tw_active'},
-    {'ticker': '00403A', 'name': '統一403', 'source': 'ezmoney',  'key': '63YTW',  'group': 'tw_active'},
+    {'ticker': '00403A', 'name': '統一403', 'source': 'ezmoney',  'key': '63YTW',  'group': 'tw_active',
+     'since': '2026-05-11'},
     {'ticker': '00982A', 'name': '群益982', 'source': 'capital',  'key': '399',    'group': 'tw_active'},
-    {'ticker': '00992A', 'name': '群益992', 'source': 'capital',  'key': '500',    'group': 'tw_active'},
-    {'ticker': '00405A', 'name': '富邦405', 'source': 'fubon',    'key': '00405A', 'group': 'tw_active'},
-    {'ticker': '00407A', 'name': '凱基407', 'source': 'kgi',     'key': 'J024',   'group': 'tw_active'},
-    {'ticker': '00400A', 'name': '國泰400', 'source': 'cathay',  'key': 'EA',     'group': 'tw_active'},
+    {'ticker': '00992A', 'name': '群益992', 'source': 'capital',  'key': '500',    'group': 'tw_active',
+     'since': '2025-12-29'},
+    {'ticker': '00405A', 'name': '富邦405', 'source': 'fubon',    'key': '00405A', 'group': 'tw_active',
+     'since': '2026-06-08'},
+    {'ticker': '00407A', 'name': '凱基407', 'source': 'kgi',     'key': 'J024',   'group': 'tw_active',
+     'since': '2026-06-23'},
+    {'ticker': '00400A', 'name': '國泰400', 'source': 'cathay',  'key': 'EA',     'group': 'tw_active',
+     'since': '2026-03-25'},
     {'ticker': '00980A', 'name': '野村980', 'source': 'nomura',  'key': '00980A', 'group': 'tw_active'},
-    {'ticker': '00406A', 'name': '中信406', 'source': 'ctbc',    'key': 'E0038',  'group': 'tw_active'},
-    {'ticker': '00999A', 'name': '野村999', 'source': 'nomura',  'key': '00999A', 'group': 'tw_active'},
+    {'ticker': '00406A', 'name': '中信406', 'source': 'ctbc',    'key': 'E0038',  'group': 'tw_active',
+     'since': '2026-06-10'},
+    {'ticker': '00999A', 'name': '野村999', 'source': 'nomura',  'key': '00999A', 'group': 'tw_active',
+     'since': '2026-05-04'},
     {'ticker': '00985A', 'name': '野村985', 'source': 'nomura',  'key': '00985A', 'group': 'tw_active'},
-    {'ticker': '00993A', 'name': '安聯993', 'source': 'allianz', 'key': 'E0002',  'group': 'tw_active'},
+    {'ticker': '00993A', 'name': '安聯993', 'source': 'allianz', 'key': 'E0002',  'group': 'tw_active',
+     'since': '2026-02-02'},
     {'ticker': '00984A', 'name': '安聯984', 'source': 'allianz', 'key': 'E0001',  'group': 'tw_active'},
     # 2026-10-02 補：這三檔的投信早就有抓取器，只是從沒登記過 key（全市場 22 檔台股主動式
     # ETF 對照 TWSE/TPEx ISIN 查出來的缺口）。since 一律＝「這個來源最早查得到的交易日」，
