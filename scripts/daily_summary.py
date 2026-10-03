@@ -872,13 +872,28 @@ def fetch_mega_day(fund_id: str, transaction_date: date) -> dict | None:
                    headers={'Content-Type': 'application/x-www-form-urlencoded',
                             'Referer': MEGA_PCF_URL})
         if r.status_code != 200:
+            print(f'  mega {fund_id} {transaction_date}: HTTP {r.status_code}')
+            return None
+        if not form:
+            print(f'  mega {fund_id} {transaction_date}: 取不到 __VIEWSTATE（頁面結構變了？）')
             return None
         html = r.text
     except Exception as e:
         print(f'  mega {fund_id} {transaction_date}: {e}')
         return None
+    # ⚠⚠ 一定要確認 postback 真的把基金切過去了。切換失敗時頁面會**靜靜回預設的兆豐藍籌30**
+    #    （而且它的資料日同樣是最新交易日 → 日期檢查過得去），沒有這道防護就會把別的基金
+    #    的淨申贖寫成 00996A。實測 fund_id 選到時 select 會有 <option value="23" ... selected>，
+    #    沒選到時整個 fund_id select 都沒有 selected 項。
+    if not re.search(rf'<option[^>]*(?:value="{re.escape(str(fund_id))}"[^>]*selected|selected[^>]*value="{re.escape(str(fund_id))}")',
+                     html):
+        print(f'  mega {fund_id} {transaction_date}: postback 未選到該基金（頁面可能回了預設基金）→ 棄用')
+        return None
     ann = {k.strip(): v.strip() for k, v in re.findall(
         r'class="ann-title">([^<]+)</div>\s*<div class="ann-content">([^<]*)</div>', html)}
+    if not ann:
+        print(f'  mega {fund_id} {transaction_date}: 解析不到 ann-title/ann-content')
+        return None
     m = next((re.match(r'^(\d{4})/(\d{1,2})/(\d{1,2})\s*每基數實際申購總價金', k) for k in ann
               if re.match(r'^\d{4}/\d{1,2}/\d{1,2}\s*每基數實際申購總價金', k)), None)
     if not m:
