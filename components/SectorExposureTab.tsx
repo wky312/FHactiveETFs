@@ -11,6 +11,7 @@ import { buildSectorMatrix, resolveStockName, resolveStockNameOverseas, Consensu
 import { buildGicsMatrix, GicsExposureResult } from '@/lib/gicsExposure';
 import GicsExposureView from './GicsExposureView';
 import SectorExposureMobileList from './SectorExposureMobileList';
+import { useIsMobile } from '@/lib/useIsMobile';
 
 /* 'gics' 與 'overseas' 共用同一份持股資料（/api/consensus-overseas）與同一套代碼空間，
    只是呈現改成 GICS 類別彙總表；自訂族群、個股選擇那一整組介面在 gics 模式下不使用。 */
@@ -42,19 +43,6 @@ const STICKY_EDGE: React.CSSProperties = { boxShadow: '4px 0 6px -4px rgba(0,0,0
 
 function pct(v: number, d = 2): string { return v.toFixed(d) + '%'; }
 function shortDate(d: string | null): string { return d ? d.slice(5).replace('-', '/') : '—'; }
-
-/* 掛載後才判斷，SSR 一律當桌機，避免 hydration mismatch。 */
-function useIsMobile(bp = 640): boolean {
-  const [m, setM] = useState(false);
-  useEffect(() => {
-    const mq = window.matchMedia(`(max-width: ${bp}px)`);
-    const on = () => setM(mq.matches);
-    on();
-    mq.addEventListener('change', on);
-    return () => mq.removeEventListener('change', on);
-  }, [bp]);
-  return m;
-}
 function oku(v: number | null): string { return v == null ? '—' : (v / 1e8).toFixed(0); }
 
 /** 權重越重底色越紅，讓矩陣一眼看得出誰在重壓。 */

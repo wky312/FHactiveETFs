@@ -292,7 +292,7 @@ export default function PerformanceTab({
               >
                 佔比{sortKey === 'prate' ? (sortAsc ? ' ↑' : ' ↓') : ''}
               </th>
-              <th style={{ ...TH, textAlign: 'right', width: 70 }}>現價</th>
+              <th className="m-hide" style={{ ...TH, textAlign: 'right', width: 70 }}>現價</th>
               {appliedRange && (
                 <th
                   onClick={() => toggleSort('pctCustom')}
@@ -332,7 +332,7 @@ export default function PerformanceTab({
                 <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', color: isBench ? SUB : TEXT, fontWeight: 500 }}>
                   {isBench ? '—' : `${r.prate.toFixed(3)}%`}
                 </td>
-                <td style={{ padding: '8px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: SUB }}>
+                <td className="m-hide" style={{ padding: '8px 12px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: SUB }}>
                   {r.currentPrice !== null
                     ? r.currentPrice.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
                     : '—'}
