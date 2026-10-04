@@ -403,7 +403,8 @@ def fetch_ezmoney_days(fund_code: str, since: date):
         for row in details:
             sid = str(row.get('DetailCode') or '').strip()
             weight = parse_num(row.get('NavRate'))
-            if not sid or weight <= 0:
+            # 權重 0.00% 但仍有股數的零頭部位（1,000 股殘量）要留：軌跡看股數，濾掉會被畫成出清又買回。
+            if not sid or (weight <= 0 and parse_num(row.get('Share')) <= 0):
                 continue
             records.append({'c': sid, 'q': int(parse_num(row.get('Share'))), 'm': 0, 'p': round(weight, 4)})
             names[sid] = str(row.get('DetailName') or '').strip()
@@ -457,6 +458,9 @@ ISSUER_FUNDS = {
     # 海外主動式ETF：持股是外國股（彭博式 'TSLA US'），走 sources.py 的 ticker-aware 過濾。
     # CMoney 失效後這三檔原本整個沒來源（存檔凍結在 09/29）。
     '00983A': '中信',   '00402A': '安聯',
+    # 2026-10-04：00989A 摩根、00997A 群益原本只靠 CMoney（存檔從沒建過），CMoney 掛掉後連歷史都沒了；
+    # 官網只給最新一天，從此開始逐日累積。
+    '00989A': '摩根',   '00997A': '群益',
     # 00986A 台新全球龍頭不在此：台新的頁面對海外檔結構不同，只解析到 4 檔/權重 12%。
 }
 
@@ -549,7 +553,7 @@ def update_issuer_fund(fund_id: str, label: str) -> int:
         sid = str(r.get('stockid') or '').strip()
         q = int(r.get('qshare') or 0)
         w = float(r.get('prate') or 0)
-        if not sid or q <= 0 or w <= 0:
+        if not sid or q <= 0:  # 權重 0 的零頭部位仍保留（見 update_ezmoney_fund）
             continue
         records.append({'c': sid, 'q': q, 'm': 0, 'p': round(w, 4)})
         names[sid] = str(r.get('stockname') or '').strip()
@@ -612,7 +616,7 @@ def backfill_issuer_holdings(since: date) -> int:
             recs, names = [], {}
             for r in rows:
                 sid, q, w = str(r.get('stockid') or '').strip(), int(r.get('qshare') or 0), float(r.get('prate') or 0)
-                if not sid or q <= 0 or w <= 0:
+                if not sid or q <= 0:  # 權重 0 的零頭部位仍保留（見 update_ezmoney_fund）
                     continue
                 recs.append({'c': sid, 'q': q, 'm': 0, 'p': round(w, 4)})
                 names[sid] = str(r.get('stockname') or '').strip()

@@ -5,6 +5,7 @@ import { resolveYfTicker } from './exchangeMap';
 import { fetchDailyBars } from './yahooFinance';
 import { loadStoredHoldings } from './holdingsStore';
 import { fetchCmoneyHoldings, CMONEY_FUNDS } from './cmoneyHoldings';
+import { fetchIssuerSince, hasIssuerSource } from './issuerHoldingsOverseas';
 import { fetchTwseAvgMap } from './twseDaily';
 import { fetchCorpActions, cumFactor, adjustLotsSeries, CorpAction } from './corpActions';
 
@@ -151,6 +152,12 @@ export async function buildDayMap(fundId: string): Promise<DayMapResult> {
     populateFromStored();
     const live = await fetchCmoneyHoldings(CMONEY_FUNDS[fundId], dayMap.size > 0 ? 20 : 400);
     for (const [date, holdings] of live) dayMap.set(date, holdings);
+    // 2026-10-04 CMoney 回 Auth Failed：改由投信官網補「存檔最後一天之後」（官方值蓋過 CMoney 同日值）。
+    // 存檔是部署時打包的，沒有這段線上資料會凍結在最後一次部署那天。
+    if (hasIssuerSource(fundId)) {
+      const last = Array.from(dayMap.keys()).sort().pop() ?? addDays(end, -35);
+      for (const [date, holdings] of await fetchIssuerSince(fundId, last)) dayMap.set(date, holdings);
+    }
   } else if (stored) {
     populateFromStored();
     const lastStored = Array.from(dayMap.keys()).sort((a, b) => a.localeCompare(b)).pop()!;

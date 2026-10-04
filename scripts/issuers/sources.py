@@ -91,7 +91,7 @@ def _next_weekdays(n: int, start: str | None = None) -> list:
 # 00986A（台新全球龍頭）不在這裡：台新的 ETFSeriesDetail 頁對海外檔結構不同，
 # _TAISHIN_ROW_RE 只match到 4 檔台股、權重合計 12% —— 不完整的持股比沒有更糟，
 # 所以不註冊它（CMoney 恢復前這檔沒有持股來源）。
-_OVERSEAS_TICKERS = {"00983A", "00402A"}
+_OVERSEAS_TICKERS = {"00983A", "00402A", "00989A", "00997A"}
 _FOREIGN_RE = re.compile(r"^[A-Z0-9][A-Z0-9 .\-]{0,15}$")
 
 
@@ -159,10 +159,10 @@ def _col_idx(cols, **groups):
 # ---------------------------------------------------------------------------
 # 摩根（00401A）：GET product-data?cusip=...；fundData.holdings.pcfEquityHoldings.data[]
 # ---------------------------------------------------------------------------
-_JPM_CUSIP = {"00401A": "TW00000401A1"}
+_JPM_CUSIP = {"00401A": "TW00000401A1", "00989A": "TW00000989A5"}
 
 
-@register("00401A")
+@register("00401A", "00989A")
 def jpmorgan(ticker: str, date: str | None = None) -> list[dict]:
     cusip = _JPM_CUSIP[ticker]
     url = (f"https://am.jpmorgan.com/FundsMarketingHandler/product-data"
@@ -174,11 +174,11 @@ def jpmorgan(ticker: str, date: str | None = None) -> list[dict]:
     out = []
     for h in holds:
         sid = str(h.get("securityTicker") or "").strip().upper()
-        if not is_tw_stock(sid):
+        if not _ok_code(sid, ticker):
             continue
         out.append(mk_row(h.get("navDate") or today_tpe(), sid,
                           h.get("securityDescription"), h.get("shares"), h.get("marketValuePercent")))
-    return _filter_tw(out)
+    return _filter_rows(out, ticker)
 
 
 # ---------------------------------------------------------------------------
@@ -399,25 +399,29 @@ def uni(ticker: str, date: str | None = None) -> list[dict]:
 # ---------------------------------------------------------------------------
 # 群益（00982A/00992A）：POST buyback，body {"fundId":"399"}；data.stocks[]
 # ---------------------------------------------------------------------------
-_CAPITAL_FUND = {"00982A": "399", "00992A": "500"}
+_CAPITAL_FUND = {"00982A": "399", "00992A": "500", "00997A": "502"}
 
 
-@register("00982A", "00992A")
+@register("00982A", "00992A", "00997A")
 def capital(ticker: str, date: str | None = None) -> list[dict]:
     s = _session("https://www.capitalfund.com.tw/")
     s.headers["Content-Type"] = "application/json"
     res = _post(s, "https://www.capitalfund.com.tw/CFWeb/api/etf/buyback",
                 data=json.dumps({"fundId": _CAPITAL_FUND[ticker]}), timeout=30)
     res.raise_for_status()
-    stocks = ((res.json() or {}).get("data") or {}).get("stocks") or []
+    data = (res.json() or {}).get("data") or {}
+    stocks = data.get("stocks") or []
+    # 海外檔（00997A）：date1 是清單生效日（下一交易日），clamp 到今天會落在週末/錯的日子；
+    # pcf.date2 才是持股所屬交易日（2026-10-04 實測 date1=10/05、date2=10/01）。
+    d2 = str((data.get("pcf") or {}).get("date2") or "")[:10] if ticker in _OVERSEAS_TICKERS else ""
     out = []
     for h in stocks:
         sid = str(h.get("stocNo") or "").strip().upper()
-        if not is_tw_stock(sid):
+        if not _ok_code(sid, ticker):
             continue
-        out.append(mk_row(h.get("date1") or today_tpe(), sid, h.get("stocName"),
+        out.append(mk_row(d2 or h.get("date1") or today_tpe(), sid, h.get("stocName"),
                           h.get("share"), h.get("weight")))
-    return _filter_tw(out)
+    return _filter_rows(out, ticker)
 
 
 # ---------------------------------------------------------------------------

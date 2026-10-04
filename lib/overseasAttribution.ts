@@ -15,8 +15,8 @@
 import { OVERSEAS_FUNDS, OverseasFundConfig } from './overseasFunds';
 import { loadStoredHoldings } from './holdingsStore';
 import { fetchCmoneyHoldings } from './cmoneyHoldings';
+import { fetchIssuerSince, hasIssuerSource } from './issuerHoldingsOverseas';
 import { fetchHoldings } from './fhtrust';
-import { fetchYuantaHoldings } from './yuantaHoldings';
 import { resolveYfTicker } from './exchangeMap';
 import { fetchTotalReturnSeries } from './yahooFinance';
 import { currencyForStockid, fetchFxSeries } from './fx';
@@ -24,12 +24,6 @@ import { Holding } from './types';
 
 const BATCH = 8;
 
-/* 這些基金的 CMoney 揭露落後其官方投信網站的自家 API 2-3 個交易日（2026-09-22 實測：
-   00990A CMoney 停 09/18，元大官網/API 已到 09/21）。
-   統一投信（00988A/00411A）官網 ezmoney.com.tw/ETF/Transaction/GetPCF 也有逐日持股，但前面
-   擋防爬（需先 GET 首頁＋帶 fundCode 的 PCF 頁拿兩個 cookie 才放行 POST），這裡是前端即時補，
-   沒接；統一改由排程 scripts/update_holdings.py 的 update_ezmoney_fund 補進 data/holdings 存檔。*/
-const YUANTA_HOLDINGS_TICKERS = new Set(['00990A']);
 
 /* ── 日期工具（對齊 lib/stockTrajectory.ts）───────────────────────── */
 function toMs(s: string): number { return new Date(s.replace(/\//g, '-')).getTime(); }
@@ -118,13 +112,12 @@ export async function buildOverseasDayMap(cfg: OverseasFundConfig): Promise<Map<
     );
     for (const [date, holdings] of live) dayMap.set(date, holdings);
 
-    // 官方來源比 CMoney 新的基金（見上方 YUANTA_HOLDINGS_TICKERS 註解）：用官網 API 補最新幾天，
-    // 官方資料蓋過 CMoney（同一天兩邊有值時，官方版本才是正確的那份）。
-    if (YUANTA_HOLDINGS_TICKERS.has(cfg.ticker)) {
-      const lastDate = [...dayMap.keys()].sort().pop();
-      const sinceIso = lastDate ? slashToIso(lastDate) : slashToIso(addDays(todayTW(), -10));
-      const yuanta = await fetchYuantaHoldings(cfg.ticker, sinceIso).catch(() => new Map<string, Holding[]>());
-      for (const [date, holdings] of yuanta) dayMap.set(date, holdings);
+    // 2026-10-04 CMoney 回 Auth Failed：改由投信官網補「存檔最後一天之後」到今天（官方值蓋過同日 CMoney 值）。
+    // 涵蓋元大（原本單獨的 00990A 補抓段已併入）、統一、中信、群益、摩根、安聯；台新 00986A 仍無來源。
+    if (hasIssuerSource(cfg.ticker)) {
+      const lastDate = [...dayMap.keys()].sort().pop() ?? addDays(todayTW(), -35);
+      const official = await fetchIssuerSince(cfg.ticker, lastDate).catch(() => new Map<string, Holding[]>());
+      for (const [date, holdings] of official) dayMap.set(date, holdings);
     }
   } else {
     // 復華 fhtrust：只即時補「最後存檔日之後」到今天（通常 0–數天）。
