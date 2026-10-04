@@ -7,9 +7,10 @@ import {
   listAllOverseas, listCustomOverseas, saveGroupOverseas, deleteGroupOverseas,
   exportJsonOverseas, importJsonOverseas, normalizeCodeOverseas,
 } from '@/lib/groupStore';
-import { buildSectorMatrix, resolveStockName, resolveStockNameOverseas, ConsensusResult, SectorExposureResult } from '@/lib/sectorExposure';
+import { buildSectorMatrix, resolveStockName, resolveStockNameOverseas, ConsensusResult, SectorExposureResult, SectorStockCol } from '@/lib/sectorExposure';
 import { buildGicsMatrix, GicsExposureResult } from '@/lib/gicsExposure';
 import GicsExposureView from './GicsExposureView';
+import SectorExposureMobileList from './SectorExposureMobileList';
 
 /* 'gics' 與 'overseas' 共用同一份持股資料（/api/consensus-overseas）與同一套代碼空間，
    只是呈現改成 GICS 類別彙總表；自訂族群、個股選擇那一整組介面在 gics 模式下不使用。 */
@@ -35,7 +36,25 @@ const TH: React.CSSProperties = {
   whiteSpace: 'nowrap', position: 'sticky', top: 0, zIndex: 1,
 };
 
+/* 手機矩陣用的緊湊儲存格；sticky 欄右側加陰影，提示右邊還有欄位可以滑。 */
+const CPT: React.CSSProperties = { padding: '6px 7px' };
+const STICKY_EDGE: React.CSSProperties = { boxShadow: '4px 0 6px -4px rgba(0,0,0,.18)' };
+
 function pct(v: number, d = 2): string { return v.toFixed(d) + '%'; }
+function shortDate(d: string | null): string { return d ? d.slice(5).replace('-', '/') : '—'; }
+
+/* 掛載後才判斷，SSR 一律當桌機，避免 hydration mismatch。 */
+function useIsMobile(bp = 640): boolean {
+  const [m, setM] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia(`(max-width: ${bp}px)`);
+    const on = () => setM(mq.matches);
+    on();
+    mq.addEventListener('change', on);
+    return () => mq.removeEventListener('change', on);
+  }, [bp]);
+  return m;
+}
 function oku(v: number | null): string { return v == null ? '—' : (v / 1e8).toFixed(0); }
 
 /** 權重越重底色越紅，讓矩陣一眼看得出誰在重壓。 */
@@ -73,6 +92,10 @@ export default function SectorExposureTab() {
   const [notice, setNotice] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
   const urlApplied = useRef(false);
+  const isMobile = useIsMobile();
+  /* 手機預設看排行清單；使用者手動切過就不再被螢幕寬度覆蓋。 */
+  const [viewPick, setViewPick] = useState<'list' | 'table' | null>(null);
+  const view = viewPick ?? (isMobile ? 'list' : 'table');
 
   /* consensus 一包資料含全市場每檔個股的持有者與佔比，抓一次即可；改選股只重算矩陣。
      market 切換要重打不同 API（國內走 Supabase 共用 DB，海外走 fhtrust+CMoney 即時抓取）。
@@ -476,6 +499,15 @@ export default function SectorExposureTab() {
               只顯示有持有的 ETF
             </label>
             <div style={{ flex: 1 }} />
+            <div style={{ display: 'flex', border: `1px solid ${BORDER}`, borderRadius: 6, overflow: 'hidden' }}>
+              {([['list', '排行清單'], ['table', '矩陣表']] as const).map(([v, label]) => (
+                <button key={v} onClick={() => setViewPick(v)}
+                  style={{ padding: '6px 12px', border: 'none', cursor: 'pointer', fontSize: '.78rem', fontFamily: SANS,
+                    background: view === v ? TEXT : CARD, color: view === v ? '#fff' : SUB, fontWeight: view === v ? 700 : 500 }}>
+                  {label}
+                </button>
+              ))}
+            </div>
             <button onClick={copyLink} style={toolBtn}>{copied ? '✓ 連結已複製' : '複製分享連結'}</button>
             <button onClick={exportExcel} style={toolBtn}>儲存成表格（Excel）</button>
           </div>
@@ -483,86 +515,118 @@ export default function SectorExposureTab() {
           {/* ── 摘要 ──
               市值加權需要各基金規模(navProxy)，海外模式沒有可靠來源、恆為 null——與其顯示
               誤導性的 0%，不如整張卡不渲染（見 lib/consensusOverseas.ts 的說明）。 */}
-          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 12 }}>
+          <div style={{ display: 'flex', gap: isMobile ? 8 : 14, flexWrap: isMobile ? 'nowrap' : 'wrap', marginBottom: 12 }}>
             {[
               ...(market === 'tw' ? [['全市場市值加權', pct(result.totals.mktWeight), '這些股票佔全市場主動 ETF 資金的比重']] : []),
               ['全市場等權平均', pct(result.totals.equalAvg), '平均每檔主動 ETF 押在這些股票的比重'],
               ['持有檔數', `${result.totals.heldByAny} / ${result.nFunds}`, '至少持有族群中一檔的 ETF 數'],
             ].map(([label, value, hint]) => (
-              <div key={label} style={{ flex: '1 1 200px', border: `1px solid ${BORDER}`, borderRadius: 8, padding: '10px 14px' }}>
-                <div style={{ fontSize: '.72rem', color: SUB }}>{label}</div>
-                <div style={{ fontFamily: MONO, fontSize: '1.5rem', fontWeight: 700, color: RED }}>{value}</div>
-                <div style={{ fontSize: '.68rem', color: SUB }}>{hint}</div>
+              <div key={label} style={{ flex: isMobile ? '1 1 0' : '1 1 200px', minWidth: 0, border: `1px solid ${BORDER}`, borderRadius: 8, padding: isMobile ? '8px 10px' : '10px 14px' }}>
+                <div style={{ fontSize: isMobile ? '.66rem' : '.72rem', color: SUB }}>{isMobile ? label.replace('全市場', '') : label}</div>
+                <div style={{ fontFamily: MONO, fontSize: isMobile ? '1.05rem' : '1.5rem', fontWeight: 700, color: RED }}>{value}</div>
+                {!isMobile && <div style={{ fontSize: '.68rem', color: SUB }}>{hint}</div>}
               </div>
             ))}
           </div>
 
-          <div style={{ overflowX: 'auto', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
-            <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 640 }}>
+          {view === 'list' && (
+            <SectorExposureMobileList result={result} rows={fundRows} sortBy={sortBy} onSort={setSortBy} showMkt={market === 'tw'} />
+          )}
+
+          {/* 手機矩陣：ETF 欄只留代號＋截斷名稱（持股日併入第二行），族群合計移到第二欄，
+              持股日/規模欄拿掉，讓個股欄位有空間；欄位寬度靠右側陰影提示可橫滑。 */}
+          {view === 'table' && (
+          <div style={{ overflowX: 'auto', border: `1px solid ${BORDER}`, borderRadius: 8, WebkitOverflowScrolling: 'touch' }}>
+            <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: isMobile ? 0 : 640 }}>
               <thead>
                 <tr>
-                  <th style={{ ...TH, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2 }}>ETF</th>
-                  <th style={{ ...TH, textAlign: 'left' }}>持股日</th>
-                  {market === 'tw' && <th style={{ ...TH, textAlign: 'right' }}>規模(億)</th>}
+                  <th style={{ ...TH, ...(isMobile ? CPT : {}), textAlign: 'left', position: 'sticky', left: 0, zIndex: 2, ...(isMobile ? STICKY_EDGE : {}) }}>ETF</th>
+                  {isMobile && (
+                    <th onClick={() => setSortBy('group')} style={{ ...TH, ...CPT, textAlign: 'right', cursor: 'pointer', background: RED }}>
+                      合計{sortBy === 'group' && ' ▼'}
+                    </th>
+                  )}
+                  {!isMobile && <th style={{ ...TH, textAlign: 'left' }}>持股日</th>}
+                  {!isMobile && market === 'tw' && <th style={{ ...TH, textAlign: 'right' }}>規模(億)</th>}
                   {result.stocks.map(s => (
                     <th key={s.stockid} onClick={() => setSortBy(s.stockid)}
-                      style={{ ...TH, textAlign: 'right', cursor: 'pointer' }} title="點擊依此股權重排序">
-                      {s.stockname}<br /><span style={{ fontWeight: 400, opacity: .7, fontFamily: MONO }}>{s.stockid}</span>
+                      style={{ ...TH, ...(isMobile ? CPT : {}), textAlign: 'right', cursor: 'pointer' }} title="點擊依此股權重排序">
+                      {s.stockname}{sortBy === s.stockid && ' ▼'}<br /><span style={{ fontWeight: 400, opacity: .7, fontFamily: MONO }}>{s.stockid}</span>
                     </th>
                   ))}
-                  <th onClick={() => setSortBy('group')} style={{ ...TH, textAlign: 'right', cursor: 'pointer', background: RED }}>
-                    族群合計
-                  </th>
+                  {!isMobile && (
+                    <th onClick={() => setSortBy('group')} style={{ ...TH, textAlign: 'right', cursor: 'pointer', background: RED }}>
+                      族群合計
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody>
                 {fundRows.map(f => (
                   <tr key={f.ticker} style={{ borderTop: `1px solid ${BORDER}` }}>
-                    <td style={{ padding: '7px 10px', whiteSpace: 'nowrap', position: 'sticky', left: 0, zIndex: 1, background: CARD }}>
-                      <span style={{ fontFamily: MONO, fontWeight: 600 }}>{f.ticker}</span>
-                      <span style={{ color: SUB, fontSize: '.74rem', marginLeft: 6 }}>{f.name}</span>
-                    </td>
-                    <td style={{ padding: '7px 10px', fontFamily: MONO, fontSize: '.72rem', color: SUB }}>{f.holdingDate ?? '—'}</td>
-                    {market === 'tw' && <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.76rem', color: SUB }}>{oku(f.navProxy)}</td>}
+                    {isMobile ? (
+                      <td style={{ ...CPT, position: 'sticky', left: 0, zIndex: 1, background: CARD, maxWidth: 92, ...STICKY_EDGE }}>
+                        <div style={{ fontFamily: MONO, fontWeight: 700, fontSize: '.76rem' }}>{f.ticker}</div>
+                        <div style={{ color: SUB, fontSize: '.62rem', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{f.name}</div>
+                        <div style={{ color: SUB, fontSize: '.6rem', fontFamily: MONO }}>{shortDate(f.holdingDate)}</div>
+                      </td>
+                    ) : (
+                      <td style={{ padding: '7px 10px', whiteSpace: 'nowrap', position: 'sticky', left: 0, zIndex: 1, background: CARD }}>
+                        <span style={{ fontFamily: MONO, fontWeight: 600 }}>{f.ticker}</span>
+                        <span style={{ color: SUB, fontSize: '.74rem', marginLeft: 6 }}>{f.name}</span>
+                      </td>
+                    )}
+                    {isMobile && (
+                      <td style={{ ...CPT, textAlign: 'right', fontFamily: MONO, fontSize: '.78rem', fontWeight: 700, color: f.groupWeight > 0 ? RED : '#C9C4BF' }}>
+                        {f.groupWeight > 0 ? pct(f.groupWeight) : '–'}
+                      </td>
+                    )}
+                    {!isMobile && <td style={{ padding: '7px 10px', fontFamily: MONO, fontSize: '.72rem', color: SUB }}>{f.holdingDate ?? '—'}</td>}
+                    {!isMobile && market === 'tw' && <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.76rem', color: SUB }}>{oku(f.navProxy)}</td>}
                     {result.stocks.map(s => (
-                      <td key={s.stockid} style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', ...heat(f.weights[s.stockid]) }}>
+                      <td key={s.stockid} style={{ padding: '7px 10px', ...(isMobile ? CPT : {}), textAlign: 'right', fontFamily: MONO, fontSize: isMobile ? '.74rem' : '.8rem', ...heat(f.weights[s.stockid]) }}>
                         {f.weights[s.stockid] > 0 ? pct(f.weights[s.stockid]) : '–'}
                       </td>
                     ))}
-                    <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.84rem', fontWeight: 700,
-                      color: f.groupWeight > 0 ? RED : '#C9C4BF' }}>
-                      {f.groupWeight > 0 ? pct(f.groupWeight) : '–'}
-                    </td>
+                    {!isMobile && (
+                      <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.84rem', fontWeight: 700,
+                        color: f.groupWeight > 0 ? RED : '#C9C4BF' }}>
+                        {f.groupWeight > 0 ? pct(f.groupWeight) : '–'}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
               <tfoot>
-                <tr style={{ borderTop: `2px solid ${TEXT}`, background: '#F7F4F0' }}>
-                  <td colSpan={market === 'tw' ? 3 : 2} style={{ padding: '7px 10px', fontSize: '.78rem', fontWeight: 600 }}>全市場等權平均</td>
-                  {result.stocks.map(s => (
-                    <td key={s.stockid} style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.78rem' }}>{pct(s.equalAvg, 3)}</td>
-                  ))}
-                  <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', fontWeight: 700 }}>{pct(result.totals.equalAvg, 3)}</td>
-                </tr>
-                {market === 'tw' && (
-                  <tr style={{ background: '#F7F4F0' }}>
-                    <td colSpan={3} style={{ padding: '7px 10px', fontSize: '.78rem', fontWeight: 600 }}>全市場市值加權</td>
+                {[
+                  { label: '全市場等權平均', per: (s: SectorStockCol) => pct(s.equalAvg, 3), total: pct(result.totals.equalAvg, 3), color: TEXT, show: true },
+                  { label: '全市場市值加權', per: (s: SectorStockCol) => pct(s.mktWeight, 3), total: pct(result.totals.mktWeight, 3), color: RED, show: market === 'tw' },
+                  { label: '持有檔數', per: (s: SectorStockCol) => String(s.heldBy), total: String(result.totals.heldByAny), color: SUB, show: true },
+                ].filter(r => r.show).map((r, i) => (
+                  <tr key={r.label} style={{ background: '#F7F4F0', ...(i === 0 ? { borderTop: `2px solid ${TEXT}` } : {}) }}>
+                    {isMobile ? (
+                      <>
+                        <td style={{ ...CPT, position: 'sticky', left: 0, zIndex: 1, background: '#F7F4F0', fontSize: '.66rem', fontWeight: 600, color: r.color === SUB ? SUB : TEXT, ...STICKY_EDGE }}>
+                          {r.label.replace('全市場', '')}
+                        </td>
+                        <td style={{ ...CPT, textAlign: 'right', fontFamily: MONO, fontSize: '.72rem', fontWeight: 700, color: r.color }}>{r.total}</td>
+                      </>
+                    ) : (
+                      <td colSpan={market === 'tw' ? 3 : 2} style={{ padding: '7px 10px', fontSize: '.78rem', fontWeight: 600, color: r.color === SUB ? SUB : TEXT }}>{r.label}</td>
+                    )}
                     {result.stocks.map(s => (
-                      <td key={s.stockid} style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.78rem', color: RED, fontWeight: 600 }}>{pct(s.mktWeight, 3)}</td>
+                      <td key={s.stockid} style={{ padding: '7px 10px', ...(isMobile ? CPT : {}), textAlign: 'right', fontFamily: MONO, fontSize: isMobile ? '.72rem' : '.78rem',
+                        color: r.color, fontWeight: r.color === RED ? 600 : 400 }}>{r.per(s)}</td>
                     ))}
-                    <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.84rem', fontWeight: 700, color: RED }}>{pct(result.totals.mktWeight, 3)}</td>
+                    {!isMobile && (
+                      <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', fontWeight: 700, color: r.color }}>{r.total}</td>
+                    )}
                   </tr>
-                )}
-                <tr style={{ background: '#F7F4F0' }}>
-                  <td colSpan={market === 'tw' ? 3 : 2} style={{ padding: '7px 10px', fontSize: '.78rem', fontWeight: 600, color: SUB }}>持有檔數</td>
-                  {result.stocks.map(s => (
-                    <td key={s.stockid} style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.78rem', color: SUB }}>{s.heldBy}</td>
-                  ))}
-                  <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: SUB }}>{result.totals.heldByAny}</td>
-                </tr>
+                ))}
               </tfoot>
             </table>
           </div>
+          )}
 
           <p style={{ fontSize: '.7rem', color: SUB, marginTop: 10, lineHeight: 1.7 }}>
             資料日 {result.asOf}。各檔 ETF 申報持股的日期不同，表中「持股日」為該檔自身最新申報日。<br />
