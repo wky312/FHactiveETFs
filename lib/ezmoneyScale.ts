@@ -72,7 +72,7 @@ function httpsGet(path: string, cookies: string): Promise<{ setCookies: string[]
   });
 }
 
-function httpsPost(path: string, body: Buffer, cookies: string, referer: string): Promise<string> {
+export function httpsPost(path: string, body: Buffer, cookies: string, referer: string): Promise<string> {
   return new Promise((resolve, reject) => {
     const req = https.request({
       hostname: HOST, path, method: 'POST',
@@ -96,7 +96,7 @@ function httpsPost(path: string, body: Buffer, cookies: string, referer: string)
   });
 }
 
-async function getSessionCookies(fundCode: string): Promise<string> {
+export async function getSessionCookies(fundCode: string): Promise<string> {
   // Step 1: root domain → __nxquid
   const r0 = await httpsGet('/', '');
   let cookies = mergeCookies('', r0.setCookies);
@@ -109,7 +109,7 @@ async function getSessionCookies(fundCode: string): Promise<string> {
 }
 
 // Parse TranDate from ASP.NET JSON date string or ISO string → "YYYY/MM/DD" (Taiwan, UTC+8)
-function parseTranDate(raw: unknown): string | null {
+export function parseTranDate(raw: unknown): string | null {
   if (!raw) return null;
   const s = String(raw);
   // ISO format: "2026-06-01T00:00:00"

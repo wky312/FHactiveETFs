@@ -1,5 +1,6 @@
 import { Holding } from './types';
 import { fetchYuantaHoldings } from './yuantaHoldings';
+import { getSessionCookies, httpsPost, parseTranDate } from './ezmoneyScale';
 
 /* 海外主動式ETF「最新一天持股」——投信官網直抓，取代 CMoney 代理。
    ──────────────────────────────────────────────────────────────────
@@ -35,30 +36,20 @@ function row(stockid: unknown, stockname: unknown, weight: unknown, qty: unknown
 /* ── 統一 ezmoney ───────────────────────────────────────────── */
 export const EZMONEY_CODES: Record<string, string> = { '00988A': '61YTW', '00411A': '64YTW' };
 
-/** TranDate 有兩種格式：'/Date(1790784000000)/'（UTC 毫秒，對應台灣當日 00:00）與 '2026-10-01T00:00:00'。 */
-function ezDate(v: unknown): string | null {
-  const s = String(v ?? '');
-  const ms = s.match(/Date\((\d+)\)/);
-  const iso = ms ? isoOf(new Date(Number(ms[1]) + 8 * 3600 * 1000)) : s.slice(0, 10);
-  return /^(19|20)\d\d-\d\d-\d\d$/.test(iso) ? slash(iso) : null;   // 未來公告日回 0001-01-01 空殼
-}
-
-async function ezmoneyOne(fundCode: string, d: Date): Promise<LatestHoldings> {
+/* ⚠ 不帶 session cookie 直接 POST 會被無限 302（undici 報 redirect count exceeded），
+   所以沿用 lib/ezmoneyScale.ts 的 cookie 流程（先 GET / 與 PCF 頁拿 __nxquid、ASP.NET_SessionId）。 */
+async function ezmoneyOne(fundCode: string, d: Date, cookies: string): Promise<LatestHoldings> {
   try {
     const roc = `${d.getUTCFullYear() - 1911}/${String(d.getUTCMonth() + 1).padStart(2, '0')}/${String(d.getUTCDate()).padStart(2, '0')}`;
-    const res = await fetch('https://www.ezmoney.com.tw/ETF/Transaction/GetPCF', {
-      method: 'POST',
-      headers: { 'User-Agent': UA, 'Content-Type': 'application/json; charset=utf-8', 'X-Requested-With': 'XMLHttpRequest',
-                 Referer: 'https://www.ezmoney.com.tw/ETF/Transaction/PCF' },
-      body: JSON.stringify({ fundCode, date: roc, specificDate: false }),
-      next: { revalidate: REVALIDATE },
-    });
-    if (!res.ok) return null;
-    const j = await res.json();
+    const raw = await httpsPost('/ETF/Transaction/GetPCF',
+      Buffer.from(JSON.stringify({ fundCode, date: roc, specificDate: false }), 'utf8'),
+      cookies, `/ETF/Transaction/PCF?fundCode=${fundCode}`);
+    if (!raw.trim().startsWith('{')) return null;
+    const j = JSON.parse(raw);
     const st = (j?.asset ?? []).find((a: { AssetCode?: string }) => String(a?.AssetCode).toUpperCase() === 'ST');
     const details: Record<string, unknown>[] = st?.Details ?? [];
-    const date = ezDate(details[0]?.TranDate);
-    if (!date) return null;
+    const date = parseTranDate(details[0]?.TranDate);
+    if (!date || date < '2000') return null;   // 未來公告日回 0001-01-01 空殼
     const holdings = details.map(h => row(h.DetailCode, h.DetailName, h.NavRate, h.Share)).filter((h): h is Holding => !!h);
     return holdings.length ? { date, holdings } : null;
   } catch {
@@ -77,7 +68,8 @@ export async function fetchLatestEzmoney(ticker: string): Promise<LatestHoldings
     if (dow !== 0 && dow !== 6) days.push(d);
   }
   const today = todaySlash();
-  const results = await Promise.all(days.map(d => ezmoneyOne(code, d)));
+  const cookies = await getSessionCookies(code).catch(() => '');
+  const results = await Promise.all(days.map(d => ezmoneyOne(code, d, cookies)));
   return results.filter((r): r is NonNullable<LatestHoldings> => !!r && r.date <= today)
     .sort((a, b) => b.date.localeCompare(a.date))[0] ?? null;
 }
