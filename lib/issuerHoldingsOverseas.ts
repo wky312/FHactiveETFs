@@ -44,7 +44,7 @@ async function ezmoneyOne(fundCode: string, d: Date, cookies: string): Promise<L
     const raw = await httpsPost('/ETF/Transaction/GetPCF',
       Buffer.from(JSON.stringify({ fundCode, date: roc, specificDate: false }), 'utf8'),
       cookies, `/ETF/Transaction/PCF?fundCode=${fundCode}`);
-    if (!raw.trim().startsWith('{')) return null;
+    if (!raw.trim().startsWith('{')) { console.warn(`[ezmoney ${fundCode} ${roc}] non-JSON:`, raw.slice(0, 120)); return null; }
     const j = JSON.parse(raw);
     const st = (j?.asset ?? []).find((a: { AssetCode?: string }) => String(a?.AssetCode).toUpperCase() === 'ST');
     const details: Record<string, unknown>[] = st?.Details ?? [];
@@ -57,7 +57,7 @@ async function ezmoneyOne(fundCode: string, d: Date, cookies: string): Promise<L
   }
 }
 
-/** 公告日往後掃 3 個平日、往前 7 個平日，取自報交易日最新且不晚於今天者（同 tw-market-data 鐵律：日期只信 API 自報）。 */
+/** 公告日從 4 天後往回掃到 9 天前（平日），取自報交易日最新且不晚於今天者（同 tw-market-data 鐵律：日期只信 API 自報）。 */
 export async function fetchLatestEzmoney(ticker: string): Promise<LatestHoldings> {
   const code = EZMONEY_CODES[ticker];
   if (!code) return null;
@@ -67,11 +67,16 @@ export async function fetchLatestEzmoney(ticker: string): Promise<LatestHoldings
     const dow = d.getUTCDay();
     if (dow !== 0 && dow !== 6) days.push(d);
   }
+  // 依序由新到舊查（TranDate ≤ 公告日，所以第一個 ≤ 今天的有效結果就是最新的一天）。
+  // ⚠ 不可一次平行打：本機 OK，但從 Vercel(iad1) 平行 14 發會整批拿不到。
   const today = todaySlash();
   const cookies = await getSessionCookies(code).catch(() => '');
-  const results = await Promise.all(days.map(d => ezmoneyOne(code, d, cookies)));
-  return results.filter((r): r is NonNullable<LatestHoldings> => !!r && r.date <= today)
-    .sort((a, b) => b.date.localeCompare(a.date))[0] ?? null;
+  for (const d of days) {
+    const r = await ezmoneyOne(code, d, cookies);
+    if (r && r.date <= today) return r;
+  }
+  console.warn(`[ezmoney ${ticker}] no holdings in ${days.length} announce dates (cookies=${cookies ? 'yes' : 'none'})`);
+  return null;
 }
 
 /* ── 元大 ────────────────────────────────────────────────────── */
