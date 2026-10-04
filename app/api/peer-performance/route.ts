@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchTpexIndexRows } from '@/lib/tpexIndex';
+import { isAcceptableMisDate } from '@/lib/twseCalendar';
 import { PEER_GROUPS, type PeerItem } from '@/lib/peerGroups';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -127,8 +128,12 @@ async function fetchTwseLatestTraded(items: PeerItem[]): Promise<Map<string, Tws
       const y = parseFloat(x.y);              // 昨收
       const d: string = x.d ?? '';            // 交易日 'YYYYMMDD'
       if (/^\d{8}$/.test(d) && (!Number.isNaN(z) || !Number.isNaN(y))) {
+        const iso = `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`;
+        // ⚠ MIS 週末會送模擬盤（自報日期就是當天的週六/週日），採信會讓個股被誤標
+        // 「Yahoo 缺最新報價」。見 lib/twseCalendar.ts。
+        if (!(await isAcceptableMisDate(iso))) continue;
         map.set(x.c, {
-          date: `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`,
+          date: iso,
           traded: !Number.isNaN(z),
           prevClose: Number.isNaN(y) ? null : y,
         });
@@ -173,11 +178,11 @@ async function fetchTwseIndices(items: PeerItem[]): Promise<Map<string, IdxQuote
       const y = parseFloat(x.y);              // 昨收
       const d: string = x.d ?? '';            // 交易日 'YYYYMMDD'
       if (!Number.isNaN(z) && /^\d{8}$/.test(d)) {
-        map.set(yf, {
-          date: `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`,
-          value: z,
-          prevClose: Number.isNaN(y) ? null : y,
-        });
+        const iso = `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`;
+        // ⚠⚠ 這裡最致命：指數列是直接把 MIS 的 z 當成當日收盤寫進序列。2026-10-04（週日）
+        // 模擬盤讓 ^TWII 顯示 50,941.67（單日 +5.09%）、^TWOII 顯示 435.16。見 lib/twseCalendar.ts。
+        if (!(await isAcceptableMisDate(iso))) continue;
+        map.set(yf, { date: iso, value: z, prevClose: Number.isNaN(y) ? null : y });
       }
     }
   } catch {

@@ -12,6 +12,8 @@ export interface TwseLiveQuote {
   asOf: string | null;       // 報價時間 ISO 字串（來自 tlong，毫秒時間戳）
 }
 
+import { isAcceptableMisDate } from './twseCalendar';
+
 export async function fetchTwseLive(codes: string[]): Promise<Map<string, TwseLiveQuote>> {
   const map = new Map<string, TwseLiveQuote>();
   const uniq = Array.from(new Set(codes.filter(Boolean)));
@@ -37,10 +39,13 @@ export async function fetchTwseLive(codes: string[]): Promise<Map<string, TwseLi
       const z = !Number.isNaN(topZ) ? topZ : tradeZ;
       const y = parseFloat(x.y);
       if (Number.isNaN(z) && Number.isNaN(y)) continue;
+      // ⚠ MIS 週末會送模擬盤（自報日期＝當天的週六/週日、價格會跳動）。見 lib/twseCalendar.ts。
+      const iso = `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`;
+      if (!(await isAcceptableMisDate(iso))) continue;
       map.set(code, {
         price:     Number.isNaN(z) ? null : z,
         prevClose: Number.isNaN(y) ? null : y,
-        date:      `${d.slice(0, 4)}-${d.slice(4, 6)}-${d.slice(6, 8)}`,
+        date:      iso,
         asOf:      x.tlong ? new Date(Number(x.tlong)).toISOString() : null,
       });
     }
