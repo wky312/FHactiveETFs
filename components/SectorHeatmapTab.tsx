@@ -353,7 +353,7 @@ function GroupDrilldown({ group, onBack, ranged }: { group: HeatmapGroup; onBack
       <p style={{ fontSize: '.76rem', color: SUB, marginBottom: 10 }}>
         族群平均 {pct(group.avgPct)}（{group.nOk}/{group.nTotal} 檔有資料）
       </p>
-      <div style={{ overflowX: 'auto', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
+      <div className="mt" style={{ overflowX: 'auto', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
         <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 460 }}>
           <thead>
             <tr>

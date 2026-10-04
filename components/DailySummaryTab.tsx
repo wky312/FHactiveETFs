@@ -330,12 +330,12 @@ export default function DailySummaryTab({ baseDate, cmpDate, baseHoldings, cmpHo
       {sorted.length === 0 ? (
         <p style={{ color: '#AAA', textAlign: 'center', padding: '40px 0', fontSize: '.9rem' }}>當日無持股異動</p>
       ) : (
-        <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '60vh', borderRadius: 8, border: '1px solid #E8E3DF' }}>
+        <div className="mt" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '60vh', borderRadius: 8, border: '1px solid #E8E3DF' }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 980 }}>
             <thead>
               <tr>
-                <th onClick={() => toggleSort('stockid')}   style={{ ...TH_BASE, textAlign: 'center', width: 78, position: 'sticky', left: 0, zIndex: 2 }}>{thLabel('stockid',   '代碼')}</th>
-                <th onClick={() => toggleSort('stockname')} style={{ ...TH_BASE, textAlign: 'left',   minWidth: 150, position: 'sticky', left: 78, zIndex: 2 }}>{thLabel('stockname', '名稱')}</th>
+                <th className="m-unstick" onClick={() => toggleSort('stockid')}   style={{ ...TH_BASE, textAlign: 'center', width: 78, position: 'sticky', left: 0, zIndex: 2 }}>{thLabel('stockid',   '代碼')}</th>
+                <th className="m-stick0" onClick={() => toggleSort('stockname')} style={{ ...TH_BASE, textAlign: 'left',   minWidth: 150, position: 'sticky', left: 78, zIndex: 2 }}>{thLabel('stockname', '名稱')}</th>
                 <th style={{ ...TH_BASE, textAlign: 'center', width: 60, cursor: 'default' }}>國家</th>
                 <th onClick={() => toggleSort('prev_q')}    style={{ ...TH_BASE, textAlign: 'right',  width: 110 }}>{thLabel('prev_q',    `持股 (${cs})`)}</th>
                 <th onClick={() => toggleSort('curr_q')}    style={{ ...TH_BASE, textAlign: 'right',  width: 110 }}>{thLabel('curr_q',    `持股 (${bs})`)}</th>
@@ -350,8 +350,8 @@ export default function DailySummaryTab({ baseDate, cmpDate, baseHoldings, cmpHo
             <tbody>
               {sorted.map((r, i) => (
                 <tr key={`${r.stockid}-${i}`} style={{ background: ROW_BG[r.status], borderBottom: `1px solid ${BORDER}` }}>
-                  <td style={{ padding: '8px 10px', textAlign: 'center', fontFamily: MONO, fontSize: '.78rem', color: SUB, position: 'sticky', left: 0, zIndex: 1, background: ROW_BG[r.status] }}>{r.stockid || '—'}</td>
-                  <td style={{ padding: '8px 10px', fontSize: '.85rem', color: TEXT, maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', position: 'sticky', left: 78, zIndex: 1, background: ROW_BG[r.status] }}>{r.stockname}</td>
+                  <td className="m-unstick" style={{ padding: '8px 10px', textAlign: 'center', fontFamily: MONO, fontSize: '.78rem', color: SUB, position: 'sticky', left: 0, zIndex: 1, background: ROW_BG[r.status] }}>{r.stockid || '—'}</td>
+                  <td className="m-stick0" style={{ padding: '8px 10px', fontSize: '.85rem', color: TEXT, maxWidth: 200, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', position: 'sticky', left: 78, zIndex: 1, background: ROW_BG[r.status] }}>{r.stockname}</td>
                   <td style={{ padding: '8px 10px', textAlign: 'center', fontSize: '.78rem', color: SUB }}>{r.country}</td>
                   <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: r.status === 'removed' ? '#BBB' : TEXT }}>{f(r.prev_q)}</td>
                   <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: r.status === 'new'     ? '#BBB' : TEXT }}>{f(r.curr_q)}</td>

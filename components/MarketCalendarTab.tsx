@@ -112,7 +112,7 @@ function MetricsTable({ metrics }: { metrics: Metric[] }) {
   const th: React.CSSProperties = { textAlign: 'right', padding: '6px 10px', color: SUB, fontWeight: 500, borderBottom: `1px solid ${BORDER}`, whiteSpace: 'nowrap' };
   const td: React.CSSProperties = { textAlign: 'right', padding: '6px 10px', fontFamily: MONO, borderBottom: `1px solid ${GRID}`, whiteSpace: 'nowrap' };
   return (
-    <div style={{ overflowX: 'auto' }}>
+    <div className="mt" style={{ overflowX: 'auto' }}>
       <table style={{ borderCollapse: 'collapse', fontSize: '.82rem', minWidth: 460 }}>
         <thead><tr>
           <th style={{ ...th, textAlign: 'left' }}>項目</th><th style={th}>市場預期</th><th style={th}>前值</th><th style={th}>實際</th><th style={th}>意外幅度</th>
@@ -138,7 +138,7 @@ function ReactionTable({ h }: { h: ReactionStats }) {
   const th: React.CSSProperties = { textAlign: 'right', padding: '6px 10px', color: SUB, fontWeight: 500, borderBottom: `1px solid ${BORDER}`, whiteSpace: 'nowrap' };
   const td: React.CSSProperties = { textAlign: 'right', padding: '6px 10px', fontFamily: MONO, borderBottom: `1px solid ${GRID}`, whiteSpace: 'nowrap' };
   return (
-    <div style={{ overflowX: 'auto' }}>
+    <div className="mt" style={{ overflowX: 'auto' }}>
       <table style={{ borderCollapse: 'collapse', fontSize: '.82rem', minWidth: 620 }}>
         <thead><tr>
           <th style={{ ...th, textAlign: 'left' }}>市場</th>
@@ -169,7 +169,7 @@ function SamplesTable({ h }: { h: ReactionStats }) {
   const th: React.CSSProperties = { textAlign: 'right', padding: '5px 8px', color: SUB, fontWeight: 500, borderBottom: `1px solid ${BORDER}`, whiteSpace: 'nowrap' };
   const td: React.CSSProperties = { textAlign: 'right', padding: '5px 8px', fontFamily: MONO, borderBottom: `1px solid ${GRID}`, whiteSpace: 'nowrap' };
   return (
-    <div style={{ overflowX: 'auto' }}>
+    <div className="mt" style={{ overflowX: 'auto' }}>
       <table style={{ borderCollapse: 'collapse', fontSize: '.78rem', minWidth: 560 }}>
         <thead><tr>
           <th style={{ ...th, textAlign: 'left' }}>日期</th><th style={{ ...th, textAlign: 'left' }}>事件</th>
@@ -592,7 +592,7 @@ export default function MarketCalendarTab() {
       </Section>
 
       <Section title="哪類事件最容易掀起波動？" note="波動放大＝事件後首個交易日平均絕對漲跌 ÷ 平常日平均絕對漲跌；≥1.3x 標紅。依加權指數排序，樣本 2015 年起。">
-        <div style={{ overflowX: 'auto' }}>
+        <div className="mt" style={{ overflowX: 'auto' }}>
           <table style={{ borderCollapse: 'collapse', fontSize: '.82rem', minWidth: 640, width: '100%' }}>
             <thead><tr>
               {['事件類型', '樣本', '加權 波動放大', '加權 T+1 平均', '加權 T+1 上漲機率', 'NASDAQ 波動放大', 'NASDAQ T+1 平均', '費半 T+1 平均'].map((h, i) => (

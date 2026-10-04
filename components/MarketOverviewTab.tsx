@@ -206,7 +206,7 @@ export default function MarketOverviewTab() {
             <span style={{ fontWeight: 700, fontSize: '1rem' }}>主動式ETF 選股勝率總覽</span>
             <span style={{ fontSize: '.76rem', color: SUB, fontFamily: MONO }}>區間 {data.startDate} ～ {data.endDate}（點欄位標題可排序）</span>
           </div>
-          <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '60vh', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
+          <div className="mt" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '60vh', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
               <thead>
                 <tr>
@@ -219,7 +219,7 @@ export default function MarketOverviewTab() {
                       ? { position: 'sticky', left: 28, zIndex: 2 }
                       : {};
                     return (
-                      <th key={c.label}
+                      <th key={c.label} className={ci === 0 ? 'm-unstick' : ci === 1 ? 'm-stick0' : undefined}
                         onClick={c.key ? () => onSort(c.key!, c.num) : undefined}
                         style={{ ...TH, textAlign: c.align, cursor: c.key ? 'pointer' : 'default', userSelect: 'none', ...stickyStyle }}>
                         {c.label}
@@ -235,8 +235,8 @@ export default function MarketOverviewTab() {
                   const rowBg = hi ? '#FFF7F2' : i % 2 === 0 ? '#fff' : '#FAFAF9';
                   return (
                     <tr key={f.ticker} style={{ background: rowBg, borderBottom: `1px solid ${BORDER}`, borderLeft: hi ? `3px solid ${GOLD}` : '3px solid transparent' }}>
-                      <td style={{ ...TD, color: SUB, position: 'sticky', left: 0, zIndex: 1, width: 28, background: rowBg }}>{i + 1}</td>
-                      <td style={{ ...TD, fontFamily: SANS, position: 'sticky', left: 28, zIndex: 1, background: rowBg }}>
+                      <td className="m-unstick" style={{ ...TD, color: SUB, position: 'sticky', left: 0, zIndex: 1, width: 28, background: rowBg }}>{i + 1}</td>
+                      <td className="m-stick0" style={{ ...TD, fontFamily: SANS, position: 'sticky', left: 28, zIndex: 1, background: rowBg }}>
                         <span style={{ fontFamily: MONO, fontWeight: 700, color: hi ? RED : TEXT }}>{f.ticker}</span>
                         <span style={{ color: TEXT, marginLeft: 6 }}>{f.name}</span>
                       </td>

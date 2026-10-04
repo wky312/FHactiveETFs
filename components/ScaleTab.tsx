@@ -331,12 +331,12 @@ export default function ScaleTab({ fundId, etfTicker }: { fundId: string; etfTic
           <PlotlyWrapper traces={traces} layout={layout} style={{ marginBottom: 20 }} />
 
           {/* Table */}
-          <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '50vh', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
+          <div className="mt" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '50vh', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
             {view === 'daily' ? (
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 480 }}>
                 <thead>
                   <tr>
-                    <th onClick={() => toggleDSort('date')}   style={{ ...TH, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2 }}>{dLabel('date', '日期')}</th>
+                    <th className="m-edge" onClick={() => toggleDSort('date')}   style={{ ...TH, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2 }}>{dLabel('date', '日期')}</th>
                     <th onClick={() => toggleDSort('netSub')} style={{ ...TH, textAlign: 'right' }}>{dLabel('netSub', '淨申購/贖回 (億)')}</th>
                     <th onClick={() => toggleDSort('aum')}    style={{ ...TH, textAlign: 'right' }}>{dLabel('aum', '基金規模 (億)')}</th>
                     <th onClick={() => toggleDSort('pnav')}   style={{ ...TH, textAlign: 'right' }}>{dLabel('pnav', '單位淨值')}</th>
@@ -347,7 +347,7 @@ export default function ScaleTab({ fundId, etfTicker }: { fundId: string; etfTic
                     const rowBg = i % 2 === 0 ? '#fff' : '#FAFAF9';
                     return (
                     <tr key={r.date} style={{ background: rowBg, borderBottom: `1px solid ${BORDER}` }}>
-                      <td style={{ padding: '7px 14px', fontFamily: MONO, fontSize: '.8rem', color: TEXT, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{r.date}</td>
+                      <td className="m-edge" style={{ padding: '7px 14px', fontFamily: MONO, fontSize: '.8rem', color: TEXT, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{r.date}</td>
                       <td style={{ padding: '7px 14px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: r.netSub >= 0 ? RED : GREEN, fontWeight: 600 }}>
                         {fmtNetSub(r.netSub)}
                       </td>
@@ -366,7 +366,7 @@ export default function ScaleTab({ fundId, etfTicker }: { fundId: string; etfTic
               <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 400 }}>
                 <thead>
                   <tr>
-                    <th onClick={() => toggleMSort('month')}   style={{ ...TH, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2 }}>{mLabel('month', '月份')}</th>
+                    <th className="m-edge" onClick={() => toggleMSort('month')}   style={{ ...TH, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2 }}>{mLabel('month', '月份')}</th>
                     <th onClick={() => toggleMSort('netSub')}  style={{ ...TH, textAlign: 'right' }}>{mLabel('netSub', '月淨申購/贖回 (億)')}</th>
                     <th onClick={() => toggleMSort('lastAum')} style={{ ...TH, textAlign: 'right' }}>{mLabel('lastAum', '月底基金規模 (億)')}</th>
                     <th onClick={() => toggleMSort('days')}    style={{ ...TH, textAlign: 'right' }}>{mLabel('days', '交易天數')}</th>
@@ -377,7 +377,7 @@ export default function ScaleTab({ fundId, etfTicker }: { fundId: string; etfTic
                     const rowBg = i % 2 === 0 ? '#fff' : '#FAFAF9';
                     return (
                     <tr key={r.month} style={{ background: rowBg, borderBottom: `1px solid ${BORDER}` }}>
-                      <td style={{ padding: '7px 14px', fontFamily: MONO, fontSize: '.8rem', color: TEXT, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{r.month}</td>
+                      <td className="m-edge" style={{ padding: '7px 14px', fontFamily: MONO, fontSize: '.8rem', color: TEXT, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{r.month}</td>
                       <td style={{ padding: '7px 14px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: r.netSub >= 0 ? RED : GREEN, fontWeight: 600 }}>
                         {fmtNetSub(r.netSub)}
                       </td>

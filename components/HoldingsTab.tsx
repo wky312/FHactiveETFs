@@ -240,7 +240,7 @@ function NewHighPanel({ date, fundId }: { date: string; fundId: string }) {
         前高：{sinceDate.replaceAll('-', '/')} 以前的最高價；創新高：{sinceDate.replaceAll('-', '/')} 以後是否創出比前高更高的價格。
       </div>
 
-      <div style={{ overflowX: 'auto', borderRadius: 8, border: `1px solid ${BORDER}` }}>
+      <div className="mt" style={{ overflowX: 'auto', borderRadius: 8, border: `1px solid ${BORDER}` }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1160 }}>
           <thead>
             <tr>
@@ -421,12 +421,12 @@ export default function HoldingsTab({ holdings, date, etfTicker, fundId }: { hol
 
       <StatCards cards={statCards} />
 
-      <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '60vh', borderRadius: 8, border: `1px solid ${BORDER}` }}>
+      <div className="mt" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '60vh', borderRadius: 8, border: `1px solid ${BORDER}` }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 640 }}>
           <thead>
             <tr>
-              <th onClick={() => toggleSort('stockid')}         style={{ ...TH, textAlign: 'center', width: 88, position: 'sticky', left: 0, zIndex: 2 }}>{thLabel('stockid', '代碼')}</th>
-              <th onClick={() => toggleSort('stockname')}       style={{ ...TH, textAlign: 'left', position: 'sticky', left: 88, zIndex: 2 }}>{thLabel('stockname', '名稱')}</th>
+              <th className="m-unstick" onClick={() => toggleSort('stockid')}         style={{ ...TH, textAlign: 'center', width: 88, position: 'sticky', left: 0, zIndex: 2 }}>{thLabel('stockid', '代碼')}</th>
+              <th className="m-stick0" onClick={() => toggleSort('stockname')}       style={{ ...TH, textAlign: 'left', position: 'sticky', left: 88, zIndex: 2 }}>{thLabel('stockname', '名稱')}</th>
               <th onClick={() => toggleSort('qshare')}          style={{ ...TH, textAlign: 'right' }}>{thLabel('qshare', '持股數量')}</th>
               <th onClick={() => toggleSort('mvalue')}          style={{ ...TH, textAlign: 'right' }}>{thLabel('mvalue', '市值 (NTD)')}</th>
               <th onClick={() => toggleSort('prate_addaccint')} style={{ ...TH, textAlign: 'right' }}>{thLabel('prate_addaccint', '佔比 %')}</th>
@@ -438,8 +438,8 @@ export default function HoldingsTab({ holdings, date, etfTicker, fundId }: { hol
               const bg = rowBg(h, i);
               return (
               <tr key={`${h.stockid}-${i}`} style={{ background: bg, borderBottom: `1px solid ${BORDER}` }}>
-                <td style={{ padding: '9px 14px', textAlign: 'center', fontSize: '.82rem', fontFamily: MONO, color: SUB, position: 'sticky', left: 0, zIndex: 1, background: bg }}>{h.stockid || '—'}</td>
-                <td style={{ padding: '9px 14px', fontSize: '.88rem', color: TEXT, maxWidth: 220, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', position: 'sticky', left: 88, zIndex: 1, background: bg }}>{h.stockname}</td>
+                <td className="m-unstick" style={{ padding: '9px 14px', textAlign: 'center', fontSize: '.82rem', fontFamily: MONO, color: SUB, position: 'sticky', left: 0, zIndex: 1, background: bg }}>{h.stockid || '—'}</td>
+                <td className="m-stick0" style={{ padding: '9px 14px', fontSize: '.88rem', color: TEXT, maxWidth: 220, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', position: 'sticky', left: 88, zIndex: 1, background: bg }}>{h.stockname}</td>
                 <td style={{ padding: '9px 14px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', color: TEXT }}>{fmt(h.qshare)}</td>
                 <td style={{ padding: '9px 14px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', color: TEXT }}>{fmt(h.mvalue)}</td>
                 <td style={{ padding: '9px 14px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', color: TEXT, fontWeight: 500 }}>{h.prate_addaccint.toFixed(3)}%</td>

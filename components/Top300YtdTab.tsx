@@ -123,8 +123,8 @@ export default function Top300YtdTab() {
     XLSX.writeFile(wb, `台股前300大YTD還原權息_${data.baseDate}至${data.latestDate}.xlsx`);
   };
 
-  const colHead = (key: SortKey, label: string) => (
-    <th onClick={() => toggleSort(key)} style={{ ...TH, textAlign: 'right', background: sortKey === key ? '#333' : '#1C1C1E' }}>
+  const colHead = (key: SortKey, label: string, className?: string) => (
+    <th className={className} onClick={() => toggleSort(key)} style={{ ...TH, textAlign: 'right', background: sortKey === key ? '#333' : '#1C1C1E' }}>
       {label}{sortKey === key ? (sortAsc ? ' ↑' : ' ↓') : ''}
     </th>
   );
@@ -184,16 +184,16 @@ export default function Top300YtdTab() {
           </div>
           <div style={{ fontSize: '.76rem', color: SUB, marginBottom: 10 }}>顯示 {rows.length} / {data.rows.length} 檔</div>
 
-          <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '65vh', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
+          <div className="mt" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '65vh', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
             <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: 900 }}>
               <thead>
                 <tr>
-                  <th onClick={() => toggleSort('rankBase')} style={{ ...TH, textAlign: 'right', width: RANK_W, position: 'sticky', left: 0, zIndex: 3 }}>基準# {sortKey === 'rankBase' ? (sortAsc ? '↑' : '↓') : ''}</th>
-                  <th style={{ ...TH, textAlign: 'left', cursor: 'default', width: CODE_W, position: 'sticky', left: RANK_W, zIndex: 3 }}>代號</th>
-                  <th style={{ ...TH, textAlign: 'left', cursor: 'default', width: NAME_W, position: 'sticky', left: RANK_W + CODE_W, zIndex: 3, borderRight: '1px solid #333' }}>名稱</th>
-                  <th style={{ ...TH, textAlign: 'center', cursor: 'default' }}>市場</th>
-                  <th style={{ ...TH, textAlign: 'center', cursor: 'default' }}>Tier</th>
-                  {colHead('closeBase', '12/31還原價')}
+                  <th className="m-unstick" onClick={() => toggleSort('rankBase')} style={{ ...TH, textAlign: 'right', width: RANK_W, position: 'sticky', left: 0, zIndex: 3 }}>基準# {sortKey === 'rankBase' ? (sortAsc ? '↑' : '↓') : ''}</th>
+                  <th className="m-unstick" style={{ ...TH, textAlign: 'left', cursor: 'default', width: CODE_W, position: 'sticky', left: RANK_W, zIndex: 3 }}>代號</th>
+                  <th className="m-stick0" style={{ ...TH, textAlign: 'left', cursor: 'default', width: NAME_W, position: 'sticky', left: RANK_W + CODE_W, zIndex: 3, borderRight: '1px solid #333' }}>名稱</th>
+                  <th className="m-hide" style={{ ...TH, textAlign: 'center', cursor: 'default' }}>市場</th>
+                  <th className="m-hide" style={{ ...TH, textAlign: 'center', cursor: 'default' }}>Tier</th>
+                  {colHead('closeBase', '12/31還原價', 'm-hide')}
                   {colHead('adjLatestPrice', '最新收盤還原價')}
                   {colHead('pct', '今年漲幅')}
                   {colHead('mktcapLatest', '目前市值(億)')}
@@ -209,19 +209,19 @@ export default function Top300YtdTab() {
                   const isTier1 = r.rankBase <= 150;
                   return (
                     <tr key={r.code} style={{ background: rowBg, borderBottom: `1px solid ${BORDER}` }}>
-                      <td style={{ padding: '7px 8px', textAlign: 'right', fontFamily: MONO, fontSize: '.76rem', color: SUB, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{r.rankBase}</td>
-                      <td style={{ padding: '7px 8px', fontFamily: MONO, fontSize: '.8rem', color: TEXT, fontWeight: 600, position: 'sticky', left: RANK_W, zIndex: 1, background: rowBg }}>{r.code}</td>
-                      <td title={r.name} style={{ padding: '7px 8px', fontSize: '.82rem', color: TEXT, whiteSpace: 'nowrap', maxWidth: NAME_W, overflow: 'hidden', textOverflow: 'ellipsis', position: 'sticky', left: RANK_W + CODE_W, zIndex: 1, background: rowBg, borderRight: `1px solid ${BORDER}` }}>{r.name}</td>
-                      <td style={{ padding: '7px 8px', textAlign: 'center', fontSize: '.76rem', color: SUB }}>
+                      <td className="m-unstick" style={{ padding: '7px 8px', textAlign: 'right', fontFamily: MONO, fontSize: '.76rem', color: SUB, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{r.rankBase}</td>
+                      <td className="m-unstick" style={{ padding: '7px 8px', fontFamily: MONO, fontSize: '.8rem', color: TEXT, fontWeight: 600, position: 'sticky', left: RANK_W, zIndex: 1, background: rowBg }}>{r.code}</td>
+                      <td className="m-stick0" title={r.name} style={{ padding: '7px 8px', fontSize: '.82rem', color: TEXT, whiteSpace: 'nowrap', maxWidth: NAME_W, overflow: 'hidden', textOverflow: 'ellipsis', position: 'sticky', left: RANK_W + CODE_W, zIndex: 1, background: rowBg, borderRight: `1px solid ${BORDER}` }}>{r.name}</td>
+                      <td className="m-hide" style={{ padding: '7px 8px', textAlign: 'center', fontSize: '.76rem', color: SUB }}>
                         <span style={{ padding: '1px 8px', borderRadius: 10, border: `1px solid ${BORDER}`, whiteSpace: 'nowrap' }}>{r.market}</span>
                       </td>
-                      <td style={{ padding: '7px 8px', textAlign: 'center' }}>
+                      <td className="m-hide" style={{ padding: '7px 8px', textAlign: 'center' }}>
                         <span style={{
                           fontSize: '.68rem', fontWeight: 700, padding: '2px 8px', borderRadius: 999,
                           color: isTier1 ? TIER1 : TIER2, background: isTier1 ? '#E8EEFB' : '#F7EDD9',
                         }}>T{isTier1 ? 1 : 2}</span>
                       </td>
-                      <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: SUB }}>{fmtNum(r.adjBasePrice)}</td>
+                      <td className="m-hide" style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: SUB }}>{fmtNum(r.adjBasePrice)}</td>
                       <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: TEXT }}>
                         {fmtNum(r.adjLatestPrice)}{!r.pctAdjusted && <span title="Yahoo還原資料缺漏，退回原始收盤價估算" style={{ color: '#C99', marginLeft: 3 }}>※</span>}
                       </td>

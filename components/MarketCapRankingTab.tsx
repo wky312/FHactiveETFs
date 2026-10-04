@@ -188,15 +188,15 @@ export default function MarketCapRankingTab() {
 
       {data && !loading && (
         <>
-          <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '65vh', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
+          <div className="mt" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '65vh', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
             {/* border-collapse 用 separate：collapse 會讓 Safari / 行動版瀏覽器的 sticky <td> 直接失效 */}
             <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: 820 }}>
               <thead>
                 <tr>
-                  <th style={{ ...TH, textAlign: 'right', cursor: 'default', width: RANK_W, position: 'sticky', left: 0, zIndex: 3 }}>#</th>
-                  <th style={{ ...TH, textAlign: 'left', cursor: 'default', width: CODE_W, position: 'sticky', left: RANK_W, zIndex: 3 }}>代號</th>
-                  <th style={{ ...TH, textAlign: 'left', cursor: 'default', width: NAME_W, position: 'sticky', left: RANK_W + CODE_W, zIndex: 3, borderRight: `1px solid #333` }}>名稱</th>
-                  <th style={{ ...TH, textAlign: 'center', cursor: 'default' }}>市場</th>
+                  <th className="m-unstick" style={{ ...TH, textAlign: 'right', cursor: 'default', width: RANK_W, position: 'sticky', left: 0, zIndex: 3 }}>#</th>
+                  <th className="m-unstick" style={{ ...TH, textAlign: 'left', cursor: 'default', width: CODE_W, position: 'sticky', left: RANK_W, zIndex: 3 }}>代號</th>
+                  <th className="m-stick0" style={{ ...TH, textAlign: 'left', cursor: 'default', width: NAME_W, position: 'sticky', left: RANK_W + CODE_W, zIndex: 3, borderRight: `1px solid #333` }}>名稱</th>
+                  <th className="m-hide" style={{ ...TH, textAlign: 'center', cursor: 'default' }}>市場</th>
                   {colHead('mktcap', '市值(億)')}
                   {colHead('closeBase', '7/30收盤')}
                   {colHead('closeLatest', '最新收盤')}
@@ -211,10 +211,10 @@ export default function MarketCapRankingTab() {
                   const pctColor = s.pct > 0 ? RED : s.pct < 0 ? GREEN : SUB;
                   return (
                     <tr key={s.code} style={{ background: rowBg, borderBottom: `1px solid ${BORDER}` }}>
-                      <td style={{ padding: '7px 8px', textAlign: 'right', fontFamily: MONO, fontSize: '.76rem', color: SUB, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{i + 1}</td>
-                      <td style={{ padding: '7px 8px', fontFamily: MONO, fontSize: '.8rem', color: TEXT, fontWeight: 600, position: 'sticky', left: RANK_W, zIndex: 1, background: rowBg }}>{s.code}</td>
-                      <td title={s.name} style={{ padding: '7px 8px', fontSize: '.82rem', color: TEXT, whiteSpace: 'nowrap', maxWidth: NAME_W, overflow: 'hidden', textOverflow: 'ellipsis', position: 'sticky', left: RANK_W + CODE_W, zIndex: 1, background: rowBg, borderRight: `1px solid ${BORDER}` }}>{s.name}</td>
-                      <td style={{ padding: '7px 8px', textAlign: 'center', fontSize: '.76rem', color: SUB }}>
+                      <td className="m-unstick" style={{ padding: '7px 8px', textAlign: 'right', fontFamily: MONO, fontSize: '.76rem', color: SUB, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{i + 1}</td>
+                      <td className="m-unstick" style={{ padding: '7px 8px', fontFamily: MONO, fontSize: '.8rem', color: TEXT, fontWeight: 600, position: 'sticky', left: RANK_W, zIndex: 1, background: rowBg }}>{s.code}</td>
+                      <td className="m-stick0" title={s.name} style={{ padding: '7px 8px', fontSize: '.82rem', color: TEXT, whiteSpace: 'nowrap', maxWidth: NAME_W, overflow: 'hidden', textOverflow: 'ellipsis', position: 'sticky', left: RANK_W + CODE_W, zIndex: 1, background: rowBg, borderRight: `1px solid ${BORDER}` }}>{s.name}</td>
+                      <td className="m-hide" style={{ padding: '7px 8px', textAlign: 'center', fontSize: '.76rem', color: SUB }}>
                         <span style={{ padding: '1px 8px', borderRadius: 10, border: `1px solid ${BORDER}`, whiteSpace: 'nowrap' }}>{s.market}</span>
                       </td>
                       <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: TEXT }}>{fmtNum(s.mktcap / 1e8, 0)}</td>

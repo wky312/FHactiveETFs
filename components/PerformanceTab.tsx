@@ -280,12 +280,12 @@ export default function PerformanceTab({
         ))}
       </div>
 
-      <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '65vh', borderRadius: 8, border: `1px solid ${BORDER}` }}>
+      <div className="mt" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '65vh', borderRadius: 8, border: `1px solid ${BORDER}` }}>
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 780 }}>
           <thead>
             <tr>
-              <th style={{ ...TH, textAlign: 'center', width: 76, position: 'sticky', left: 0, zIndex: 2 }}>代碼</th>
-              <th style={{ ...TH, textAlign: 'left', position: 'sticky', left: 76, zIndex: 2 }}>名稱</th>
+              <th className="m-unstick" style={{ ...TH, textAlign: 'center', width: 76, position: 'sticky', left: 0, zIndex: 2 }}>代碼</th>
+              <th className="m-stick0" style={{ ...TH, textAlign: 'left', position: 'sticky', left: 76, zIndex: 2 }}>名稱</th>
               <th
                 style={{ ...TH, textAlign: 'right', background: sortKey === 'prate' ? '#333' : '#1C1C1E' }}
                 onClick={() => toggleSort('prate')}
@@ -322,8 +322,8 @@ export default function PerformanceTab({
                 background: rowBg,
                 borderBottom: `1px solid ${isBench ? '#F2D98A' : BORDER}`,
               }}>
-                <td style={{ padding: '8px 12px', textAlign: 'center', fontSize: '.8rem', fontFamily: MONO, color: SUB, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{r.stockid || '—'}</td>
-                <td style={{ padding: '8px 12px', fontSize: '.86rem', color: TEXT, maxWidth: 180, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', position: 'sticky', left: 76, zIndex: 1, background: rowBg, fontWeight: isBench ? 700 : 400 }}>
+                <td className="m-unstick" style={{ padding: '8px 12px', textAlign: 'center', fontSize: '.8rem', fontFamily: MONO, color: SUB, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{r.stockid || '—'}</td>
+                <td className="m-stick0" style={{ padding: '8px 12px', fontSize: '.86rem', color: TEXT, maxWidth: 180, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', position: 'sticky', left: 76, zIndex: 1, background: rowBg, fontWeight: isBench ? 700 : 400 }}>
                   {r.stockname}
                   {isBench && (
                     <span style={{ marginLeft: 6, fontSize: '.62rem', fontWeight: 700, color: '#92620A', background: '#F5E2A8', padding: '1px 6px', borderRadius: 4 }}>基準</span>

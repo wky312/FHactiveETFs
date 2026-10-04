@@ -50,11 +50,11 @@ export default function GicsExposureView({ data, sec, onSec }: {
 
   return (
     <>
-      <div style={{ overflowX: 'auto', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
+      <div className="mt" style={{ overflowX: 'auto', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
         <table style={{ borderCollapse: 'collapse', width: '100%', minWidth: 900 }}>
           <thead>
             <tr>
-              <th style={{ ...TH, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2 }}>ETF</th>
+              <th className="m-stick0" style={{ ...TH, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2 }}>ETF</th>
               <th style={{ ...TH, textAlign: 'left' }}>持股日</th>
               {data.sectors.map(s => (
                 <th key={s.id} onClick={() => toggle(s.id)} title="點擊依此類別排序並展開個股"
@@ -68,7 +68,7 @@ export default function GicsExposureView({ data, sec, onSec }: {
           <tbody>
             {fundRows.map(f => (
               <tr key={f.ticker} style={{ borderTop: `1px solid ${BORDER}` }}>
-                <td style={{ padding: '7px 10px', whiteSpace: 'nowrap', position: 'sticky', left: 0, zIndex: 1, background: CARD }}>
+                <td className="m-stick0" style={{ padding: '7px 10px', whiteSpace: 'nowrap', position: 'sticky', left: 0, zIndex: 1, background: CARD }}>
                   <span style={{ fontFamily: MONO, fontWeight: 600 }}>{f.ticker}</span>
                   <span style={{ color: SUB, fontSize: '.74rem', marginLeft: 6 }}>{f.name}</span>
                 </td>
@@ -126,7 +126,7 @@ export default function GicsExposureView({ data, sec, onSec }: {
                 <tbody>
                   {current.stocks.map(s => (
                     <tr key={s.stockid} style={{ borderTop: `1px solid ${BORDER}` }}>
-                      <td style={{ padding: '6px 10px', whiteSpace: 'nowrap', position: 'sticky', left: 0, background: CARD }}>
+                      <td className="m-stick0" style={{ padding: '6px 10px', whiteSpace: 'nowrap', position: 'sticky', left: 0, background: CARD }}>
                         <span style={{ fontFamily: MONO, color: SUB, fontSize: '.74rem' }}>{s.stockid}</span>
                         <span style={{ marginLeft: 8, fontSize: '.8rem' }}>{s.stockname}</span>
                       </td>

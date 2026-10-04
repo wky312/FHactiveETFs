@@ -234,7 +234,7 @@ export default function NewHighTab() {
         前高：{sinceDate.replaceAll('-', '/')} 以前的最高價；創新高：{sinceDate.replaceAll('-', '/')} 以後是否創出比前高更高的價格。
       </div>
 
-      <div style={{ overflowX: 'auto', borderRadius: 8, border: `1px solid ${BORDER}` }}>
+      <div className="mt" style={{ overflowX: 'auto', borderRadius: 8, border: `1px solid ${BORDER}` }}>
         <table style={{ width: '100%', borderCollapse: 'separate', borderSpacing: 0, minWidth: 1220 }}>
           <thead>
             <tr>

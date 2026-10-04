@@ -269,12 +269,12 @@ export default function PeerPerformanceTab() {
       )}
 
       {data && (
-        <div style={{ overflowX: 'auto', borderRadius: 8, border: `1px solid ${BORDER}` }}>
+        <div className="mt" style={{ overflowX: 'auto', borderRadius: 8, border: `1px solid ${BORDER}` }}>
           <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 960 }}>
             <thead>
               <tr>
-                <th onClick={() => toggleSort('ticker')}   style={{ ...TH, textAlign: 'left',  width: 72, position: 'sticky', left: 0, zIndex: 2 }}>{thLabel('ticker',  '代號')}</th>
-                <th onClick={() => toggleSort('name')}     style={{ ...TH, textAlign: 'left',  minWidth: 100, width: 100, position: 'sticky', left: 72, zIndex: 2 }}>{thLabel('name', '名稱')}</th>
+                <th className="m-unstick" onClick={() => toggleSort('ticker')}   style={{ ...TH, textAlign: 'left',  width: 72, position: 'sticky', left: 0, zIndex: 2 }}>{thLabel('ticker',  '代號')}</th>
+                <th className="m-stick0" onClick={() => toggleSort('name')}     style={{ ...TH, textAlign: 'left',  minWidth: 100, width: 100, position: 'sticky', left: 72, zIndex: 2 }}>{thLabel('name', '名稱')}</th>
                 <th onClick={() => toggleSort('price')}    style={{ ...TH, textAlign: 'right', width: 70  }}>{thLabel('price',  '收盤價')}</th>
                 {appliedRange && (
                   <th onClick={() => toggleSort('pctCustom')}
@@ -296,8 +296,8 @@ export default function PeerPerformanceTab() {
                 const rowBg = i % 2 === 0 ? '#fff' : '#FAFAF9';
                 return (
                 <tr key={r.ticker} style={{ background: rowBg, borderBottom: `1px solid ${BORDER}` }}>
-                  <td style={{ padding: '8px 10px', fontFamily: MONO, fontSize: '.8rem', color: SUB, fontWeight: 600, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{r.ticker}</td>
-                  <td style={{ padding: '8px 10px', fontSize: '.83rem', color: TEXT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 100, position: 'sticky', left: 72, zIndex: 1, background: rowBg }}>{r.name}</td>
+                  <td className="m-unstick" style={{ padding: '8px 10px', fontFamily: MONO, fontSize: '.8rem', color: SUB, fontWeight: 600, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{r.ticker}</td>
+                  <td className="m-stick0" style={{ padding: '8px 10px', fontSize: '.83rem', color: TEXT, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', maxWidth: 100, position: 'sticky', left: 72, zIndex: 1, background: rowBg }}>{r.name}</td>
                   <td style={{ padding: '8px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', color: TEXT }}>{fmtPrice(r.price)}</td>
                   {r.anomaly ? (
                     <td colSpan={(appliedRange ? 1 : 0) + PERF_COLS.length}

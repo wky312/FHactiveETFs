@@ -294,7 +294,7 @@ function DetailTable({ rows }: { rows: BreakIssueRow[] }) {
         </span>
       </div>
 
-      <div style={{ overflowX: 'auto' }}>
+      <div className="mt" style={{ overflowX: 'auto' }}>
         <table style={{ borderCollapse: 'collapse', width: '100%', fontSize: '.74rem' }}>
           <thead><tr>
             {th('ticker', '代號')}{th('name', '名稱')}{th('issuer', '發行')}{th('listDate', '掛牌日')}

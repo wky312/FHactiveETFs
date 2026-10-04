@@ -158,12 +158,12 @@ export default function ConsensusTab() {
 
       {data && !loading && (
         <>
-          <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '60vh', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
+          <div className="mt" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '60vh', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
               <thead>
                 <tr>
-                  <th style={{ ...TH, textAlign: 'left', cursor: 'default', width: 72, position: 'sticky', left: 0, zIndex: 2 }}>代碼</th>
-                  <th style={{ ...TH, textAlign: 'left', cursor: 'default', position: 'sticky', left: 72, zIndex: 2 }}>名稱</th>
+                  <th className="m-unstick" style={{ ...TH, textAlign: 'left', cursor: 'default', width: 72, position: 'sticky', left: 0, zIndex: 2 }}>代碼</th>
+                  <th className="m-stick0" style={{ ...TH, textAlign: 'left', cursor: 'default', position: 'sticky', left: 72, zIndex: 2 }}>名稱</th>
                   {COLS.map(c => (
                     <th key={c.key} onClick={() => toggleSort(c.key)}
                       style={{ ...TH, textAlign: 'right', background: sortKey === c.key ? '#333' : '#1C1C1E' }}>
@@ -178,8 +178,8 @@ export default function ConsensusTab() {
                   const rowBg = i % 2 === 0 ? '#fff' : '#FAFAF9';
                   return (
                   <tr key={s.stockid} style={{ background: rowBg, borderBottom: `1px solid ${BORDER}` }}>
-                    <td style={{ padding: '7px 10px', fontFamily: MONO, fontSize: '.8rem', color: TEXT, fontWeight: 600, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{s.stockid}</td>
-                    <td style={{ padding: '7px 10px', fontSize: '.82rem', color: TEXT, whiteSpace: 'nowrap', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', position: 'sticky', left: 72, zIndex: 1, background: rowBg }}>{s.stockname}</td>
+                    <td className="m-unstick" style={{ padding: '7px 10px', fontFamily: MONO, fontSize: '.8rem', color: TEXT, fontWeight: 600, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{s.stockid}</td>
+                    <td className="m-stick0" style={{ padding: '7px 10px', fontSize: '.82rem', color: TEXT, whiteSpace: 'nowrap', maxWidth: 160, overflow: 'hidden', textOverflow: 'ellipsis', position: 'sticky', left: 72, zIndex: 1, background: rowBg }}>{s.stockname}</td>
                     <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.84rem', fontWeight: 700, color: s.heldBy >= 5 ? RED : s.heldBy === 1 ? GOLD : TEXT }}>{s.heldBy}</td>
                     <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: TEXT }}>{num(s.sumWeight)}%</td>
                     <td style={{ padding: '7px 10px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: SUB }}>{num(s.avgWeight)}%</td>

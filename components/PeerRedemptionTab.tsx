@@ -583,11 +583,11 @@ export default function PeerRedemptionTab() {
               儲存 / 分享
             </button>
           </div>
-          <div style={{ overflowX: 'auto', borderRadius: 8, border: `1px solid ${BORDER}` }}>
+          <div className="mt" style={{ overflowX: 'auto', borderRadius: 8, border: `1px solid ${BORDER}` }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
               <thead>
                 <tr>
-                  <th onClick={() => toggleSubsSort('date')} style={{ ...TH, textAlign: 'left', minWidth: 100, position: 'sticky', left: 0, zIndex: 2 }}>{subsLabel('date', '日期')}</th>
+                  <th className="m-edge" onClick={() => toggleSubsSort('date')} style={{ ...TH, textAlign: 'left', minWidth: 100, position: 'sticky', left: 0, zIndex: 2 }}>{subsLabel('date', '日期')}</th>
                   {allTickers.map(t => (
                     <th key={t} onClick={() => toggleSubsSort(t)} style={{ ...TH, textAlign: 'right', minWidth: 100 }}>
                       {subsSortKey === t ? subsLabel(t, t) : t}<br />
@@ -601,7 +601,7 @@ export default function PeerRedemptionTab() {
                   const rowBg = ri % 2 === 0 ? '#fff' : '#FAFAF9';
                   return (
                   <tr key={row.date} style={{ background: rowBg, borderBottom: `1px solid ${BORDER}` }}>
-                    <td style={{ padding: '7px 12px', fontFamily: MONO, fontSize: '.8rem', color: TEXT, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{row.date}</td>
+                    <td className="m-edge" style={{ padding: '7px 12px', fontFamily: MONO, fontSize: '.8rem', color: TEXT, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{row.date}</td>
                     {allTickers.map(t => {
                       const d = row.data[t];
                       return (
@@ -618,7 +618,7 @@ export default function PeerRedemptionTab() {
               </tbody>
               <tfoot>
                 <tr style={{ background: '#F5F3F0', borderTop: `2px solid ${BORDER}` }}>
-                  <td style={{ padding: '7px 12px', fontFamily: MONO, fontSize: '.8rem', fontWeight: 700, color: TEXT, position: 'sticky', left: 0, zIndex: 1, background: '#F5F3F0' }}>區間合計</td>
+                  <td className="m-edge" style={{ padding: '7px 12px', fontFamily: MONO, fontSize: '.8rem', fontWeight: 700, color: TEXT, position: 'sticky', left: 0, zIndex: 1, background: '#F5F3F0' }}>區間合計</td>
                   {allTickers.map(t => {
                     const sum = subsTotal[t];
                     return (
@@ -642,11 +642,11 @@ export default function PeerRedemptionTab() {
               儲存 / 分享
             </button>
           </div>
-          <div style={{ overflowX: 'auto', borderRadius: 8, border: `1px solid ${BORDER}` }}>
+          <div className="mt" style={{ overflowX: 'auto', borderRadius: 8, border: `1px solid ${BORDER}` }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 520 }}>
               <thead>
                 <tr>
-                  <th onClick={() => toggleAumSort('date')} style={{ ...TH, textAlign: 'left', minWidth: 100, position: 'sticky', left: 0, zIndex: 2 }}>{aumLabel('date', '日期')}</th>
+                  <th className="m-edge" onClick={() => toggleAumSort('date')} style={{ ...TH, textAlign: 'left', minWidth: 100, position: 'sticky', left: 0, zIndex: 2 }}>{aumLabel('date', '日期')}</th>
                   {allTickers.map(t => (
                     <th key={t} onClick={() => toggleAumSort(t)} style={{ ...TH, textAlign: 'right', minWidth: 100 }}>
                       {aumSortKey === t ? aumLabel(t, t) : t}<br />
@@ -660,7 +660,7 @@ export default function PeerRedemptionTab() {
                   const rowBg = ri % 2 === 0 ? '#fff' : '#FAFAF9';
                   return (
                   <tr key={row.date} style={{ background: rowBg, borderBottom: `1px solid ${BORDER}` }}>
-                    <td style={{ padding: '7px 12px', fontFamily: MONO, fontSize: '.8rem', color: TEXT, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{row.date}</td>
+                    <td className="m-edge" style={{ padding: '7px 12px', fontFamily: MONO, fontSize: '.8rem', color: TEXT, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{row.date}</td>
                     {allTickers.map(t => {
                       const d = row.data[t];
                       return (
@@ -677,7 +677,7 @@ export default function PeerRedemptionTab() {
               </tbody>
               <tfoot>
                 <tr style={{ background: '#F5F3F0', borderTop: `2px solid ${BORDER}` }}>
-                  <td style={{ padding: '7px 12px', fontFamily: MONO, fontSize: '.8rem', fontWeight: 700, color: TEXT, position: 'sticky', left: 0, zIndex: 1, background: '#F5F3F0' }}>區間規模變化</td>
+                  <td className="m-edge" style={{ padding: '7px 12px', fontFamily: MONO, fontSize: '.8rem', fontWeight: 700, color: TEXT, position: 'sticky', left: 0, zIndex: 1, background: '#F5F3F0' }}>區間規模變化</td>
                   {allTickers.map(t => {
                     const diff = aumChange[t];
                     return (

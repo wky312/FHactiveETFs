@@ -196,7 +196,7 @@ export default function DailyChangeTab() {
           ) : rows.length === 0 ? (
             <div style={{ color: SUB, padding: 24 }}>所選 ETF 最新一日沒有持股變動。</div>
           ) : (
-            <div style={{ overflowX: 'auto', maxHeight: '70vh', border: `1px solid ${BORDER}`, borderRadius: 6 }}>
+            <div className="mt" style={{ overflowX: 'auto', maxHeight: '70vh', border: `1px solid ${BORDER}`, borderRadius: 6 }}>
               <table style={{ borderCollapse: 'collapse', width: '100%' }}>
                 <thead>
                   <tr>
@@ -231,7 +231,7 @@ function Pills({ items }: { items: Pill[] }) {
       {items.map(p => {
         const c = dirColor(p.shares);
         return (
-          <span key={p.ticker} style={{
+          <span key={p.ticker} className="m-pill" style={{
             display: 'inline-flex', alignItems: 'center', gap: 6, padding: '3px 12px', borderRadius: 999,
             border: `1px solid ${c}`, background: p.shares > 0 ? '#FDECEC' : '#E8F7EE',
             fontFamily: MONO, fontSize: '.8rem', whiteSpace: 'nowrap',

@@ -420,11 +420,11 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
           <PlotlyWrapper traces={traces} layout={layout} hoverSync={['xy', 'xy2', 'xy3', 'xy3']} id={CHART_ID} style={{ marginBottom: 20 }} />
 
           {/* 每日表格 */}
-          <div style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '50vh', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
+          <div className="mt" style={{ overflowX: 'auto', overflowY: 'auto', maxHeight: '50vh', border: `1px solid ${BORDER}`, borderRadius: 8 }}>
             <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 720 }}>
               <thead>
                 <tr>
-                  <th style={{ ...TH, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2 }}>日期</th>
+                  <th className="m-edge" style={{ ...TH, textAlign: 'left', position: 'sticky', left: 0, zIndex: 2 }}>日期</th>
                   <th style={{ ...TH, textAlign: 'right' }}>持股 (張)</th>
                   <th style={{ ...TH, textAlign: 'right' }}>當日增減 (張)</th>
                   <th style={{ ...TH, textAlign: 'right' }}>成交均價</th>
@@ -439,7 +439,7 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
                   const rowBg = i % 2 === 0 ? '#fff' : '#FAFAF9';
                   return (
                   <tr key={p.date} style={{ background: rowBg, borderBottom: `1px solid ${BORDER}` }}>
-                    <td style={{ padding: '7px 14px', fontFamily: MONO, fontSize: '.8rem', color: TEXT, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{p.date}</td>
+                    <td className="m-edge" style={{ padding: '7px 14px', fontFamily: MONO, fontSize: '.8rem', color: TEXT, position: 'sticky', left: 0, zIndex: 1, background: rowBg }}>{p.date}</td>
                     <td style={{ padding: '7px 14px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', color: p.lots > 0 ? TEXT : SUB }}>{fmtLots(p.lots)}</td>
                     <td style={{ padding: '7px 14px', textAlign: 'right', fontFamily: MONO, fontSize: '.8rem', fontWeight: 600,
                       color: p.deltaLots > 0.0001 ? RED : p.deltaLots < -0.0001 ? GREEN : SUB }}>

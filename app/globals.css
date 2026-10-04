@@ -125,3 +125,23 @@ button:hover:not(:disabled) { filter: brightness(0.93); }
   .site-title { font-size: 1rem; }
   .site-fundpick-select { font-size: .8rem; padding: 4px 8px; }
 }
+
+/* ── 手機版表格（.mt 掛在表格外層的橫向捲動容器上）──
+   桌機版大多凍結「代碼＋名稱」兩欄（共 230px 上下），390px 寬的手機扣掉後幾乎看不到數字欄。
+   手機上：只凍結名稱一欄（.m-stick0，限寬＋省略號＋右緣陰影提示可橫滑），
+   代碼/排名欄（.m-unstick）改為跟著捲走；儲存格內距與字級縮小。
+   .m-unstick 用 left:auto 而非 position:static —— 表頭還要保留 top 方向的凍結。 */
+@media (max-width: 640px) {
+  .mt { -webkit-overflow-scrolling: touch; }
+  .mt table { min-width: 0 !important; }
+  .mt th, .mt td { padding: 6px 7px !important; font-size: .74rem !important; }
+  .mt .m-unstick { left: auto !important; }
+  .mt .m-stick0 {
+    left: 0 !important; max-width: 108px !important;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+    box-shadow: 4px 0 6px -4px rgba(0, 0, 0, .18);
+  }
+  .mt .m-edge { box-shadow: 4px 0 6px -4px rgba(0, 0, 0, .18); }
+  .mt .m-hide { display: none !important; }
+  .mt .m-pill { padding: 2px 7px !important; gap: 3px !important; font-size: .68rem !important; }
+}
