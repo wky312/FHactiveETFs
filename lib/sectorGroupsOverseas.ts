@@ -62,21 +62,24 @@ import { SectorGroup } from './sectorGroups';
      SQ 條目並標註「舊代號」，讓還存著舊自訂族群的使用者不會只看到一串代碼。
    ⚠ 新增代號全部用 yahoo-finance2 quote() 實查過才寫進來（含 .L/.AS/.MI/.AT/.PA/.MC/.DE/.T
      這些歐日掛牌）。倫敦股報價幣別是 GBp（便士）不是 GBP，熱力圖/RRG 看的是百分比不受影響，
-     但日後若拿來換匯要記得 ÷100。 */
+     但日後若拿來換匯要記得 ÷100。 2026-10-04：比對 00409A/00411A/00988A/00990A 10/01 持股（後三檔改由官網直抓，CMoney 回 Auth Failed），
+   補 5 檔、不開新組：6920.T Lasertec → 半導體設備；6805.TW 富世達(液冷快接頭) → 電源與散熱；
+   6787.T 名幸電子、1303.TW 南亞(CCL) → 載板與 PCB/材料；MRNA → 醫療科技與生技。6805/1303 已查 TWSE ISIN 皆上市。
+*/
 
 export const BUILTIN_GROUPS_OVERSEAS: SectorGroup[] = [
   { name: '算力與 IC 設計 (CPU / GPU / ASIC / IP)', codes: ['AMD', '2454.TW', 'ARM', 'INTC', 'NVDA', 'QCOM', 'AVGO', '3661.TW', '3443.TW', 'CDNS', 'CBRS', '5274.TWO', '3529.TWO'], builtin: true },
   { name: 'AI 資料中心電力、燃料電池與核能基建', codes: ['BE', 'PLUG', 'FCEL', 'VRT', 'ETN', 'GEV', 'CEG', 'VST', 'OKLO', 'SMR', '6508.T', '034020.KS', 'ENR.DE', 'SU.PA', 'XE', 'BWXT'], builtin: true },
   { name: '低軌衛星與太空科技 (LEO Satellite & Aerospace)', codes: ['ASTS', 'RKLB', 'IRDM', 'SATS', 'GSAT', 'PL', '3491.TWO', '6285.TW', 'SPCX'], builtin: true },
-  { name: '半導體設備、測試與探針卡', codes: ['6223.TWO', '6871.T', 'TER', 'FORM', 'AIXA.DE', 'AEHR', '095340.KS', 'ASML', 'AMAT', 'LRCX', 'KLAC', '8035.T', '6857.T', '6515.TW', '6510.TWO', '2360.TW', '7769.TW', '300757.SZ', 'ASML.AS'], builtin: true },
+  { name: '半導體設備、測試與探針卡', codes: ['6223.TWO', '6871.T', 'TER', 'FORM', 'AIXA.DE', 'AEHR', '095340.KS', 'ASML', 'AMAT', 'LRCX', 'KLAC', '8035.T', '6857.T', '6515.TW', '6510.TWO', '2360.TW', '7769.TW', '300757.SZ', 'ASML.AS', '6920.T'], builtin: true },
   { name: '晶圓代工與封測製造 (Foundry & OSAT)', codes: ['2330.TW', 'TSM', 'TSEM', '3711.TW', 'GFS', '2303.TW', 'AMKR', '2449.TW'], builtin: true },
   { name: '光通訊與矽光子 / CPO (Optical & CPO)', codes: ['LITE', 'COHR', '300308.SZ', '3308.HK', '4979.TWO', 'FN', 'CIEN', '6442.TW', '3363.TWO', '3081.TWO', 'AXTI'], builtin: true },
-  { name: '載板與高階 PCB / 材料 (Substrates & PCB)', codes: ['3037.TW', '2383.TW', '301377.SZ', '8046.TW', '3189.TW', '4062.T', '6967.T', '2368.TW', '6274.TW', '600183.SS'], builtin: true },
+  { name: '載板與高階 PCB / 材料 (Substrates & PCB)', codes: ['3037.TW', '2383.TW', '301377.SZ', '8046.TW', '3189.TW', '4062.T', '6967.T', '2368.TW', '6274.TW', '600183.SS', '6787.T', '1303.TW'], builtin: true },
   { name: '記憶體與高容量儲存 (Memory & Storage)', codes: ['MU', '285A.T', 'STX', 'WDC', '000660.KS', '005930.KS', 'PSTG', '8299.TWO', '2408.TW', 'SNDK', 'SKHY', 'SIMO'], builtin: true },
   { name: '軟體、資安與 AI 雲端服務 (SaaS & Security)', codes: ['PANW', 'SNOW', 'PLTR', 'NET', 'TWLO', '4180.T', 'CRWD', 'NOW', 'DDOG', 'ZS', 'CRM', 'NTSK', 'FSLY', 'FIG', 'IOT', 'MDB', 'OKTA'], builtin: true },
   { name: '高速傳輸與網通介面 (Transmission & Networking)', codes: ['CRDO', 'MRVL', '5801.T', 'ANET', 'ALAB', 'CSCO', '2379.TW', 'SMTC', '2345.TW', '3665.TW', 'NOK'], builtin: true },
   { name: '被動元件與電子零組件 (Passive Components)', codes: ['009150.KS', '6981.T', '300408.SZ', '2327.TW', '6997.T', '6762.T', '6976.T', '2492.TW', '3026.TW', 'SITM'], builtin: true },
-  { name: 'AI 伺服器電源與散熱 (Power & Cooling)', codes: ['2308.TW', '3017.TW', '3324.TW', '3653.TW', '2301.TW', 'SMCI', '8996.TW'], builtin: true },
+  { name: 'AI 伺服器電源與散熱 (Power & Cooling)', codes: ['2308.TW', '3017.TW', '3324.TW', '3653.TW', '2301.TW', 'SMCI', '8996.TW', '6805.TW'], builtin: true },
   { name: '車用與功率半導體 (Power & Auto Chips)', codes: ['IFX.DE', 'MPWR', 'TXN', 'STM', 'ON', 'NXPI', 'ADI', 'MCHP'], builtin: true },
   { name: '超級雲端巨頭 (Hyperscalers)', codes: ['MSFT', 'GOOGL', 'GOOG', 'AMZN', 'META', 'AAPL'], builtin: true },
   { name: '金融科技與數位支付 (FinTech & Payments)', codes: ['CRCL', 'V', 'MA', 'COIN', 'XYZ', 'HOOD', 'BMNR', '8473.T', 'CHYM', 'GPN', 'RELY', 'BLSH', 'SOFI'], builtin: true },
@@ -95,7 +98,7 @@ export const BUILTIN_GROUPS_OVERSEAS: SectorGroup[] = [
      這批完全不屬於「科技供應鏈」視角，前一輪 19 組故意不收（見上一輪 commit 的
      「需要時再開新組」），現在真的需要了。 */
   { name: '原物料、能源與貴金屬 (Commodities & Energy)', codes: ['GDX', 'COPX', 'WPM', 'PSX', 'AEM', 'EQT', 'KGC', 'GLEN.L'], builtin: true },
-  { name: '醫療科技與生技 (Healthcare & Biotech)', codes: ['LLY', 'MRK', 'TEM', 'NTRA', 'TWST', 'TXG', 'CRSP', 'BEAM', 'ILMN', 'WGS', 'NTLA', 'RXRX', 'VCYT', 'CERS'], builtin: true },
+  { name: '醫療科技與生技 (Healthcare & Biotech)', codes: ['LLY', 'MRK', 'TEM', 'NTRA', 'TWST', 'TXG', 'CRSP', 'BEAM', 'ILMN', 'WGS', 'NTLA', 'RXRX', 'VCYT', 'CERS', 'MRNA'], builtin: true },
   // 精密光學元件目前只有大立光一檔——刻意不硬塞進「光通訊與矽光子」（那組是通訊用零組件，
   // 大立光是手機相機鏡頭，製程與客戶完全不同），寧可先開一組只有 1 檔的類別。
   { name: '精密光學元件 (Precision Optics)', codes: ['3008.TW'], builtin: true },
@@ -305,4 +308,5 @@ export const STOCK_NAMES_OVERSEAS: Record<string, string> = {
   'MA': 'Mastercard',
   'COIN': 'Coinbase',
   'SQ': 'Block（舊代號，已改為 XYZ）',
+  '6920.T': 'Lasertec', '6805.TW': '富世達', '6787.T': '名幸電子', '1303.TW': '南亞', 'MRNA': '莫德納',
 };

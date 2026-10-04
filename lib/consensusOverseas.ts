@@ -1,6 +1,7 @@
 import { OVERSEAS_FUNDS } from './overseasFunds';
 import { fetchHoldings } from './fhtrust';
 import { fetchCmoneyHoldings } from './cmoneyHoldings';
+import { fetchLatestEzmoney, fetchLatestYuanta, fetchLatestCapital, fetchLatestJpm } from './issuerHoldingsOverseas';
 import { stockidToYfTicker } from './exchangeMap';
 import { Holding } from './types';
 import { ConsensusResult, ConsensusHolder, ConsensusStock, ConsensusFund } from './sectorExposure';
@@ -81,7 +82,13 @@ export async function computeOverseasConsensus(): Promise<ConsensusResult> {
   if (_cache && Date.now() - _cache.ts < TTL_MS) return _cache.data;
 
   const perFund = await Promise.all(OVERSEAS_FUNDS.map(async (f) => {
-    const res = f.source === 'fhtrust' ? await fetchLatestFhtrust(f.fundId) : await fetchLatestCmoney(f.fundId);
+    const res =
+      f.source === 'fhtrust'  ? await fetchLatestFhtrust(f.fundId) :
+      f.issuer === 'ezmoney'  ? await fetchLatestEzmoney(f.ticker) :
+      f.issuer === 'yuanta'   ? await fetchLatestYuanta(f.ticker) :
+      f.issuer === 'capital'  ? await fetchLatestCapital(f.ticker) :
+      f.issuer === 'jpmorgan' ? await fetchLatestJpm(f.ticker) :
+                                await fetchLatestCmoney(f.fundId);
     return { f, holdingDate: res?.date ?? null, holdings: res?.holdings ?? [] };
   }));
 
