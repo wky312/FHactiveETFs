@@ -11,6 +11,7 @@
  * （buildOverseasDayMap / isCashLike / canonOf）與 lib/yahooFinance.ts、lib/fx.ts。
  */
 import { OverseasFundConfig } from './overseasFunds';
+import { Holding } from './types';
 import { buildOverseasDayMap, isCashLike, canonOf } from './overseasAttribution';
 import { fetchTotalReturnSeries } from './yahooFinance';
 import { fetchFxSeries } from './fx';
@@ -42,6 +43,8 @@ export interface MarketImpactSpec {
   /** 探快取鍵用的代表性標的（挑本市場一定有報價、不會下市的指標，例：'SPY' / '0050.TW'）。
    *  只為了先知道「現在該算哪個交易日」，避免拿日曆日當快取鍵而在假日重算。 */
   probeTicker: string;
+  /** 自訂持股來源（date YYYY/MM/DD → 持股）。省略＝沿用 buildOverseasDayMap（fhtrust／CMoney／存檔）。 */
+  loadHoldings?(cfg: OverseasFundConfig): Promise<Map<string, Holding[]>>;
 }
 
 const slashToIso = (s: string) => s.replace(/\//g, '-');
@@ -70,7 +73,7 @@ interface FundSnapshots {
 
 async function latestSnapshots(cfg: OverseasFundConfig, spec: MarketImpactSpec): Promise<FundSnapshots> {
   try {
-    const dayMap = await buildOverseasDayMap(cfg);
+    const dayMap = spec.loadHoldings ? await spec.loadHoldings(cfg) : await buildOverseasDayMap(cfg);
     const dates = [...dayMap.keys()].sort();
     if (!dates.length) {
       return { cfg, snaps: [], error: '查無持股資料（可能該基金較晚成立或尚未公布逐日持股）。' };

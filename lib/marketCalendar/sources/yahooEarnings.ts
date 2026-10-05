@@ -10,7 +10,9 @@ export interface EarningsInfo {
 }
 
 export async function fetchEarnings(spec: EarningsSpec): Promise<EarningsInfo> {
-  const q = await yf.quoteSummary(spec.symbol, { modules: ['calendarEvents', 'earningsHistory'] });
+  const q = await yf.quoteSummary(spec.symbol, { modules: ['calendarEvents', 'earningsHistory'] },
+    // 新上市股（SpaceX/SPCX）的 earningsHistory 欄位不齊，嚴格 schema 驗證會整個丟錯；本檔只讀少數欄位，關掉驗證
+    { validateResult: false });
   const e = q?.calendarEvents?.earnings;
   const nd: Date | undefined = e?.earningsDate?.[0];
   const ld: Date | undefined = e?.earningsCallDate?.[0];

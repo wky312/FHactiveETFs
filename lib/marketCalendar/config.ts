@@ -74,7 +74,19 @@ export interface EarningsSpec {
 export const EARNINGS_WATCHLIST: EarningsSpec[] = [
   { symbol: 'NVDA', key: 'NVDA', title: 'Nvidia 財報', time: '16:20', tz: 'America/New_York' },
   { symbol: 'TSM',  key: 'TSMC', title: '台積電法說會', time: '14:00', tz: 'Asia/Taipei' },
+  // 美股權值股（皆盤後公布，反應看次一交易日）。時間用慣例值，Yahoo 的時間常是佔位。
+  { symbol: 'GOOGL', key: 'GOOGL', title: 'Google (Alphabet) 財報', time: '16:05', tz: 'America/New_York' },
+  { symbol: 'META',  key: 'META',  title: 'Meta 財報',              time: '16:05', tz: 'America/New_York' },
+  { symbol: 'AMZN',  key: 'AMZN',  title: 'Amazon 財報',            time: '16:05', tz: 'America/New_York' },
+  { symbol: 'MSFT',  key: 'MSFT',  title: 'Microsoft 財報',         time: '16:05', tz: 'America/New_York' },
+  { symbol: 'AAPL',  key: 'AAPL',  title: 'Apple 財報',             time: '16:30', tz: 'America/New_York' },
+  { symbol: 'TSLA',  key: 'TSLA',  title: 'Tesla 財報',             time: '16:10', tz: 'America/New_York' },
+  { symbol: 'AMD',   key: 'AMD',   title: 'AMD 財報',               time: '16:05', tz: 'America/New_York' },
+  { symbol: 'MU',    key: 'MU',    title: 'Micron (MU) 財報',       time: '16:05', tz: 'America/New_York' },
+  { symbol: '2454.TW', key: 'MEDIATEK', title: '聯發科法說會',      time: '15:00', tz: 'Asia/Taipei' },
+  { symbol: 'SPCX',  key: 'SPCX',  title: 'SpaceX 財報',            time: '16:30', tz: 'America/New_York' },
 ];
+
 
 export interface ReactionMarket { symbol: string; name: string; tz: string; close: string }
 
@@ -89,6 +101,9 @@ export const HISTORY_LABELS: Record<string, string> = {
   fomc: 'FOMC 利率決議', twcb: '台灣央行理監事會',
   cpi: '美國 CPI', ppi: '美國 PPI', nfp: '美國非農就業', pce: '美國核心 PCE', ism_mfg: 'ISM 製造業 PMI',
   'earnings:NVDA': 'Nvidia 財報', 'earnings:TSMC': '台積電法說會',
+  'earnings:GOOGL': 'Google 財報', 'earnings:META': 'Meta 財報', 'earnings:AMZN': 'Amazon 財報',
+  'earnings:MSFT': 'Microsoft 財報', 'earnings:AAPL': 'Apple 財報', 'earnings:TSLA': 'Tesla 財報', 'earnings:SPCX': 'SpaceX 財報',
+  'earnings:AMD': 'AMD 財報', 'earnings:MU': 'Micron (MU) 財報', 'earnings:MEDIATEK': '聯發科法說會',
   election_us: '美國大選 / 期中選舉', election_tw: '台灣選舉', diplomacy_uscn: '美中元首會晤',
   policy: '重大政策衝擊',
 };

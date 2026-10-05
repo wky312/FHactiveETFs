@@ -11,6 +11,7 @@
  */
 import { TW_ACTIVE_FUNDS } from './twActiveFunds';
 import { resolveYfTicker, TW_BARE_CODE, stockidToYfTicker } from './exchangeMap';
+import { fetchTwHoldingsFromDb } from './twHoldingsDb';
 import {
   MarketImpactSpec, MarketImpactResult, CachedMarketImpactResult,
   computeMarketImpact, getMarketImpactCached,
@@ -64,7 +65,7 @@ export function isTwListed(stockid: string): boolean {
 }
 
 export const TW_IMPACT_SPEC: MarketImpactSpec = {
-  cacheKeyPrefix: 'tw-impact',
+  cacheKeyPrefix: 'tw-impact-v2',  // v2：持股來源改 Supabase，避開舊版「查無持股」被鎖進當日快取
   funds: TW_ACTIVE_FUNDS,
   isListed: isTwListed,
   // isTwOnlyFund=true：裸 4 碼補 .TW，並帶 .TWO 退路給上櫃股
@@ -74,6 +75,7 @@ export const TW_IMPACT_SPEC: MarketImpactSpec = {
   isSessionSettled: (d) => isTwSessionSettled(d),
   canPersist: (d) => canPersistTwSession(d),
   probeTicker: '0050.TW',           // 台股一定有報價、不會下市的指標
+  loadHoldings: (cfg) => fetchTwHoldingsFromDb(cfg.ticker),  // 持股讀共用 Supabase（CMoney 已 Auth Failed）
 };
 
 export function computeTwImpact(tickers: string[]): Promise<MarketImpactResult> {
