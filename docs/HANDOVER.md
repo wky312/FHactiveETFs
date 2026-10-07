@@ -96,6 +96,17 @@
 ### 準時化（選配）
 GH cron 有 2–4 小時延遲。若要準時 14:00：cron-job.org 加 job，POST `https://api.github.com/repos/wky312/00998a-web/actions/workflows/highlight_scan.yml/dispatches`，body `{"ref":"master"}`，headers 帶 `Authorization: Bearer {GitHub PAT}`＋`Accept: application/vnd.github+json`＋`User-Agent: cron-job.org`（成功回 204）。與 GH cron 並存安全——腳本冪等，重複觸發不重推。參考 etf-daily-line 的 README 同模式。
 
+### 00409A 版（2026-10-07 新增，清晨 06:00 送）
+同一支 `highlight_scan.py`，用環境變數 `FUND_TICKER=00409A` 切換；設定集中在 `config/highlight_profiles.json`（預設 00991A，行為不變）。
+- **workflow**：`highlight_scan_00409a.yml`。準時靠 cron-job.org（週二~六 06:00 Asia/Taipei，URL 換成 `.../workflows/highlight_scan_00409a.yml/dispatches`）；檔內 GH schedule（UTC 週一~五 22:00）只是備援，同日冪等鎖保證不重複推播。
+- **掃描日**：台北日期的前一個平日（美股在台北清晨收盤；週一早上掃上週五）。報價一律走 Yahoo（台/美/日/韓），**最後一根日 K 的日期必須等於掃描日才算有報價**，該市場休市就自然略過，所以不用單一交易日曆擋。
+- **輸出與去重狀態獨立**：`data/highlights/00409A/`（`_state.json` 與 00991A 不共用，否則一檔推過另一檔就被擋）。
+- **同業比對（R1「持有最重」、R2 獨門/超配）**：ATTR 資料庫沒有 00409A 也沒有海外檔，所以改讀 repo 的 `data/holdings/*.json`（profile 的 `cross_files`，目前 10 檔海外主動 ETF，超過 15 天沒更新的同業略過），代碼去掉彭博後綴（`NVDA US`→`NVDA`）才對得上。文案母體寫「海外主動 ETF 觀測群」，**不可寫成「全市場」**（天條 5）。
+- **R4**：同業排名改用 `overseas` 群組；**連勝對標關閉**（`benchmark_ticker: null`）——全球型對 0050 不可辯護，要開須先決定對標（QQQ/S&P500TR）並確認 cumulative-return 跨時區日期對齊。
+- **R5**：`peer_group: overseas`。
+- ⚠️ 00409A 持股是 T+1 才公告（`ETF26.json` 常比其他檔晚一天），R1/R2 權重用最後已知日；R3 用的是持股存檔的相鄰日差，不受影響。
+- ⚠️ R3「至今 +X%」是**當地幣別**報酬（美股用美元），不含匯率。
+
 ### 測試
 ```bash
 # 單元+整合（零網路、不污染 repo data/）

@@ -1,0 +1,50 @@
+{
+  "_doc": "亮點引擎的基金設定檔。FUND_TICKER 環境變數選用其中一筆（預設 00991A）。cfg_overrides 會深層合併進 highlight_thresholds.json。",
+
+  "00991A": {
+    "holdings_file": "ETF23.json",
+    "calendar": "twse",
+    "quote_source": "twse_mis",
+    "cross_source": "attr",
+    "peer_perf_group": "active",
+    "cumret_group": "active",
+    "day_word": "今日",
+    "title_word": "今日亮點",
+    "universe_fact": "全市場 {n} 檔主動 ETF",
+    "universe_short": "全市場主動 ETF",
+    "others_label": "其他主動 ETF",
+    "out_subdir": "",
+    "cfg_overrides": {}
+  },
+
+  "00409A": {
+    "holdings_file": "ETF26.json",
+    "calendar": "global",
+    "quote_source": "yahoo",
+    "cross_source": "repo",
+    "cross_files": {
+      "00409A": "ETF26.json",
+      "00998A": "ETF24.json",
+      "00402A": "00402A.json",
+      "00983A": "00983A.json",
+      "00986A": "00986A.json",
+      "00988A": "00988A.json",
+      "00989A": "00989A.json",
+      "00990A": "00990A.json",
+      "00997A": "00997A.json",
+      "00411A": "00411A.json"
+    },
+    "peer_perf_group": "overseas",
+    "cumret_group": "overseas",
+    "day_word": "昨日",
+    "title_word": "昨日亮點",
+    "universe_fact": "海外主動 ETF 觀測群 {n} 檔",
+    "universe_short": "海外主動 ETF 觀測群",
+    "others_label": "其他海外主動 ETF",
+    "out_subdir": "00409A",
+    "cfg_overrides": {
+      "r4": { "benchmark_ticker": null },
+      "r5": { "peer_group": "overseas" }
+    }
+  }
+}

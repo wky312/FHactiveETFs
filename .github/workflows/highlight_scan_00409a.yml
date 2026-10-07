@@ -1,0 +1,65 @@
+name: Daily Highlight Scan 00409A
+
+# 清晨 06:00（台北）送：掃「前一個交易日」（美股在台北清晨收盤）。
+# 準時靠 cron-job.org 直打 workflow_dispatch（週二到週六 06:00 Asia/Taipei）；
+# 下面的 GH schedule 只是備援（GH cron 實際會晚數小時），腳本有同日冪等鎖，兩邊並存不會重複推播。
+on:
+  schedule:
+    - cron: '0 22 * * 1-5'   # UTC 週一~五 22:00 ＝ 台北 週二~六 06:00
+  workflow_dispatch:
+    inputs:
+      force:
+        description: '強制重推（略過同日冪等鎖，調整閾值後重跑用）'
+        required: false
+        default: 'false'
+      scan_date:
+        description: '指定掃描日 YYYY-MM-DD（留空＝台北日期的前一個平日）'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: highlight-00409a
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests pytz yfinance
+
+      - name: Run highlight scan (00409A)
+        env:
+          FUND_TICKER:          '00409A'
+          LINE_CHANNEL_TOKEN:   ${{ secrets.LINE_CHANNEL_TOKEN || secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_TO:              ${{ secrets.LINE_TO || secrets.LINE_USER_ID }}
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          FORCE_RESEND:         ${{ github.event.inputs.force }}
+          SCAN_DATE:            ${{ github.event.inputs.scan_date }}
+        run: python scripts/highlight_scan.py
+
+      - name: Commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain data/highlights/00409A)" ]; then
+            git add data/highlights/00409A
+            git commit -m "data: highlight scan 00409A $(date -u +%Y-%m-%d)"
+            git pull --rebase origin master
+            git push
+          else
+            echo "No changes."
+          fi

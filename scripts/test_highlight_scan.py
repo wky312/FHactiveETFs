@@ -400,3 +400,49 @@ def test_run_rules_skips_on_missing_needs():
     cands, skipped = hs.run_rules(ctx, status, CFG, DedupState())
     assert cands == []
     assert set(skipped) == {'R1', 'R2', 'R3', 'R4', 'R5'}
+
+
+# ── 全球型基金（00409A）支援：代號轉換／報價日期驗證／同業持股比對 ────────────────
+
+def test_yf_candidates_maps_bloomberg_suffixes():
+    assert hs.yf_candidates('NVDA US') == ['NVDA']
+    assert hs.yf_candidates('000660 KS') == ['000660.KS']
+    assert hs.yf_candidates('6857 JP') == ['6857.T']
+    assert hs.yf_candidates('600183 CH') == ['600183.SS']
+    assert hs.yf_candidates('300750 CH') == ['300750.SZ']
+    assert hs.yf_candidates('2330') == ['2330.TW', '2330.TWO']   # 台股裸碼：先上市再上櫃
+    assert hs.yf_candidates('XXX ZZ') == []                      # 不認得的交易所不亂猜
+
+
+def _fake_hist(dates, closes):
+    import pandas as pd
+    return pd.DataFrame({'Close': closes}, index=pd.to_datetime(dates))
+
+
+def test_fetch_quotes_yf_requires_session_date_match():
+    hist = {'NVDA US': _fake_hist(['2026-10-05', '2026-10-06'], [100.0, 104.0]),
+            '2330': _fake_hist(['2026-10-02', '2026-10-05'], [1000.0, 1100.0])}  # 台股該日休市
+    got = hs.fetch_quotes_yf(['NVDA US', '2330'], hist.get, date(2026, 10, 6))
+    assert got == {'NVDA US': {'pct': 4.0, 'price': 104.0}}
+
+
+def test_fetch_quotes_yf_none_when_yahoo_unreachable():
+    assert hs.fetch_quotes_yf(['NVDA US'], lambda c: None, date(2026, 10, 6)) is None
+
+
+def test_fetch_cross_from_repo_normalizes_suffix_and_skips_stale(tmp_path, monkeypatch):
+    hold = tmp_path / 'data' / 'holdings'
+    hold.mkdir(parents=True)
+
+    def write(name, day, rows):
+        (hold / name).write_text(json.dumps(
+            {'days': {day: [{'c': c, 'p': p} for c, p in rows]}}), encoding='utf-8')
+    write('own.json', '2026/10/05', [('NVDA US', 5.0), ('2454', 3.0)])
+    write('peer.json', '2026/10/05', [('NVDA', 2.0)])        # 無後綴的寫法也要對得上
+    write('old.json', '2026/08/01', [('NVDA US', 9.0)])      # 太舊的同業不納入
+    monkeypatch.setattr(hs, 'ROOT', str(tmp_path))
+    got = hs.fetch_cross_from_repo(
+        {hs.FUND_TICKER: 'own.json', 'P': 'peer.json', 'O': 'old.json'}, date(2026, 10, 6))
+    assert set(got) == {hs.FUND_TICKER, 'P'}
+    assert got[hs.FUND_TICKER]['w'] == {'NVDA': 5.0, '2454': 3.0}
+    assert got['P']['w'] == {'NVDA': 2.0}

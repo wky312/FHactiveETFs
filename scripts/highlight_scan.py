@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""每日行銷亮點引擎：掃描 00991A 相關數據 → 規則 R1-R5 → LINE 推播（內部素材）。
+"""每日行銷亮點引擎：掃描基金（預設 00991A，FUND_TICKER 可切 00409A）相關數據 → 規則 R1-R5 → LINE 推播（內部素材）。
 
 設計文件：docs/03-features/001-daily-highlight-engine/design.md
 輸出僅 LINE 個人推播＋data/highlights/ JSON 存檔，一律不接前端路由。
@@ -21,12 +21,26 @@ sys.path.insert(0, SCRIPT_DIR)
 from daily_summary import TZ, get_with_retry, is_twse_trading_day, fetch_holdings  # noqa: E402
 
 CONFIG_PATH = os.path.join(ROOT, 'config', 'highlight_thresholds.json')
-HOLDINGS_PATH = os.path.join(ROOT, 'data', 'holdings', 'ETF23.json')
-OUT_DIR = os.path.join(ROOT, 'data', 'highlights')
-STATE_PATH = os.path.join(OUT_DIR, '_state.json')
+PROFILES_PATH = os.path.join(ROOT, 'config', 'highlight_profiles.json')
 
 SITE = 'https://fhactiveetf.vercel.app'
-FUND_TICKER = '00991A'
+FUND_TICKER = os.environ.get('FUND_TICKER', '00991A')
+
+
+def _load_profile(ticker):
+    with open(PROFILES_PATH, encoding='utf-8') as f:
+        profiles = json.load(f)
+    if ticker not in profiles:
+        sys.exit(f'ERROR: no profile for FUND_TICKER={ticker} in {PROFILES_PATH}')
+    return profiles[ticker]
+
+
+PROFILE = _load_profile(FUND_TICKER)
+
+HOLDINGS_PATH = os.path.join(ROOT, 'data', 'holdings', PROFILE['holdings_file'])
+# 每檔基金各自一份輸出與去重狀態（pushed_dates 不可共用，否則一檔推過另一檔就被擋）
+OUT_DIR = os.path.normpath(os.path.join(ROOT, 'data', 'highlights', PROFILE['out_subdir']))
+STATE_PATH = os.path.join(OUT_DIR, '_state.json')
 
 LINE_CHANNEL_TOKEN = os.environ.get('LINE_CHANNEL_TOKEN', '')
 LINE_TO = os.environ.get('LINE_TO', '')
@@ -44,7 +58,10 @@ def load_config(path=CONFIG_PATH):
     if not os.path.exists(path):
         sys.exit(f'ERROR: config not found: {path}')
     with open(path, encoding='utf-8') as f:
-        return json.load(f)
+        cfg = json.load(f)
+    for section, patch in PROFILE.get('cfg_overrides', {}).items():
+        cfg[section] = {**cfg.get(section, {}), **patch}
+    return cfg
 
 
 @dataclass
@@ -216,17 +233,43 @@ def fetch_stock_quotes(stockids):
     return out if out else None
 
 
-def make_yf_fetchers():
-    """回 (px_on, px_latest, high60) 三個 callable；個股失敗回 None 不拋。"""
+# 彭博交易所後綴 → Yahoo 後綴（與 lib/exchangeMap.ts 同步；' CH' 滬深另判）
+_BBG_TO_YF = {
+    'US': '', 'UW': '', 'UN': '', 'UA': '', 'LN': '.L', 'HK': '.HK',
+    'JP': '.T', 'JT': '.T', 'GY': '.DE', 'GR': '.DE', 'FP': '.PA', 'AU': '.AX',
+    'SM': '.MC', 'IM': '.MI', 'NA': '.AS', 'SW': '.SW', 'DC': '.CO', 'NO': '.OL',
+    'SS': '.ST', 'SE': '.ST', 'SP': '.SI', 'KS': '.KS', 'KP': '.KS', 'TT': '.TW',
+    'IN': '.NS', 'IB': '.BO', 'SJ': '.JO', 'BZ': '.SA', 'CN': '.TO', 'CT': '.TO',
+}
+
+
+def yf_candidates(stockid):
+    """復華 stockid → 依序嘗試的 Yahoo 代號。台股是裸 4 碼（試 .TW 再 .TWO），
+    外國股是「代碼 空格 兩碼交易所」（'NVDA US'、'000660 KS'、'6857 JP'）。"""
+    sid = str(stockid).strip()
+    m = re.match(r'^(.+?)\s+([A-Z]{2})$', sid)
+    if not m:
+        return [sid + '.TW', sid + '.TWO']
+    base, ex = m.groups()
+    base = base.rstrip('/').replace('/', '-')
+    if ex == 'CH':  # 6 開頭＝上海、其餘＝深圳
+        return [base + ('.SS' if base.startswith('6') else '.SZ')]
+    suffix = _BBG_TO_YF.get(ex)
+    return [] if suffix is None else [base + suffix]
+
+
+def make_yf_fetchers(with_hist=False):
+    """回 (px_on, px_latest, high60) 三個 callable；個股失敗回 None 不拋。
+    with_hist=True 時多回第 4 個 callable：個股日 K 線 DataFrame（報價判斷用）。"""
     import yfinance as yf
     cache = {}
 
     def _hist(stockid):
         if stockid not in cache:
             h = None
-            for suffix in ('.TW', '.TWO'):
+            for cand in yf_candidates(stockid):
                 try:
-                    got = yf.Ticker(stockid + suffix).history(period='6mo')
+                    got = yf.Ticker(cand).history(period='6mo')
                     if len(got) > 0:
                         h = got
                         break
@@ -253,7 +296,56 @@ def make_yf_fetchers():
         closes = h['Close'].iloc[:-1]
         return float(closes.tail(60).max()) if len(closes) else None
 
+    if with_hist:
+        return px_on, px_latest, high60, _hist
     return px_on, px_latest, high60
+
+
+def fetch_quotes_yf(stockids, hist_fn, session_date: date):
+    """全球持股報價：最後一根日 K 的日期必須等於 session_date 才算當日有交易
+    （該市場休市時最後一根是更早的日期，就當沒有報價，避免把舊漲跌幅當今日）。
+    回 {stockid: {'pct','price'}}；所有個股都抓不到歷史（Yahoo 掛了）回 None。"""
+    out, reachable = {}, False
+    for c in stockids:
+        h = hist_fn(c)
+        if h is None or len(h) < 2:
+            continue
+        reachable = True
+        if h.index[-1].date() != session_date:
+            continue
+        prev, cur = float(h['Close'].iloc[-2]), float(h['Close'].iloc[-1])
+        if prev > 0:
+            out[c] = {'pct': round((cur - prev) / prev * 100, 2), 'price': cur}
+    return out if reachable else None
+
+
+def _xid(stockid):
+    """跨基金比對用的代碼：去掉彭博交易所後綴（'NVDA US' → 'NVDA'；台股裸碼不變）。"""
+    return str(stockid).split(' ')[0]
+
+
+def fetch_cross_from_repo(files: dict, as_of: date, lookback_days=15):
+    """從 repo 的 data/holdings 存檔組同業最新持股快照（ATTR 資料庫沒有海外檔時用）。
+    回 {ticker: {'date': 'YYYY-MM-DD', 'w': {xid: prate}}}；太舊（>lookback_days）的同業略過。"""
+    snap = {}
+    for ticker, fname in files.items():
+        try:
+            with open(os.path.join(ROOT, 'data', 'holdings', fname), encoding='utf-8') as f:
+                d = json.load(f)
+            keys = sorted(d['days'])
+            if not keys:
+                continue
+            last = keys[-1]
+            last_d = datetime.strptime(last, '%Y/%m/%d').date()
+            if (as_of - last_d).days > lookback_days and ticker != FUND_TICKER:
+                continue
+            w = {}
+            for h in d['days'][last]:
+                w[_xid(h['c'])] = w.get(_xid(h['c']), 0) + float(h.get('p') or 0)
+            snap[ticker] = {'date': last_d.isoformat(), 'w': w}
+        except Exception as e:
+            print(f'  cross file {fname} error: {e}')
+    return snap if snap else None
 
 
 def fetch_site_peer_performance(group='active'):
@@ -268,10 +360,10 @@ def fetch_site_peer_performance(group='active'):
         return None
 
 
-def fetch_site_cumulative_return(tickers, start, end):
+def fetch_site_cumulative_return(tickers, start, end, group='active'):
     try:
         r = get_with_retry(
-            f'{SITE}/api/cumulative-return?group=active&tickers={tickers}'
+            f'{SITE}/api/cumulative-return?group={group}&tickers={tickers}'
             f'&startDate={start}&endDate={end}', timeout=30, attempts=2)
         r.raise_for_status()
         data = r.json()
@@ -318,29 +410,47 @@ def build_context(today: date, cfg):
     ctx.own, status['own_holdings'] = fetch_own_holdings_history(today)
     ctx.own_days_sorted = sorted(ctx.own['days'].keys()) if ctx.own else []
 
-    ctx.universe = fetch_tw_active_universe()
-    if ctx.universe:
-        ctx.cross = fetch_cross_fund_holdings(ctx.universe, today)
+    if PROFILE['cross_source'] == 'repo':
+        ctx.cross = fetch_cross_from_repo(PROFILE['cross_files'], today)
+        ctx.universe = list(ctx.cross) if ctx.cross else None
+    else:
+        ctx.universe = fetch_tw_active_universe()
+        if ctx.universe:
+            ctx.cross = fetch_cross_fund_holdings(ctx.universe, today)
     status['attr_supabase'] = 'ok' if (ctx.universe and ctx.cross) else 'fail'
 
+    top_ids = []
     if ctx.own and ctx.own_days_sorted:
         latest = ctx.own['days'][ctx.own_days_sorted[-1]]
-        top_ids = [h['c'] for h in sorted(latest, key=lambda x: -x['p'])]
-        ctx.quotes = fetch_stock_quotes(top_ids[:30])
-    status['twse_mis'] = 'ok' if ctx.quotes else 'fail'
+        top_ids = [h['c'] for h in sorted(latest, key=lambda x: -x['p'])][:30]
 
-    try:
-        ctx.px_on, ctx.px_latest, ctx.high60 = make_yf_fetchers()
-        status['yahoo'] = 'ok' if ctx.px_latest('0050') is not None else 'fail'
-    except Exception:
-        status['yahoo'] = 'fail'
+    if PROFILE['quote_source'] == 'yahoo':
+        # 全球型：報價一律走 Yahoo（台/美/日/韓），用同一份日 K 快取供 R2/R3 重複使用。
+        # status 鍵沿用 'twse_mis'（= 報價來源狀態），RULES 的依賴宣告不用改。
+        try:
+            ctx.px_on, ctx.px_latest, ctx.high60, hist_fn = make_yf_fetchers(with_hist=True)
+            ctx.quotes = fetch_quotes_yf(top_ids, hist_fn, today)
+            status['twse_mis'] = 'ok' if ctx.quotes is not None else 'fail'
+            status['yahoo'] = 'ok' if ctx.quotes is not None else 'fail'
+        except Exception:
+            status['twse_mis'] = status['yahoo'] = 'fail'
+    else:
+        if top_ids:
+            ctx.quotes = fetch_stock_quotes(top_ids)
+        status['twse_mis'] = 'ok' if ctx.quotes else 'fail'
+        try:
+            ctx.px_on, ctx.px_latest, ctx.high60 = make_yf_fetchers()
+            status['yahoo'] = 'ok' if ctx.px_latest('0050') is not None else 'fail'
+        except Exception:
+            status['yahoo'] = 'fail'
 
-    ctx.peer_perf = fetch_site_peer_performance()
+    ctx.peer_perf = fetch_site_peer_performance(PROFILE['peer_perf_group'])
     status['site_peer_performance'] = 'ok' if ctx.peer_perf else 'fail'
 
+    bench = cfg['r4'].get('benchmark_ticker')
     ctx.cumret = fetch_site_cumulative_return(
-        f'{FUND_TICKER},{cfg["r4"]["benchmark_ticker"]}',
-        '2020-01-01', today.isoformat())
+        f'{FUND_TICKER},{bench}' if bench else FUND_TICKER,
+        '2020-01-01', today.isoformat(), PROFILE['cumret_group'])
     status['site_cumulative_return'] = 'ok' if ctx.cumret else 'fail'
 
     ctx.redemption = fetch_peer_redemption_history(
@@ -386,21 +496,23 @@ def rule_r1(ctx, cfg):
             continue
         heaviest, universe_size = None, None
         if ctx.cross:
-            others = [snap['w'].get(stockid) for t, snap in ctx.cross.items()
-                      if t != FUND_TICKER and stockid in snap['w']]
-            mine = ctx.cross.get(FUND_TICKER, {}).get('w', {}).get(stockid, w)
+            xid = _xid(stockid)
+            others = [snap['w'].get(xid) for t, snap in ctx.cross.items()
+                      if t != FUND_TICKER and xid in snap['w']]
+            mine = ctx.cross.get(FUND_TICKER, {}).get('w', {}).get(xid, w)
             heaviest = all(mine >= o for o in others) if others else True
             universe_size = len(ctx.cross)
         name = _name(ctx, stockid)
         w = round(w, 2)
-        heavy_txt = f'、為全市場 {universe_size} 檔主動 ETF 中持有最重' if heaviest else ''
+        heavy_txt = (f'、為{PROFILE["universe_fact"].format(n=universe_size)}中持有最重'
+                     if heaviest else '')
         out.append(Candidate(
             id=f'R1-{stockid}-{ctx.today.isoformat()}', rule='R1',
             score=round(q['pct'] * w, 2),
-            fact=f'{name}今日 +{q["pct"]}%，00991A 持股 {w}%{heavy_txt}',
+            fact=f'{name}{PROFILE["day_word"]} +{q["pct"]}%，{FUND_TICKER} 持股 {w}%{heavy_txt}',
             angle='重倉命中：主動選股的含金量',
-            draft=(f'{name}大漲 {q["pct"]}%，00991A 以 {w}% 持股'
-                   + ('居全市場主動 ETF 之冠，' if heaviest else '重倉布局，')
+            draft=(f'{name}大漲 {q["pct"]}%，{FUND_TICKER} 以 {w}% 持股'
+                   + (f'居{PROFILE["universe_short"]}之冠，' if heaviest else '重倉布局，')
                    + '經理人重押命中。'),
             data={'stockid': stockid, 'pct_change': q['pct'], 'weight_pct': w,
                   'is_heaviest_among_universe': heaviest,
@@ -414,9 +526,12 @@ def rule_r2(ctx, cfg):
     if not ctx.cross or FUND_TICKER not in ctx.cross:
         return out
     mine = ctx.cross[FUND_TICKER]['w']
-    for stockid, w in mine.items():
-        others = [snap['w'][stockid] for t, snap in ctx.cross.items()
-                  if t != FUND_TICKER and stockid in snap['w']]
+    # cross 的 key 可能是去後綴的 xid（repo 模式）；報價/名稱要用持股存檔的原始代碼查
+    raw_by_xid = {_xid(c): c for c in _own_weights(ctx)}
+    for key, w in mine.items():
+        stockid = raw_by_xid.get(key, key)
+        others = [snap['w'][key] for t, snap in ctx.cross.items()
+                  if t != FUND_TICKER and key in snap['w']]
         exclusive = not others
         overweight = (others and w >= c2['overweight_multiple'] * max(others)
                       and w >= c2['overweight_min_weight_pct'])
@@ -434,16 +549,16 @@ def rule_r2(ctx, cfg):
         w = round(w, 2)
         eff_pct = pct if (pct or 0) >= c2['min_daily_pct'] else c2['min_daily_pct']
         score = eff_pct * w * (c2['exclusive_score_multiplier'] if exclusive else 1.0)
-        event = f'今日 +{pct}%' if (pct or 0) >= c2['min_daily_pct'] else f'創 {c2["new_high_lookback_days"]} 日新高'
+        event = f'{PROFILE["day_word"]} +{pct}%' if (pct or 0) >= c2['min_daily_pct'] else f'創 {c2["new_high_lookback_days"]} 日新高'
         name = _name(ctx, stockid)
         out.append(Candidate(
             id=f'R2-{stockid}-{ctx.today.isoformat()}', rule='R2',
             score=round(score, 2),
-            fact=f'{kind}持股 {name}{event}（00991A 權重 {w}%，其他主動 ETF '
+            fact=f'{kind}持股 {name}{event}（{FUND_TICKER} 權重 {w}%，{PROFILE["others_label"]} '
                  f'{"皆未持有" if exclusive else "最高僅 " + str(round(max(others), 2)) + "%"}）',
             angle=f'{kind}股發威：別人沒有的上漲',
-            draft=f'{name}{event}——這檔是 00991A 的{kind}持股（{w}%），'
-                  f'{"全市場主動 ETF 只有復華布局" if exclusive else "布局深度遠超同業"}。',
+            draft=f'{name}{event}——這檔是 {FUND_TICKER} 的{kind}持股（{w}%），'
+                  f'{PROFILE["universe_short"] + "只有復華布局" if exclusive else "布局深度遠超同業"}。',
             data={'stockid': stockid, 'pct_change': pct, 'weight_pct': w,
                   'exclusive': exclusive, 'new_high': new_high,
                   'others_max_weight': round(max(others), 3) if others else None}))
@@ -545,7 +660,9 @@ def rule_r4(ctx, cfg, state: DedupState):
     if ctx.cumret:
         dates = ctx.cumret['dates']
         series = {s['ticker']: s['pct'] for s in ctx.cumret['series']}
-        mine, bench = series.get(FUND_TICKER), series.get(c4['benchmark_ticker'])
+        bench_t = c4.get('benchmark_ticker')  # None＝此基金沒有可辯護的對標，不做連勝
+        mine = series.get(FUND_TICKER)
+        bench = series.get(bench_t) if bench_t else None
         if mine and bench:
             r_m = _daily_returns(dates, mine)
             r_b = _daily_returns(dates, bench)
@@ -559,12 +676,12 @@ def rule_r4(ctx, cfg, state: DedupState):
                 out.append(Candidate(
                     id=f'R4-streak{streak}-{today_iso}', rule='R4',
                     score=round(streak * sc['r4_streak_multiplier'], 2),
-                    fact=f'00991A 連續 {streak} 個交易日報酬勝過 0050',
+                    fact=f'{FUND_TICKER} 連續 {streak} 個交易日報酬勝過 {bench_t}',
                     angle='主動 vs 被動：連勝進行中',
-                    draft=f'00991A 已連續 {streak} 個交易日打敗 0050，'
+                    draft=f'{FUND_TICKER} 已連續 {streak} 個交易日打敗 {bench_t}，'
                           '主動選股的超額報酬正在累積。',
                     data={'streak_days': streak}))
-
+        if mine:
             valid = [(d, p) for d, p in zip(dates, mine) if p is not None]
             if len(valid) >= 2 and valid[-1][1] > max(p for _, p in valid[:-1]):
                 last_push = state.r4_new_high.get('last_high_date')
@@ -576,9 +693,9 @@ def rule_r4(ctx, cfg, state: DedupState):
                     out.append(Candidate(
                         id=f'R4-newhigh-{today_iso}', rule='R4',
                         score=sc['r4_new_high_score'],
-                        fact=f'00991A 含息累積報酬 +{round(valid[-1][1], 1)}%，創上市以來新高',
+                        fact=f'{FUND_TICKER} 含息累積報酬 +{round(valid[-1][1], 1)}%，創上市以來新高',
                         angle='績效里程碑：歷史新高',
-                        draft=f'00991A 含息累積報酬達 {round(valid[-1][1], 1)}%，'
+                        draft=f'{FUND_TICKER} 含息累積報酬達 {round(valid[-1][1], 1)}%，'
                               '改寫上市以來新高。',
                         data={'cum_return_pct': round(valid[-1][1], 2)},
                         state_patch={'r4_new_high': {'last_high_date': valid[-1][0]}}))
@@ -602,9 +719,9 @@ def rule_r4(ctx, cfg, state: DedupState):
             out.append(Candidate(
                 id=f'R4-rank-{kind}{rank}-{today_iso}', rule='R4',
                 score=round((c4['rank_top_n'] + 1 - rank) * sc['r4_rank_multiplier'], 2),
-                fact=f'00991A {label} 報酬在同業觀測群排名第 {rank}（{len(rows)} 檔）',
+                fact=f'{FUND_TICKER} {label} 報酬在同業觀測群排名第 {rank}（{len(rows)} 檔）',
                 angle='績效里程碑：排名領先',
-                draft=f'00991A {label} 績效衝上同業觀測群第 {rank} 名，主動管理實力發酵。',
+                draft=f'{FUND_TICKER} {label} 績效衝上同業觀測群第 {rank} 名，主動管理實力發酵。',
                 data={'kind': kind, 'rank': rank, 'universe_size': len(rows),
                       'pct': rows[rank - 1][pct_key]},
                 state_patch={'r4_rank': {kind: {'period': period, 'last_rank': rank}}}))
@@ -635,9 +752,9 @@ def rule_r5(ctx, cfg, state: DedupState):
         out.append(Candidate(
             id=f'R5-streak{streak}-{latest_date}', rule='R5',
             score=round(streak * sc['r5_streak_multiplier'], 2),
-            fact=f'00991A 連續 {streak} 個交易日淨申購',
+            fact=f'{FUND_TICKER} 連續 {streak} 個交易日淨申購',
             angle='資金用腳投票：買盤持續',
-            draft=f'00991A 連續 {streak} 個交易日獲淨申購，資金持續進場。',
+            draft=f'{FUND_TICKER} 連續 {streak} 個交易日獲淨申購，資金持續進場。',
             data={'streak_days': streak, 'data_date': latest_date},
             state_patch=dict(marker)))
 
@@ -652,9 +769,9 @@ def rule_r5(ctx, cfg, state: DedupState):
         out.append(Candidate(
             id=f'R5-aum{milestone}-{latest_date}', rule='R5',
             score=sc['r5_milestone_score'],
-            fact=f'00991A 規模首度突破 {milestone} 億元（{round(today_aum, 1)} 億）',
+            fact=f'{FUND_TICKER} 規模首度突破 {milestone} 億元（{round(today_aum, 1)} 億）',
             angle='規模里程碑',
-            draft=f'00991A 基金規模正式站上 {milestone} 億元大關。',
+            draft=f'{FUND_TICKER} 基金規模正式站上 {milestone} 億元大關。',
             data={'aum_billion': round(today_aum, 2), 'milestone': milestone,
                   'data_date': latest_date},
             state_patch={'r5_aum_milestones': today_tier, **marker}))
@@ -668,10 +785,10 @@ def rule_r5(ctx, cfg, state: DedupState):
             out.append(Candidate(
                 id=f'R5-top1-{latest_date}', rule='R5',
                 score=sc['r5_single_day_first_score'],
-                fact=f'00991A 單日淨申購 {round(my_net, 1)} 億元，'
+                fact=f'{FUND_TICKER} 單日淨申購 {round(my_net, 1)} 億元，'
                      f'觀測同業（{len(day_rows)} 檔）中第一',
                 angle='資金流向：同業吸金王',
-                draft=f'觀測同業中，00991A 以 {round(my_net, 1)} 億元淨申購居冠。',
+                draft=f'觀測同業中，{FUND_TICKER} 以 {round(my_net, 1)} 億元淨申購居冠。',
                 data={'net_sub_billion': round(my_net, 2),
                       'peer_count': len(day_rows), 'data_date': latest_date},
                 state_patch=dict(marker)))
@@ -717,7 +834,7 @@ CIRCLED = '①②③④⑤⑥⑦⑧⑨⑩'
 
 def build_message(selected, today: date, skipped_rules, cfg):
     m = cfg['message']
-    header = f'📈 00991A 今日亮點 {today.strftime("%Y/%m/%d")}（{len(selected)} 則）'
+    header = f'📈 {FUND_TICKER} {PROFILE["title_word"]} {today.strftime("%Y/%m/%d")}（{len(selected)} 則）'
     blocks = []
     for i, c in enumerate(selected):
         n = CIRCLED[i] if i < len(CIRCLED) else f'{i + 1}.'
@@ -760,7 +877,7 @@ def send_line_text(text):
 
 
 def send_line_alert(text):
-    send_line_text(f'🔧 highlight_scan 維運告警\n{text}')
+    send_line_text(f'🔧 highlight_scan({FUND_TICKER}) 維運告警\n{text}')
 
 
 def write_daily_json(today, candidates, selected, status, skipped, push, cfg):
@@ -808,11 +925,21 @@ def apply_state_patches(state: DedupState, selected):
 
 def main():
     override = os.environ.get('SCAN_DATE')
-    today = (datetime.strptime(override, '%Y-%m-%d').date() if override
-             else datetime.now(TZ).date())
-    print(f'highlight_scan for {today} (dry_run={DRY_RUN}, force={FORCE_RESEND})')
+    if override:
+        today = datetime.strptime(override, '%Y-%m-%d').date()
+    elif PROFILE['calendar'] == 'global':
+        # 清晨 06:00 送：掃的是「最近一個已收完的交易日」（台北日期的前一個平日，
+        # 美股在台北清晨收盤；週一早上掃到的是上週五）
+        today = datetime.now(TZ).date() - timedelta(days=1)
+        while today.weekday() >= 5:
+            today -= timedelta(days=1)
+    else:
+        today = datetime.now(TZ).date()
+    print(f'highlight_scan {FUND_TICKER} for {today} (dry_run={DRY_RUN}, force={FORCE_RESEND})')
 
-    if is_twse_trading_day(today) is False:
+    # 全球型基金各市場休市日不同（台股休市美股照開），不能用單一交易日曆擋；
+    # 沒有報價的市場由 fetch_quotes_yf 以「最後一根日 K 日期 ≠ 掃描日」自然略過。
+    if PROFILE['calendar'] == 'twse' and is_twse_trading_day(today) is False:
         print('Non-trading day, exit quietly.')
         return
 
