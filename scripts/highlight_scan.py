@@ -401,6 +401,7 @@ class ScanContext:
     peer_perf: list = None
     cumret: dict = None
     redemption: list = None
+    hist: object = None             # 個股日 K 線 callable（全球版文案算進場成本用）
 
 
 def build_context(today: date, cfg):
@@ -429,6 +430,7 @@ def build_context(today: date, cfg):
         # status 鍵沿用 'twse_mis'（= 報價來源狀態），RULES 的依賴宣告不用改。
         try:
             ctx.px_on, ctx.px_latest, ctx.high60, hist_fn = make_yf_fetchers(with_hist=True)
+            ctx.hist = hist_fn
             ctx.quotes = fetch_quotes_yf(top_ids, hist_fn, today)
             status['twse_mis'] = 'ok' if ctx.quotes is not None else 'fail'
             status['yahoo'] = 'ok' if ctx.quotes is not None else 'fail'
@@ -485,6 +487,72 @@ def _own_weights(ctx):
     return {h['c']: h['p'] for h in ctx.own['days'][ctx.own_days_sorted[-1]]}
 
 
+def _md(key):
+    """'2026/08/25' → '8/25'"""
+    d = datetime.strptime(key, '%Y/%m/%d')
+    return f'{d.month}/{d.day}'
+
+
+def holding_story(ctx, stockid):
+    """全球版文案的基金面敘述：進場/加碼時間軸、持有張數、占淨值、近似成本報酬。
+
+    - 目前這段持有的起點＝最後一次由 0 轉正的那天（中途清倉再買進＝「重新建倉」）。
+    - 加碼＝起點之後持股數增加的日子；減碼不寫（對外素材只講進場判斷）。
+    - 成本：每次買進量以「進場日 OHLC 四價平均」估（日 K 無法取得 VWAP，實測與同事手算
+      MRVL +17.8%/ALAB +10.1% 差 0.1~0.2 個百分點）；現價用掃描日收盤。
+    資料不足回 None（呼叫端退回簡短文案）。"""
+    if not ctx.own or not ctx.own_days_sorted:
+        return None
+    rows = []
+    for k in ctx.own_days_sorted:
+        h = next((x for x in ctx.own['days'][k] if x['c'] == stockid), None)
+        rows.append((k, h['q'] if h else 0, h['p'] if h else 0))
+    if rows[-1][1] <= 0:
+        return None
+    i = len(rows) - 1
+    while i > 0 and rows[i - 1][1] > 0:
+        i -= 1
+    entry_key = rows[i][0]
+    reentry = any(r[1] > 0 for r in rows[:i])  # 之前持有過、中途清倉才算重新建倉
+    buys, adds = [(entry_key, rows[i][1])], []
+    for (_, q0, _p0), (k1, q1, _p1) in zip(rows[i:], rows[i + 1:]):
+        if q1 > q0:
+            buys.append((k1, q1 - q0))
+            adds.append(k1)
+    last_key, last_q, last_w = rows[-1]
+
+    text = f'{FUND_TICKER} ' + (f'最近於 {_md(entry_key)} 重新建倉' if reentry
+                                else f'自 {_md(entry_key)} 首次買進')
+    if adds:
+        text += '，並於 ' + '、'.join(_md(k) for k in adds[-4:]) + ' 加碼'
+    text += f'；截至 {_md(last_key)} 持有 {last_q / 1000:g} 張、占淨值 {round(last_w, 3):g}%'
+
+    q = (ctx.quotes or {}).get(stockid)
+    if ctx.hist and q:
+        try:
+            h = ctx.hist(stockid)
+            if h is not None and len(h):
+                ohlc4 = (h['Open'] + h['High'] + h['Low'] + h['Close']) / 4
+                cost_sum = qty_sum = 0.0
+                for k, n in buys:
+                    px = float(ohlc4.loc[:datetime.strptime(k, '%Y/%m/%d').strftime('%Y-%m-%d')].iloc[-1])
+                    cost_sum += px * n
+                    qty_sum += n
+                if qty_sum and cost_sum:
+                    ret = (q['price'] / (cost_sum / qty_sum) - 1) * 100
+                    text += f'，報酬約 {ret:+.1f}%'
+        except Exception:
+            pass
+    return text + '。'
+
+
+def _story_draft(ctx, stockid, name, pct):
+    """同事寫法：『昨日 X（代碼）上漲約 N%。』＋ 基金進場/加碼/持有/報酬敘述。"""
+    story = holding_story(ctx, stockid) or f'{FUND_TICKER} 持有 {name}。'
+    pct_txt = f'上漲約 {pct:g}%' if pct is not None else '創 60 日新高'
+    return f'{PROFILE["day_word"]} {name}（{_xid(stockid)}）{pct_txt}。\n{story}'
+
+
 def rule_r1(ctx, cfg):
     c1 = cfg['r1']
     out = []
@@ -511,7 +579,8 @@ def rule_r1(ctx, cfg):
             score=round(q['pct'] * w, 2),
             fact=f'{name}{PROFILE["day_word"]} +{q["pct"]}%，{FUND_TICKER} 持股 {w}%{heavy_txt}',
             angle='重倉命中：主動選股的含金量',
-            draft=(f'{name}大漲 {q["pct"]}%，{FUND_TICKER} 以 {w}% 持股'
+            draft=(_story_draft(ctx, stockid, name, q['pct']) if PROFILE.get('story') else
+                   f'{name}大漲 {q["pct"]}%，{FUND_TICKER} 以 {w}% 持股'
                    + (f'居{PROFILE["universe_short"]}之冠，' if heaviest else '重倉布局，')
                    + '經理人重押命中。'),
             data={'stockid': stockid, 'pct_change': q['pct'], 'weight_pct': w,
@@ -557,8 +626,10 @@ def rule_r2(ctx, cfg):
             fact=f'{kind}持股 {name}{event}（{FUND_TICKER} 權重 {w}%，{PROFILE["others_label"]} '
                  f'{"皆未持有" if exclusive else "最高僅 " + str(round(max(others), 2)) + "%"}）',
             angle=f'{kind}股發威：別人沒有的上漲',
-            draft=f'{name}{event}——這檔是 {FUND_TICKER} 的{kind}持股（{w}%），'
-                  f'{PROFILE["universe_short"] + "只有復華布局" if exclusive else "布局深度遠超同業"}。',
+            draft=(_story_draft(ctx, stockid, name, pct if (pct or 0) >= c2['min_daily_pct'] else None)
+                   if PROFILE.get('story') else
+                   f'{name}{event}——這檔是 {FUND_TICKER} 的{kind}持股（{w}%），'
+                   f'{PROFILE["universe_short"] + "只有復華布局" if exclusive else "布局深度遠超同業"}。'),
             data={'stockid': stockid, 'pct_change': pct, 'weight_pct': w,
                   'exclusive': exclusive, 'new_high': new_high,
                   'others_max_weight': round(max(others), 3) if others else None}))

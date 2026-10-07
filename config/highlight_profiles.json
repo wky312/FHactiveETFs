@@ -42,6 +42,7 @@
     "universe_short": "海外主動 ETF 觀測群",
     "others_label": "其他海外主動 ETF",
     "out_subdir": "00409A",
+    "story": true,
     "cfg_overrides": {
       "r4": { "benchmark_ticker": null },
       "r5": { "peer_group": "overseas" }

@@ -446,3 +446,36 @@ def test_fetch_cross_from_repo_normalizes_suffix_and_skips_stale(tmp_path, monke
     assert set(got) == {hs.FUND_TICKER, 'P'}
     assert got[hs.FUND_TICKER]['w'] == {'NVDA': 5.0, '2454': 3.0}
     assert got['P']['w'] == {'NVDA': 2.0}
+
+
+def _story_ctx(rows, price=110.0):
+    """rows: [(day_key, qty, weight)]；單一股票 'XYZ US'。"""
+    import pandas as pd
+    ctx = make_ctx(quotes={'XYZ US': {'pct': 5.0, 'price': price}})
+    own_days(ctx, {k: ([{'c': 'XYZ US', 'q': q, 'm': 1, 'p': w}] if q else [])
+                   for k, q, w in rows})
+    idx = pd.to_datetime([k.replace('/', '-') for k, _, _ in rows])
+    df = pd.DataFrame({'Open': 100.0, 'High': 100.0, 'Low': 100.0, 'Close': 100.0}, index=idx)
+    ctx.hist = lambda sid: df
+    return ctx
+
+
+def test_holding_story_first_buy_with_adds_and_return():
+    ctx = _story_ctx([('2026/08/20', 0, 0), ('2026/08/21', 10000, 1.0),
+                      ('2026/08/25', 15000, 1.5), ('2026/08/27', 15000, 1.5)])
+    text = hs.holding_story(ctx, 'XYZ US')
+    assert '自 8/21 首次買進' in text and '8/25 加碼' in text   # 開頭先是空倉不算「重新建倉」
+    assert '持有 15 張' in text and '占淨值 1.5%' in text
+    assert '報酬約 +10.0%' in text                              # 成本 100 → 現價 110
+
+
+def test_holding_story_reentry_after_exit():
+    ctx = _story_ctx([('2026/08/20', 5000, 1.0), ('2026/08/21', 0, 0),
+                      ('2026/08/24', 8000, 1.2)])
+    text = hs.holding_story(ctx, 'XYZ US')
+    assert '最近於 8/24 重新建倉' in text and '加碼' not in text
+
+
+def test_holding_story_none_when_not_held():
+    ctx = _story_ctx([('2026/08/20', 5000, 1.0), ('2026/08/21', 0, 0)])
+    assert hs.holding_story(ctx, 'XYZ US') is None
