@@ -604,3 +604,31 @@ def test_fetch_all_peer_data_routes_every_etf_through_the_dispatcher(monkeypatch
     res = ds.fetch_all_peer_data(date(2026, 10, 2), etfs)
     assert seen == ['A', 'B', 'C', 'D', 'E'], seen
     assert all(r['data'] is not None for r in res)
+
+
+def _fake_now(monkeypatch, today):
+    class FakeDT(ds.datetime):
+        @classmethod
+        def now(cls, tz=None):
+            return ds.datetime(today.year, today.month, today.day, 14, 0, tzinfo=tz)
+    monkeypatch.setattr(ds, 'datetime', FakeDT)
+
+
+def test_is_twse_trading_day_today_before_fmtqik_posts(monkeypatch):
+    """14:00 時 FMTQIK 還沒有今天那列 → 不可判成非交易日（2026-10-07 漏推 LINE 的根因）。"""
+    _fake_now(monkeypatch, date(2026, 10, 7))
+    monkeypatch.setattr(ds, '_twse_trading_days', lambda y, m: {date(2026, 10, 1), date(2026, 10, 6)})
+    monkeypatch.setattr(ds, '_twse_holidays', lambda y: {date(2026, 10, 9), date(2026, 10, 10)})
+    assert ds.is_twse_trading_day(date(2026, 10, 7)) is True
+    assert ds.is_twse_trading_day(date(2026, 10, 9)) is False     # 國慶日
+    assert ds.is_twse_trading_day(date(2026, 10, 11)) is False    # 週日
+    assert ds.is_twse_trading_day(date(2026, 10, 2)) is False     # 已過去且不在 FMTQIK
+    assert ds.is_twse_trading_day(date(2026, 10, 6)) is True
+
+
+def test_is_twse_trading_day_today_unknown_when_holiday_api_down(monkeypatch):
+    """今天不在 FMTQIK、休市日表又連不到 → None（呼叫端照跑），不可回 False。"""
+    _fake_now(monkeypatch, date(2026, 10, 7))
+    monkeypatch.setattr(ds, '_twse_trading_days', lambda y, m: set())
+    monkeypatch.setattr(ds, '_twse_holidays', lambda y: None)
+    assert ds.is_twse_trading_day(date(2026, 10, 7)) is None

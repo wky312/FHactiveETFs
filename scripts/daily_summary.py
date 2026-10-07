@@ -130,10 +130,48 @@ def _twse_trading_days(year: int, month: int):
         return None
 
 
+_TWSE_HOLIDAY_CACHE: dict[int, set] = {}
+
+def _twse_holidays(year: int):
+    """Return set[date] of TWSE market-closed weekdays for `year`, or None if unreachable.
+    holidaySchedule 只給「當年度」；也列出「開始交易日／最後交易日」這類有開市的日子，要排除。"""
+    if year in _TWSE_HOLIDAY_CACHE:
+        return _TWSE_HOLIDAY_CACHE[year]
+    try:
+        url = 'https://www.twse.com.tw/rwd/zh/holidaySchedule/holidaySchedule?response=json'
+        r = get_with_retry(url, headers={'User-Agent': 'Mozilla/5.0'}, timeout=20)
+        d = r.json()
+        if str(d.get('stat', '')).lower() != 'ok':
+            return None
+        closed = set()
+        for row in d.get('data', []):
+            day = date.fromisoformat(str(row[0]))
+            if '交易日' in str(row[1]):   # 國曆新年開始交易日、農曆春節前最後交易日 → 有開市
+                continue
+            closed.add(day)
+        if not closed or next(iter(closed)).year != year:
+            return None                   # 查的不是當年度 → 無法判斷
+        _TWSE_HOLIDAY_CACHE[year] = closed
+        return closed
+    except Exception as e:
+        print(f'  TWSE holiday schedule fetch error {year}: {e}')
+        return None
+
+
 def is_twse_trading_day(d: date):
-    """True / False per TWSE; None if TWSE unreachable (caller must not hard-block on None)."""
+    """True / False per TWSE; None if TWSE unreachable (caller must not hard-block on None).
+
+    FMTQIK 是盤後資料：當天那列要收盤後一陣子才出現，14:00 查今天會「不在裡面」。
+    所以只有「已過去的日子」才拿 FMTQIK 判 False；今天（含）以後改用週末＋休市日表。"""
     days = _twse_trading_days(d.year, d.month)
-    return None if days is None else (d in days)
+    if days is not None and d in days:
+        return True
+    if days is not None and d < datetime.now(TZ).date():
+        return False
+    if d.weekday() >= 5:
+        return False
+    holidays = _twse_holidays(d.year)
+    return None if holidays is None else (d not in holidays)
 
 
 def latest_expected_trading_day(anchor: date, max_back: int = 10) -> date | None:
