@@ -1,0 +1,552 @@
+{
+  "date": "2026-10-06",
+  "scanned_at": "2026-10-07T10:32:07+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": null
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "overseas"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "ok",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R3-8046-20260909-t30",
+      "rule": "R3",
+      "score": 73.87,
+      "selected": true,
+      "fact": "9/9 加碼的 南亞電路 至今 +36.9%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/9 加碼南亞電路，至今上漲 36.9%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "8046",
+        "event_date": "2026-09-09",
+        "direction": "add",
+        "qty_change_pct": 92.8,
+        "weight_pct": 3.095,
+        "return_since_pct": 36.94,
+        "tier": 30
+      }
+    },
+    {
+      "id": "R3-AXTI US-20260916-t30",
+      "rule": "R3",
+      "score": 61.46,
+      "selected": true,
+      "fact": "9/16 加碼的 AXT公司 至今 +30.7%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/16 加碼AXT公司，至今上漲 30.7%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "AXTI US",
+        "event_date": "2026-09-16",
+        "direction": "add",
+        "qty_change_pct": 32.4,
+        "weight_pct": 1.171,
+        "return_since_pct": 30.73,
+        "tier": 30
+      }
+    },
+    {
+      "id": "R3-CRWD US-20260914-t15",
+      "rule": "R3",
+      "score": 36.94,
+      "selected": true,
+      "fact": "9/14 加碼的 Crowdstrike控股公司 至今 +18.5%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/14 加碼Crowdstrike控股公司，至今上漲 18.5%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "CRWD US",
+        "event_date": "2026-09-14",
+        "direction": "add",
+        "qty_change_pct": 17.0,
+        "weight_pct": 2.368,
+        "return_since_pct": 18.47,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-3653-20260911-t15",
+      "rule": "R3",
+      "score": 35.39,
+      "selected": true,
+      "fact": "9/11 加碼的 健策精密 至今 +17.7%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/11 加碼健策精密，至今上漲 17.7%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "3653",
+        "event_date": "2026-09-11",
+        "direction": "add",
+        "qty_change_pct": 21.6,
+        "weight_pct": 1.459,
+        "return_since_pct": 17.69,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-AMD US-20260918-t15",
+      "rule": "R3",
+      "score": 32.01,
+      "selected": true,
+      "fact": "9/18 加碼的 超微半導體公司 至今 +16.0%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/18 加碼超微半導體公司，至今上漲 16.0%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "AMD US",
+        "event_date": "2026-09-18",
+        "direction": "add",
+        "qty_change_pct": 160.0,
+        "weight_pct": 1.325,
+        "return_since_pct": 16.01,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-INTC US-20260914-t15",
+      "rule": "R3",
+      "score": 31.51,
+      "selected": false,
+      "fact": "9/14 加碼的 英特爾 至今 +15.8%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/14 加碼英特爾，至今上漲 15.8%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "INTC US",
+        "event_date": "2026-09-14",
+        "direction": "add",
+        "qty_change_pct": 100.0,
+        "weight_pct": 0.8,
+        "return_since_pct": 15.75,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-6976 JP-20261001-t15",
+      "rule": "R3",
+      "score": 31.19,
+      "selected": false,
+      "fact": "10/1 加碼的 太陽誘電 至今 +15.6%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 10/1 加碼太陽誘電，至今上漲 15.6%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "6976 JP",
+        "event_date": "2026-10-01",
+        "direction": "add",
+        "qty_change_pct": 75.0,
+        "weight_pct": 0.92,
+        "return_since_pct": 15.59,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-301377 CH-20260921-t8",
+      "rule": "R3",
+      "score": 29.0,
+      "selected": false,
+      "fact": "9/21 減碼 廣東鼎泰高科技術股份有限公司，其後回跌 14.5%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 9/21 提前減碼廣東鼎泰高科技術股份有限公司，隨後該股回跌 14.5%，成功避開損失。",
+      "data": {
+        "stockid": "301377 CH",
+        "event_date": "2026-09-21",
+        "direction": "trim",
+        "qty_change_pct": -23.6,
+        "weight_pct": 1.46,
+        "return_since_pct": -14.5,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-3026-20260911-t8",
+      "rule": "R3",
+      "score": 28.76,
+      "selected": false,
+      "fact": "9/11 加碼的 禾伸堂企 至今 +14.4%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/11 加碼禾伸堂企，至今上漲 14.4%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "3026",
+        "event_date": "2026-09-11",
+        "direction": "add",
+        "qty_change_pct": 12.6,
+        "weight_pct": 2.239,
+        "return_since_pct": 14.38,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-6981 JP-20260916-t8",
+      "rule": "R3",
+      "score": 27.56,
+      "selected": false,
+      "fact": "9/16 加碼的 村田製作所有限公司 至今 +13.8%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/16 加碼村田製作所有限公司，至今上漲 13.8%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "6981 JP",
+        "event_date": "2026-09-16",
+        "direction": "add",
+        "qty_change_pct": 100.0,
+        "weight_pct": 1.464,
+        "return_since_pct": 13.78,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-SPCX US-20260911-t8",
+      "rule": "R3",
+      "score": 27.39,
+      "selected": false,
+      "fact": "9/11 加碼的 太空探索科技公司 至今 +13.7%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/11 加碼太空探索科技公司，至今上漲 13.7%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "SPCX US",
+        "event_date": "2026-09-11",
+        "direction": "add",
+        "qty_change_pct": 19.0,
+        "weight_pct": 2.53,
+        "return_since_pct": 13.7,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-009150 KS-20260907-t8",
+      "rule": "R3",
+      "score": 26.82,
+      "selected": false,
+      "fact": "9/7 加碼的 三星電機 至今 +13.4%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/7 加碼三星電機，至今上漲 13.4%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "009150 KS",
+        "event_date": "2026-09-07",
+        "direction": "add",
+        "qty_change_pct": 15.1,
+        "weight_pct": 3.253,
+        "return_since_pct": 13.41,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-6510-20260923-t8",
+      "rule": "R3",
+      "score": 24.75,
+      "selected": false,
+      "fact": "9/23 減碼 中華精測，其後回跌 12.4%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 9/23 提前減碼中華精測，隨後該股回跌 12.4%，成功避開損失。",
+      "data": {
+        "stockid": "6510",
+        "event_date": "2026-09-23",
+        "direction": "trim",
+        "qty_change_pct": -32.3,
+        "weight_pct": 1.951,
+        "return_since_pct": -12.37,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R1-LITE US-2026-10-06",
+      "rule": "R1",
+      "score": 23.88,
+      "selected": false,
+      "fact": "魯門特姆控股公司昨日 +3.82%，00409A 持股 6.25%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "魯門特姆控股公司大漲 3.82%，00409A 以 6.25% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "LITE US",
+        "pct_change": 3.82,
+        "weight_pct": 6.25,
+        "is_heaviest_among_universe": false,
+        "universe_size": 10
+      }
+    },
+    {
+      "id": "R3-COHR US-20260909-t8",
+      "rule": "R3",
+      "score": 22.99,
+      "selected": false,
+      "fact": "9/9 加碼的 連貫公司 至今 +11.5%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/9 加碼連貫公司，至今上漲 11.5%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "COHR US",
+        "event_date": "2026-09-09",
+        "direction": "add",
+        "qty_change_pct": 100.0,
+        "weight_pct": 0.525,
+        "return_since_pct": 11.49,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-2360-20260910-t8",
+      "rule": "R3",
+      "score": 22.48,
+      "selected": false,
+      "fact": "9/10 加碼的 致茂電子 至今 +11.2%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/10 加碼致茂電子，至今上漲 11.2%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "2360",
+        "event_date": "2026-09-10",
+        "direction": "add",
+        "qty_change_pct": 21.9,
+        "weight_pct": 1.43,
+        "return_since_pct": 11.24,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-600183 CH-20260921-t8",
+      "rule": "R3",
+      "score": 22.3,
+      "selected": false,
+      "fact": "9/21 減碼 廣東生益科技股份有限公司，其後回跌 11.2%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 9/21 提前減碼廣東生益科技股份有限公司，隨後該股回跌 11.2%，成功避開損失。",
+      "data": {
+        "stockid": "600183 CH",
+        "event_date": "2026-09-21",
+        "direction": "trim",
+        "qty_change_pct": -40.3,
+        "weight_pct": 1.941,
+        "return_since_pct": -11.15,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-3189-20261001-t8",
+      "rule": "R3",
+      "score": 20.79,
+      "selected": false,
+      "fact": "10/1 加碼的 景碩科技 至今 +10.4%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 10/1 加碼景碩科技，至今上漲 10.4%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "3189",
+        "event_date": "2026-10-01",
+        "direction": "add",
+        "qty_change_pct": 22.8,
+        "weight_pct": 2.692,
+        "return_since_pct": 10.4,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-STX US-20261005-t8",
+      "rule": "R3",
+      "score": 18.37,
+      "selected": false,
+      "fact": "10/5 減碼 希捷科技控股公開有限公司，其後回跌 9.2%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/5 提前減碼希捷科技控股公開有限公司，隨後該股回跌 9.2%，成功避開損失。",
+      "data": {
+        "stockid": "STX US",
+        "event_date": "2026-10-05",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 1.061,
+        "return_since_pct": -9.18,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-6787 JP-20260930-t8",
+      "rule": "R3",
+      "score": 17.5,
+      "selected": false,
+      "fact": "9/30 加碼的 名幸電子股份有限公司 至今 +8.8%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/30 加碼名幸電子股份有限公司，至今上漲 8.8%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "6787 JP",
+        "event_date": "2026-09-30",
+        "direction": "add",
+        "qty_change_pct": 55.9,
+        "weight_pct": 0.849,
+        "return_since_pct": 8.75,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R1-BE US-2026-10-06",
+      "rule": "R1",
+      "score": 17.35,
+      "selected": false,
+      "fact": "布魯姆能源公司昨日 +3.19%，00409A 持股 5.44%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "布魯姆能源公司大漲 3.19%，00409A 以 5.44% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "BE US",
+        "pct_change": 3.19,
+        "weight_pct": 5.44,
+        "is_heaviest_among_universe": false,
+        "universe_size": 10
+      }
+    },
+    {
+      "id": "R3-NET US-20260915-t8",
+      "rule": "R3",
+      "score": 16.98,
+      "selected": false,
+      "fact": "9/15 加碼的 Cloudflare公司 至今 +8.5%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/15 加碼Cloudflare公司，至今上漲 8.5%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "NET US",
+        "event_date": "2026-09-15",
+        "direction": "add",
+        "qty_change_pct": 322.6,
+        "weight_pct": 0.805,
+        "return_since_pct": 8.49,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-NTRA US-20260918-t8",
+      "rule": "R3",
+      "score": 16.93,
+      "selected": false,
+      "fact": "9/18 加碼的 那提拉公司 至今 +8.5%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/18 加碼那提拉公司，至今上漲 8.5%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "NTRA US",
+        "event_date": "2026-09-18",
+        "direction": "add",
+        "qty_change_pct": 266.7,
+        "weight_pct": 0.74,
+        "return_since_pct": 8.46,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-WPM US-20260915-t8",
+      "rule": "R3",
+      "score": 16.49,
+      "selected": false,
+      "fact": "9/15 減碼 惠頓貴金屬公司，其後回跌 8.2%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 9/15 提前減碼惠頓貴金屬公司，隨後該股回跌 8.2%，成功避開損失。",
+      "data": {
+        "stockid": "WPM US",
+        "event_date": "2026-09-15",
+        "direction": "trim",
+        "qty_change_pct": -31.5,
+        "weight_pct": 1.998,
+        "return_since_pct": -8.25,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-ALAB US-20260923-t8",
+      "rule": "R3",
+      "score": 16.28,
+      "selected": false,
+      "fact": "9/23 加碼的 Astera實驗室公司 至今 +8.1%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/23 加碼Astera實驗室公司，至今上漲 8.1%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "ALAB US",
+        "event_date": "2026-09-23",
+        "direction": "add",
+        "qty_change_pct": 33.3,
+        "weight_pct": 1.852,
+        "return_since_pct": 8.14,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R2-ALAB US-2026-10-06",
+      "rule": "R2",
+      "score": 15.92,
+      "selected": false,
+      "fact": "顯著超配持股 Astera實驗室公司昨日 +7.58%（00409A 權重 2.1%，其他海外主動 ETF 最高僅 0.77%）",
+      "angle": "顯著超配股發威：別人沒有的上漲",
+      "draft": "Astera實驗室公司昨日 +7.58%——這檔是 00409A 的顯著超配持股（2.1%），布局深度遠超同業。",
+      "data": {
+        "stockid": "ALAB US",
+        "pct_change": 7.58,
+        "weight_pct": 2.1,
+        "exclusive": false,
+        "new_high": true,
+        "others_max_weight": 0.767
+      }
+    },
+    {
+      "id": "R4-newhigh-2026-10-06",
+      "rule": "R4",
+      "score": 15.0,
+      "selected": false,
+      "fact": "00409A 含息累積報酬 +4.5%，創上市以來新高",
+      "angle": "績效里程碑：歷史新高",
+      "draft": "00409A 含息累積報酬達 4.5%，改寫上市以來新高。",
+      "data": {
+        "cum_return_pct": 4.51
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 515,
+    "line_status": 200,
+    "candidate_count": 27,
+    "selected_count": 5
+  }
+}
