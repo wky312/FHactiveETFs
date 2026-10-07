@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-07T10:32:07+08:00",
+  "updated_at": "2026-10-07T10:44:03+08:00",
   "pushed_dates": [
     "2026-10-06"
   ],
@@ -23,6 +23,26 @@
     "AMD US|2026/09/18": {
       "direction": "add",
       "tier_pushed": 15
+    },
+    "AXTI US|2026/09/11": {
+      "direction": "add",
+      "tier_pushed": 15
+    },
+    "3653|2026/09/14": {
+      "direction": "add",
+      "tier_pushed": 15
+    },
+    "INTC US|2026/09/14": {
+      "direction": "add",
+      "tier_pushed": 15
+    },
+    "6976 JP|2026/10/01": {
+      "direction": "add",
+      "tier_pushed": 15
+    },
+    "301377 CH|2026/09/21": {
+      "direction": "trim",
+      "tier_pushed": 8
     }
   },
   "r4_rank": {},
