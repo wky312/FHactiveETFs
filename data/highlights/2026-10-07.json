@@ -1,6 +1,6 @@
 {
   "date": "2026-10-07",
-  "scanned_at": "2026-10-07T18:57:08+08:00",
+  "scanned_at": "2026-10-07T20:51:55+08:00",
   "config_snapshot": {
     "r1": {
       "min_daily_pct": 3.0,
@@ -65,39 +65,21 @@
   "skipped_rules": [],
   "candidates": [
     {
-      "id": "R3-1303-20260917-t30",
+      "id": "R3-1303-20260930-t15",
       "rule": "R3",
-      "score": 66.1,
+      "score": 45.79,
       "selected": true,
-      "fact": "9/17 加碼的 南亞塑膠 至今 +33.1%",
+      "fact": "9/30 加碼的 南亞塑膠 至今 +22.9%",
       "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 9/17 加碼南亞塑膠，至今上漲 33.1%，展現主動管理的判斷力。",
+      "draft": "經理人 9/30 加碼南亞塑膠，至今上漲 22.9%，展現主動管理的判斷力。",
       "data": {
         "stockid": "1303",
-        "event_date": "2026-09-17",
+        "event_date": "2026-09-30",
         "direction": "add",
-        "qty_change_pct": 100.0,
-        "weight_pct": 2.099,
-        "return_since_pct": 33.05,
-        "tier": 30
-      }
-    },
-    {
-      "id": "R3-6505-20261001-t8",
-      "rule": "R3",
-      "score": 27.18,
-      "selected": true,
-      "fact": "10/1 加碼的 台塑石化 至今 +13.6%",
-      "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 10/1 加碼台塑石化，至今上漲 13.6%，展現主動管理的判斷力。",
-      "data": {
-        "stockid": "6505",
-        "event_date": "2026-10-01",
-        "direction": "add",
-        "qty_change_pct": 112.5,
-        "weight_pct": 1.008,
-        "return_since_pct": 13.59,
-        "tier": 8
+        "qty_change_pct": 14.3,
+        "weight_pct": 2.62,
+        "return_since_pct": 22.9,
+        "tier": 15
       }
     },
     {
@@ -118,12 +100,10 @@
     }
   ],
   "push": {
-    "attempted": true,
-    "sent": true,
-    "reason": null,
-    "message_chars": 326,
-    "line_status": 200,
-    "candidate_count": 3,
-    "selected_count": 3
+    "attempted": false,
+    "sent": false,
+    "reason": "idempotent_rerun",
+    "candidate_count": 2,
+    "selected_count": 2
   }
 }
