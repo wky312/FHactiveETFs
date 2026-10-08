@@ -1,6 +1,6 @@
 {
   "date": "2026-10-08",
-  "scanned_at": "2026-10-08T14:01:32+08:00",
+  "scanned_at": "2026-10-08T21:00:15+08:00",
   "config_snapshot": {
     "r1": {
       "min_daily_pct": 3.0,
@@ -54,7 +54,7 @@
     }
   },
   "sources": {
-    "own_holdings": "stale",
+    "own_holdings": "ok",
     "attr_supabase": "ok",
     "twse_mis": "ok",
     "yahoo": "ok",
@@ -65,65 +65,27 @@
   "skipped_rules": [],
   "candidates": [
     {
-      "id": "R3-1303-20260930-t15",
-      "rule": "R3",
-      "score": 42.66,
-      "selected": true,
-      "fact": "9/30 加碼的 南亞塑膠 至今 +21.3%",
-      "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 9/30 加碼南亞塑膠，至今上漲 21.3%，展現主動管理的判斷力。",
-      "data": {
-        "stockid": "1303",
-        "event_date": "2026-09-30",
-        "direction": "add",
-        "qty_change_pct": 14.3,
-        "weight_pct": 2.62,
-        "return_since_pct": 21.33,
-        "tier": 15
-      }
-    },
-    {
-      "id": "R3-6505-20261001-t15",
-      "rule": "R3",
-      "score": 34.61,
-      "selected": true,
-      "fact": "10/1 加碼的 台塑石化 至今 +17.3%",
-      "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 10/1 加碼台塑石化，至今上漲 17.3%，展現主動管理的判斷力。",
-      "data": {
-        "stockid": "6505",
-        "event_date": "2026-10-01",
-        "direction": "add",
-        "qty_change_pct": 112.5,
-        "weight_pct": 1.008,
-        "return_since_pct": 17.3,
-        "tier": 15
-      }
-    },
-    {
       "id": "R1-2408-2026-10-08",
       "rule": "R1",
-      "score": 26.56,
+      "score": 27.93,
       "selected": true,
-      "fact": "南亞科技今日 +3.5%，00991A 持股 7.59%、為全市場 17 檔主動 ETF中持有最重",
+      "fact": "南亞科技今日 +3.5%，00991A 持股 7.98%、為全市場 16 檔主動 ETF中持有最重",
       "angle": "重倉命中：主動選股的含金量",
-      "draft": "南亞科技大漲 3.5%，00991A 以 7.59% 持股居全市場主動 ETF之冠，經理人重押命中。",
+      "draft": "南亞科技大漲 3.5%，00991A 以 7.98% 持股居全市場主動 ETF之冠，經理人重押命中。",
       "data": {
         "stockid": "2408",
         "pct_change": 3.5,
-        "weight_pct": 7.59,
+        "weight_pct": 7.98,
         "is_heaviest_among_universe": true,
-        "universe_size": 17
+        "universe_size": 16
       }
     }
   ],
   "push": {
-    "attempted": true,
-    "sent": true,
-    "reason": null,
-    "message_chars": 353,
-    "line_status": 200,
-    "candidate_count": 3,
-    "selected_count": 3
+    "attempted": false,
+    "sent": false,
+    "reason": "idempotent_rerun",
+    "candidate_count": 1,
+    "selected_count": 1
   }
 }
