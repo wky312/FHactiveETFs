@@ -43,6 +43,7 @@ jobs:
       - name: Run highlight scan (00409A)
         env:
           FUND_TICKER:          '00409A'
+          MARKET_SCOPE:         'us'
           LINE_CHANNEL_TOKEN:   ${{ secrets.LINE_CHANNEL_TOKEN || secrets.LINE_CHANNEL_ACCESS_TOKEN }}
           LINE_TO:              ${{ secrets.LINE_TO || secrets.LINE_USER_ID }}
           SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}

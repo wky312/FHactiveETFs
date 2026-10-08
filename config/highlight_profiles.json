@@ -1,6 +1,5 @@
 {
-  "_doc": "亮點引擎的基金設定檔。FUND_TICKER 環境變數選用其中一筆（預設 00991A）。cfg_overrides 會深層合併進 highlight_thresholds.json。",
-
+  "_doc": "亮點引擎的基金設定檔。FUND_TICKER 環境變數選用其中一筆（預設 00991A）。cfg_overrides 會深層合併進 highlight_thresholds.json。 鍵名 'TICKER:scope' 對應環境變數 MARKET_SCOPE；market_filter 限定個股所屬市場（us＝美股、asia＝台/日/韓），rules 限定啟用的規則（未寫＝全部）。",
   "00991A": {
     "holdings_file": "ETF23.json",
     "calendar": "twse",
@@ -16,8 +15,7 @@
     "out_subdir": "",
     "cfg_overrides": {}
   },
-
-  "00409A": {
+  "00409A:us": {
     "holdings_file": "ETF26.json",
     "calendar": "global",
     "quote_source": "yahoo",
@@ -37,15 +35,68 @@
     "peer_perf_group": "overseas",
     "cumret_group": "overseas",
     "day_word": "昨日",
-    "title_word": "昨日亮點",
+    "title_word": "美股亮點",
     "universe_fact": "海外主動 ETF 觀測群 {n} 檔",
     "universe_short": "海外主動 ETF 觀測群",
     "others_label": "其他海外主動 ETF",
     "out_subdir": "00409A",
     "story": true,
     "cfg_overrides": {
-      "r4": { "benchmark_ticker": null },
-      "r5": { "peer_group": "overseas" }
-    }
+      "r4": {
+        "benchmark_ticker": null
+      },
+      "r5": {
+        "peer_group": "overseas"
+      }
+    },
+    "market_filter": "us",
+    "rules": [
+      "R1",
+      "R2",
+      "R3"
+    ]
+  },
+  "00409A:asia": {
+    "holdings_file": "ETF26.json",
+    "calendar": "twse",
+    "quote_source": "yahoo",
+    "cross_source": "repo",
+    "cross_files": {
+      "00409A": "ETF26.json",
+      "00998A": "ETF24.json",
+      "00402A": "00402A.json",
+      "00983A": "00983A.json",
+      "00986A": "00986A.json",
+      "00988A": "00988A.json",
+      "00989A": "00989A.json",
+      "00990A": "00990A.json",
+      "00997A": "00997A.json",
+      "00411A": "00411A.json"
+    },
+    "peer_perf_group": "overseas",
+    "cumret_group": "overseas",
+    "day_word": "今日",
+    "title_word": "台日韓股亮點",
+    "universe_fact": "海外主動 ETF 觀測群 {n} 檔",
+    "universe_short": "海外主動 ETF 觀測群",
+    "others_label": "其他海外主動 ETF",
+    "out_subdir": "00409A-asia",
+    "story": true,
+    "cfg_overrides": {
+      "r4": {
+        "benchmark_ticker": null
+      },
+      "r5": {
+        "peer_group": "overseas"
+      }
+    },
+    "market_filter": "asia",
+    "rules": [
+      "R1",
+      "R2",
+      "R3",
+      "R4",
+      "R5"
+    ]
   }
 }

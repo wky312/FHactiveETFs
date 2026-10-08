@@ -1,0 +1,66 @@
+name: Daily Highlight Scan 00409A Asia
+
+# 15:00（台北）送：00409A 的台/日/韓股亮點（含基金層級的 R4 績效、R5 申贖），掃「當日」收盤。
+# 15:00 才送是因為日、韓股台北 14:30 才收盤。準時靠 cron-job.org 直打 workflow_dispatch
+# （週一到週五 15:00 Asia/Taipei）；下面的 GH schedule 只是備援，腳本有同日冪等鎖不會重複推播。
+on:
+  schedule:
+    - cron: '0 7 * * 1-5'    # UTC 週一~五 07:00 ＝ 台北 15:00（台日韓皆已收盤）
+  workflow_dispatch:
+    inputs:
+      force:
+        description: '強制重推（略過同日冪等鎖，調整閾值後重跑用）'
+        required: false
+        default: 'false'
+      scan_date:
+        description: '指定掃描日 YYYY-MM-DD（留空＝今日）'
+        required: false
+        default: ''
+
+permissions:
+  contents: write
+
+concurrency:
+  group: highlight-00409a-asia
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: pip install requests pytz yfinance
+
+      - name: Run highlight scan (00409A asia)
+        env:
+          FUND_TICKER:          '00409A'
+          MARKET_SCOPE:         'asia'
+          LINE_CHANNEL_TOKEN:   ${{ secrets.LINE_CHANNEL_TOKEN || secrets.LINE_CHANNEL_ACCESS_TOKEN }}
+          LINE_TO:              ${{ secrets.LINE_TO || secrets.LINE_USER_ID }}
+          SUPABASE_URL:         ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          FORCE_RESEND:         ${{ github.event.inputs.force }}
+          SCAN_DATE:            ${{ github.event.inputs.scan_date }}
+        run: python scripts/highlight_scan.py
+
+      - name: Commit results
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain data/highlights/00409A-asia)" ]; then
+            git add data/highlights/00409A-asia
+            git commit -m "data: highlight scan 00409A asia $(date -u +%Y-%m-%d)"
+            git pull --rebase origin master
+            git push
+          else
+            echo "No changes."
+          fi

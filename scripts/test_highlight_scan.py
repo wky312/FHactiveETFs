@@ -479,3 +479,11 @@ def test_holding_story_reentry_after_exit():
 def test_holding_story_none_when_not_held():
     ctx = _story_ctx([('2026/08/20', 5000, 1.0), ('2026/08/21', 0, 0)])
     assert hs.holding_story(ctx, 'XYZ US') is None
+
+
+def test_market_of_splits_us_and_asia():
+    assert hs._market_of('NVDA US') == 'us'
+    assert hs._market_of('2454') == 'asia'          # 台股裸碼
+    assert hs._market_of('6857 JP') == 'asia'
+    assert hs._market_of('000660 KS') == 'asia'
+    assert hs._market_of('AAL LN') == 'other'       # 不在美股/台日韓兩份亮點內

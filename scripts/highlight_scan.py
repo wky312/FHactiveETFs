@@ -35,7 +35,28 @@ def _load_profile(ticker):
     return profiles[ticker]
 
 
-PROFILE = _load_profile(FUND_TICKER)
+MARKET_SCOPE = os.environ.get('MARKET_SCOPE', '')
+PROFILE = _load_profile(f'{FUND_TICKER}:{MARKET_SCOPE}' if MARKET_SCOPE else FUND_TICKER)
+
+# 個股所屬市場（依復華 stockid 的彭博後綴；台股是裸碼）。market_filter 用它切分「美股 / 台日韓」兩份亮點。
+_US_SUFFIX = {'US', 'UW', 'UN', 'UA'}
+_ASIA_SUFFIX = {'JP', 'JT', 'KS', 'KP', 'TT'}
+
+
+def _market_of(stockid):
+    parts = str(stockid).strip().split(' ')
+    if len(parts) == 1:
+        return 'asia'  # 裸碼＝台股
+    if parts[-1] in _US_SUFFIX:
+        return 'us'
+    if parts[-1] in _ASIA_SUFFIX:
+        return 'asia'
+    return 'other'
+
+
+def _in_scope(stockid):
+    flt = PROFILE.get('market_filter')
+    return flt is None or _market_of(stockid) == flt
 
 HOLDINGS_PATH = os.path.join(ROOT, 'data', 'holdings', PROFILE['holdings_file'])
 # 每檔基金各自一份輸出與去重狀態（pushed_dates 不可共用，否則一檔推過另一檔就被擋）
@@ -423,7 +444,8 @@ def build_context(today: date, cfg):
     top_ids = []
     if ctx.own and ctx.own_days_sorted:
         latest = ctx.own['days'][ctx.own_days_sorted[-1]]
-        top_ids = [h['c'] for h in sorted(latest, key=lambda x: -x['p'])][:30]
+        top_ids = [h['c'] for h in sorted(latest, key=lambda x: -x['p'])
+                   if _in_scope(h['c'])][:30]
 
     if PROFILE['quote_source'] == 'yahoo':
         # 全球型：報價一律走 Yahoo（台/美/日/韓），用同一份日 K 快取供 R2/R3 重複使用。
@@ -431,7 +453,12 @@ def build_context(today: date, cfg):
         try:
             ctx.px_on, ctx.px_latest, ctx.high60, hist_fn = make_yf_fetchers(with_hist=True)
             ctx.hist = hist_fn
-            ctx.quotes = fetch_quotes_yf(top_ids, hist_fn, today)
+            quote_ids = top_ids
+            now = datetime.now(TZ)
+            if today == now.date() and (now.hour, now.minute) < (14, 45):
+                # 日/韓股台北 14:30 才收盤；之前 Yahoo 的當日 K 棒還是盤中價，不能當收盤漲跌幅
+                quote_ids = [c for c in top_ids if _market_of(c) != 'asia' or ' ' not in c]
+            ctx.quotes = fetch_quotes_yf(quote_ids, hist_fn, today)
             status['twse_mis'] = 'ok' if ctx.quotes is not None else 'fail'
             status['yahoo'] = 'ok' if ctx.quotes is not None else 'fail'
         except Exception:
@@ -556,7 +583,7 @@ def _story_draft(ctx, stockid, name, pct):
 def rule_r1(ctx, cfg):
     c1 = cfg['r1']
     out = []
-    weights = _own_weights(ctx)
+    weights = {k: v for k, v in _own_weights(ctx).items() if _in_scope(k)}
     top = sorted(weights.items(), key=lambda kv: -kv[1])[:c1['top_n_holdings']]
     for stockid, w in top:
         q = (ctx.quotes or {}).get(stockid)
@@ -599,6 +626,8 @@ def rule_r2(ctx, cfg):
     raw_by_xid = {_xid(c): c for c in _own_weights(ctx)}
     for key, w in mine.items():
         stockid = raw_by_xid.get(key, key)
+        if not _in_scope(stockid):
+            continue
         others = [snap['w'][key] for t, snap in ctx.cross.items()
                   if t != FUND_TICKER and key in snap['w']]
         exclusive = not others
@@ -671,6 +700,8 @@ def rule_r3(ctx, cfg, state: DedupState):
     if not ctx.px_on or not ctx.px_latest:
         return out
     for stockid, event_key, direction, dq_pct, w in _r3_events(ctx, cfg):
+        if not _in_scope(stockid):
+            continue
         event_d = datetime.strptime(event_key, '%Y/%m/%d').date()
         p0 = ctx.px_on(stockid, event_d)
         p1 = ctx.px_latest(stockid)
@@ -878,6 +909,8 @@ RULES = [
 def run_rules(ctx, status, cfg, state):
     candidates, skipped = [], []
     for name, fn, needs, wants_state in RULES:
+        if PROFILE.get('rules') and name not in PROFILE['rules']:
+            continue
         if any(status.get(n) == 'fail' for n in needs):
             skipped.append(name)
             continue
@@ -887,8 +920,10 @@ def run_rules(ctx, status, cfg, state):
         except Exception as e:
             print(f'  {name} rule error: {e}')
             skipped.append(name)
-    if status.get('site_peer_performance') == 'fail' and \
-            status.get('site_cumulative_return') == 'fail' and 'R4' not in skipped:
+    r4_enabled = not PROFILE.get('rules') or 'R4' in PROFILE['rules']
+    if (r4_enabled and 'R4' not in skipped
+            and status.get('site_peer_performance') == 'fail'
+            and status.get('site_cumulative_return') == 'fail'):
         skipped.append('R4')
     return candidates, skipped
 
