@@ -1,6 +1,6 @@
 {
   "date": "2026-10-07",
-  "scanned_at": "2026-10-08T06:01:08+08:00",
+  "scanned_at": "2026-10-08T09:28:48+08:00",
   "config_snapshot": {
     "r1": {
       "min_daily_pct": 3.0,
@@ -65,127 +65,83 @@
   "skipped_rules": [],
   "candidates": [
     {
-      "id": "R2-3026-2026-10-07",
-      "rule": "R2",
-      "score": 28.92,
+      "id": "R1-LITE US-2026-10-07",
+      "rule": "R1",
+      "score": NaN,
       "selected": true,
-      "fact": "獨門持股 禾伸堂企昨日 +5.4%（00409A 權重 3.57%，其他海外主動 ETF 皆未持有）",
-      "angle": "獨門股發威：別人沒有的上漲",
-      "draft": "昨日 禾伸堂企（3026）上漲約 5.4%。\n00409A 自 8/31 首次買進，並於 9/7、9/11、9/16、9/17 加碼；截至 10/6 持有 659 張、占淨值 3.571%，報酬約 +11.8%。",
+      "fact": "魯門特姆控股公司昨日 +nan%，00409A 持股 6.25%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 魯門特姆控股公司（LITE）上漲約 nan%。\n00409A 自 8/21 首次買進，並於 8/31、9/1、9/10、9/18 加碼；截至 10/6 持有 25.5 張、占淨值 6.255%，報酬約 +nan%。",
       "data": {
-        "stockid": "3026",
-        "pct_change": 5.4,
-        "weight_pct": 3.57,
-        "exclusive": true,
-        "new_high": false,
-        "others_max_weight": null
+        "stockid": "LITE US",
+        "pct_change": NaN,
+        "weight_pct": 6.25,
+        "is_heaviest_among_universe": false,
+        "universe_size": 10
       }
     },
     {
-      "id": "R3-6981 JP-20260916-t8",
-      "rule": "R3",
-      "score": 28.51,
+      "id": "R1-BE US-2026-10-07",
+      "rule": "R1",
+      "score": NaN,
       "selected": true,
-      "fact": "9/16 加碼的 村田製作所有限公司 至今 +14.3%",
-      "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 9/16 加碼村田製作所有限公司，至今上漲 14.3%，展現主動管理的判斷力。",
+      "fact": "布魯姆能源公司昨日 +nan%，00409A 持股 5.44%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 布魯姆能源公司（BE）上漲約 nan%。\n00409A 自 8/26 首次買進，並於 8/28、9/4、9/8、9/17 加碼；截至 10/6 持有 85 張、占淨值 5.441%，報酬約 +nan%。",
       "data": {
-        "stockid": "6981 JP",
-        "event_date": "2026-09-16",
-        "direction": "add",
-        "qty_change_pct": 100.0,
-        "weight_pct": 1.464,
-        "return_since_pct": 14.26,
-        "tier": 8
+        "stockid": "BE US",
+        "pct_change": NaN,
+        "weight_pct": 5.44,
+        "is_heaviest_among_universe": false,
+        "universe_size": 10
       }
     },
     {
-      "id": "R3-6510-20260923-t8",
-      "rule": "R3",
-      "score": 26.19,
+      "id": "R1-PLTR US-2026-10-07",
+      "rule": "R1",
+      "score": NaN,
       "selected": true,
-      "fact": "9/23 減碼 中華精測，其後回跌 13.1%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 9/23 提前減碼中華精測，隨後該股回跌 13.1%，成功避開損失。",
+      "fact": "帕蘭提爾科技公司昨日 +nan%，00409A 持股 4.8%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 帕蘭提爾科技公司（PLTR）上漲約 nan%。\n00409A 自 8/20 首次買進，並於 8/28、8/31、9/1、9/4 加碼；截至 10/6 持有 115.5 張、占淨值 4.801%，報酬約 +nan%。",
       "data": {
-        "stockid": "6510",
-        "event_date": "2026-09-23",
-        "direction": "trim",
-        "qty_change_pct": -32.3,
-        "weight_pct": 1.951,
-        "return_since_pct": -13.09,
-        "tier": 8
+        "stockid": "PLTR US",
+        "pct_change": NaN,
+        "weight_pct": 4.8,
+        "is_heaviest_among_universe": false,
+        "universe_size": 10
       }
     },
     {
-      "id": "R3-301377 CH-20260923-t8",
-      "rule": "R3",
-      "score": 25.74,
+      "id": "R1-MU US-2026-10-07",
+      "rule": "R1",
+      "score": NaN,
       "selected": true,
-      "fact": "9/23 減碼 廣東鼎泰高科技術股份有限公司，其後回跌 12.9%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 9/23 提前減碼廣東鼎泰高科技術股份有限公司，隨後該股回跌 12.9%，成功避開損失。",
+      "fact": "美光科技公司昨日 +nan%，00409A 持股 4.48%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 美光科技公司（MU）上漲約 nan%。\n00409A 自 8/21 首次買進，並於 8/27、8/28、8/31、9/2 加碼；截至 10/6 持有 19.8 張、占淨值 4.48%，報酬約 +nan%。",
       "data": {
-        "stockid": "301377 CH",
-        "event_date": "2026-09-23",
-        "direction": "trim",
-        "qty_change_pct": -100.0,
-        "weight_pct": 1.072,
-        "return_since_pct": -12.87,
-        "tier": 8
+        "stockid": "MU US",
+        "pct_change": NaN,
+        "weight_pct": 4.48,
+        "is_heaviest_among_universe": false,
+        "universe_size": 10
       }
     },
     {
-      "id": "R3-3026-20260911-t8",
-      "rule": "R3",
-      "score": 25.54,
+      "id": "R1-NVDA US-2026-10-07",
+      "rule": "R1",
+      "score": NaN,
       "selected": true,
-      "fact": "9/11 加碼的 禾伸堂企 至今 +12.8%",
-      "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 9/11 加碼禾伸堂企，至今上漲 12.8%，展現主動管理的判斷力。",
+      "fact": "輝達公司昨日 +nan%，00409A 持股 4.14%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 輝達公司（NVDA）上漲約 nan%。\n00409A 自 8/24 首次買進，並於 8/26、8/28、9/3、9/4 加碼；截至 10/6 持有 80 張、占淨值 4.142%，報酬約 +nan%。",
       "data": {
-        "stockid": "3026",
-        "event_date": "2026-09-11",
-        "direction": "add",
-        "qty_change_pct": 12.6,
-        "weight_pct": 2.239,
-        "return_since_pct": 12.77,
-        "tier": 8
-      }
-    },
-    {
-      "id": "R2-3189-2026-10-07",
-      "rule": "R2",
-      "score": 24.83,
-      "selected": false,
-      "fact": "獨門持股 景碩科技創 60 日新高（00409A 權重 3.31%，其他海外主動 ETF 皆未持有）",
-      "angle": "獨門股發威：別人沒有的上漲",
-      "draft": "昨日 景碩科技（3189）創 60 日新高。\n00409A 自 8/27 首次買進，並於 9/2、10/1、10/5 加碼；截至 10/6 持有 454 張、占淨值 3.307%，報酬約 +19.7%。",
-      "data": {
-        "stockid": "3189",
-        "pct_change": 2.8,
-        "weight_pct": 3.31,
-        "exclusive": true,
-        "new_high": true,
-        "others_max_weight": null
-      }
-    },
-    {
-      "id": "R3-INTC US-20260916-t8",
-      "rule": "R3",
-      "score": 23.89,
-      "selected": false,
-      "fact": "9/16 加碼的 英特爾 至今 +11.9%",
-      "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 9/16 加碼英特爾，至今上漲 11.9%，展現主動管理的判斷力。",
-      "data": {
-        "stockid": "INTC US",
-        "event_date": "2026-09-16",
-        "direction": "add",
-        "qty_change_pct": 133.3,
-        "weight_pct": 1.972,
-        "return_since_pct": 11.94,
-        "tier": 8
+        "stockid": "NVDA US",
+        "pct_change": NaN,
+        "weight_pct": 4.14,
+        "is_heaviest_among_universe": false,
+        "universe_size": 10
       }
     },
     {
@@ -207,196 +163,110 @@
       }
     },
     {
-      "id": "R3-WPM US-20260915-t8",
+      "id": "R3-6981 JP-20260924-t8",
       "rule": "R3",
-      "score": 21.77,
+      "score": 19.7,
       "selected": false,
-      "fact": "9/15 減碼 惠頓貴金屬公司，其後回跌 10.9%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 9/15 提前減碼惠頓貴金屬公司，隨後該股回跌 10.9%，成功避開損失。",
-      "data": {
-        "stockid": "WPM US",
-        "event_date": "2026-09-15",
-        "direction": "trim",
-        "qty_change_pct": -31.5,
-        "weight_pct": 1.998,
-        "return_since_pct": -10.89,
-        "tier": 8
-      }
-    },
-    {
-      "id": "R3-SPCX US-20260911-t8",
-      "rule": "R3",
-      "score": 21.68,
-      "selected": false,
-      "fact": "9/11 加碼的 太空探索科技公司 至今 +10.8%",
+      "fact": "9/24 加碼的 村田製作所有限公司 至今 +9.9%",
       "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 9/11 加碼太空探索科技公司，至今上漲 10.8%，展現主動管理的判斷力。",
+      "draft": "經理人 9/24 加碼村田製作所有限公司，至今上漲 9.9%，展現主動管理的判斷力。",
       "data": {
-        "stockid": "SPCX US",
-        "event_date": "2026-09-11",
+        "stockid": "6981 JP",
+        "event_date": "2026-09-24",
         "direction": "add",
-        "qty_change_pct": 19.0,
-        "weight_pct": 2.53,
-        "return_since_pct": 10.84,
-        "tier": 8
-      }
-    },
-    {
-      "id": "R3-6787 JP-20260930-t8",
-      "rule": "R3",
-      "score": 21.04,
-      "selected": false,
-      "fact": "9/30 加碼的 名幸電子股份有限公司 至今 +10.5%",
-      "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 9/30 加碼名幸電子股份有限公司，至今上漲 10.5%，展現主動管理的判斷力。",
-      "data": {
-        "stockid": "6787 JP",
-        "event_date": "2026-09-30",
-        "direction": "add",
-        "qty_change_pct": 55.9,
-        "weight_pct": 0.849,
-        "return_since_pct": 10.52,
+        "qty_change_pct": 25.0,
+        "weight_pct": 1.892,
+        "return_since_pct": 9.85,
         "tier": 8
       }
     },
     {
       "id": "R3-009150 KS-20260907-t8",
       "rule": "R3",
-      "score": 20.63,
+      "score": 18.84,
       "selected": false,
-      "fact": "9/7 加碼的 三星電機 至今 +10.3%",
+      "fact": "9/7 加碼的 三星電機 至今 +9.4%",
       "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 9/7 加碼三星電機，至今上漲 10.3%，展現主動管理的判斷力。",
+      "draft": "經理人 9/7 加碼三星電機，至今上漲 9.4%，展現主動管理的判斷力。",
       "data": {
         "stockid": "009150 KS",
         "event_date": "2026-09-07",
         "direction": "add",
         "qty_change_pct": 15.1,
         "weight_pct": 3.253,
-        "return_since_pct": 10.32,
-        "tier": 8
-      }
-    },
-    {
-      "id": "R3-COHR US-20260909-t8",
-      "rule": "R3",
-      "score": 20.48,
-      "selected": false,
-      "fact": "9/9 加碼的 連貫公司 至今 +10.2%",
-      "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 9/9 加碼連貫公司，至今上漲 10.2%，展現主動管理的判斷力。",
-      "data": {
-        "stockid": "COHR US",
-        "event_date": "2026-09-09",
-        "direction": "add",
-        "qty_change_pct": 100.0,
-        "weight_pct": 0.525,
-        "return_since_pct": 10.24,
+        "return_since_pct": 9.42,
         "tier": 8
       }
     },
     {
       "id": "R3-2360-20260910-t8",
       "rule": "R3",
-      "score": 20.18,
+      "score": 18.35,
       "selected": false,
-      "fact": "9/10 加碼的 致茂電子 至今 +10.1%",
+      "fact": "9/10 加碼的 致茂電子 至今 +9.2%",
       "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 9/10 加碼致茂電子，至今上漲 10.1%，展現主動管理的判斷力。",
+      "draft": "經理人 9/10 加碼致茂電子，至今上漲 9.2%，展現主動管理的判斷力。",
       "data": {
         "stockid": "2360",
         "event_date": "2026-09-10",
         "direction": "add",
         "qty_change_pct": 21.9,
         "weight_pct": 1.43,
-        "return_since_pct": 10.09,
+        "return_since_pct": 9.17,
         "tier": 8
       }
     },
     {
-      "id": "R1-3026-2026-10-07",
-      "rule": "R1",
-      "score": 19.28,
-      "selected": false,
-      "fact": "禾伸堂企昨日 +5.4%，00409A 持股 3.57%、為海外主動 ETF 觀測群 10 檔中持有最重",
-      "angle": "重倉命中：主動選股的含金量",
-      "draft": "昨日 禾伸堂企（3026）上漲約 5.4%。\n00409A 自 8/31 首次買進，並於 9/7、9/11、9/16、9/17 加碼；截至 10/6 持有 659 張、占淨值 3.571%，報酬約 +11.8%。",
-      "data": {
-        "stockid": "3026",
-        "pct_change": 5.4,
-        "weight_pct": 3.57,
-        "is_heaviest_among_universe": true,
-        "universe_size": 10
-      }
-    },
-    {
-      "id": "R3-GDX US-20260914-t8",
+      "id": "R3-6787 JP-20260930-t8",
       "rule": "R3",
-      "score": 18.44,
+      "score": 18.08,
       "selected": false,
-      "fact": "9/14 減碼 VanEck黃金礦業交易所交易基金，其後回跌 9.2%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 9/14 提前減碼VanEck黃金礦業交易所交易基金，隨後該股回跌 9.2%，成功避開損失。",
-      "data": {
-        "stockid": "GDX US",
-        "event_date": "2026-09-14",
-        "direction": "trim",
-        "qty_change_pct": -100.0,
-        "weight_pct": 1.141,
-        "return_since_pct": -9.22,
-        "tier": 8
-      }
-    },
-    {
-      "id": "R1-MU US-2026-10-07",
-      "rule": "R1",
-      "score": 18.19,
-      "selected": false,
-      "fact": "美光科技公司昨日 +4.06%，00409A 持股 4.48%",
-      "angle": "重倉命中：主動選股的含金量",
-      "draft": "昨日 美光科技公司（MU）上漲約 4.06%。\n00409A 自 8/21 首次買進，並於 8/27、8/28、8/31、9/2 加碼；截至 10/6 持有 19.8 張、占淨值 4.48%，報酬約 +14.8%。",
-      "data": {
-        "stockid": "MU US",
-        "pct_change": 4.06,
-        "weight_pct": 4.48,
-        "is_heaviest_among_universe": false,
-        "universe_size": 10
-      }
-    },
-    {
-      "id": "R3-STX US-20261005-t8",
-      "rule": "R3",
-      "score": 17.93,
-      "selected": false,
-      "fact": "10/5 減碼 希捷科技控股公開有限公司，其後回跌 9.0%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 10/5 提前減碼希捷科技控股公開有限公司，隨後該股回跌 9.0%，成功避開損失。",
-      "data": {
-        "stockid": "STX US",
-        "event_date": "2026-10-05",
-        "direction": "trim",
-        "qty_change_pct": -100.0,
-        "weight_pct": 1.061,
-        "return_since_pct": -8.96,
-        "tier": 8
-      }
-    },
-    {
-      "id": "R3-3189-20261001-t8",
-      "rule": "R3",
-      "score": 17.82,
-      "selected": false,
-      "fact": "10/1 加碼的 景碩科技 至今 +8.9%",
+      "fact": "9/30 加碼的 名幸電子股份有限公司 至今 +9.0%",
       "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 10/1 加碼景碩科技，至今上漲 8.9%，展現主動管理的判斷力。",
+      "draft": "經理人 9/30 加碼名幸電子股份有限公司，至今上漲 9.0%，展現主動管理的判斷力。",
       "data": {
-        "stockid": "3189",
-        "event_date": "2026-10-01",
+        "stockid": "6787 JP",
+        "event_date": "2026-09-30",
         "direction": "add",
-        "qty_change_pct": 22.8,
-        "weight_pct": 2.692,
-        "return_since_pct": 8.91,
+        "qty_change_pct": 55.9,
+        "weight_pct": 0.849,
+        "return_since_pct": 9.04,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-8473 JP-20260910-t8",
+      "rule": "R3",
+      "score": 17.42,
+      "selected": false,
+      "fact": "9/10 減碼 SBI控股公司，其後回跌 8.7%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 9/10 提前減碼SBI控股公司，隨後該股回跌 8.7%，成功避開損失。",
+      "data": {
+        "stockid": "8473 JP",
+        "event_date": "2026-09-10",
+        "direction": "trim",
+        "qty_change_pct": -39.6,
+        "weight_pct": 1.836,
+        "return_since_pct": -8.71,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-034020 KS-20260916-t8",
+      "rule": "R3",
+      "score": 16.71,
+      "selected": false,
+      "fact": "9/16 減碼 斗山重工業，其後回跌 8.4%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 9/16 提前減碼斗山重工業，隨後該股回跌 8.4%，成功避開損失。",
+      "data": {
+        "stockid": "034020 KS",
+        "event_date": "2026-09-16",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 1.704,
+        "return_since_pct": -8.35,
         "tier": 8
       }
     },
@@ -411,15 +281,47 @@
       "data": {
         "cum_return_pct": 4.81
       }
+    },
+    {
+      "id": "R2-ALAB US-2026-10-07",
+      "rule": "R2",
+      "score": 11.8,
+      "selected": false,
+      "fact": "顯著超配持股 Astera實驗室公司創 60 日新高（00409A 權重 2.36%，其他海外主動 ETF 最高僅 0.83%）",
+      "angle": "顯著超配股發威：別人沒有的上漲",
+      "draft": "昨日 Astera實驗室公司（ALAB）創 60 日新高。\n00409A 最近於 9/22 重新建倉，並於 9/23 加碼；截至 10/6 持有 28 張、占淨值 2.362%，報酬約 +nan%。",
+      "data": {
+        "stockid": "ALAB US",
+        "pct_change": NaN,
+        "weight_pct": 2.36,
+        "exclusive": false,
+        "new_high": false,
+        "others_max_weight": 0.825
+      }
+    },
+    {
+      "id": "R2-AXTI US-2026-10-07",
+      "rule": "R2",
+      "score": 11.35,
+      "selected": false,
+      "fact": "顯著超配持股 AXT公司創 60 日新高（00409A 權重 2.27%，其他海外主動 ETF 最高僅 0.97%）",
+      "angle": "顯著超配股發威：別人沒有的上漲",
+      "draft": "昨日 AXT公司（AXTI）創 60 日新高。\n00409A 自 9/9 首次買進，並於 9/11、9/16、9/21 加碼；截至 10/6 持有 125 張、占淨值 2.274%，報酬約 +nan%。",
+      "data": {
+        "stockid": "AXTI US",
+        "pct_change": NaN,
+        "weight_pct": 2.27,
+        "exclusive": false,
+        "new_high": false,
+        "others_max_weight": 0.97
+      }
     }
   ],
   "push": {
-    "attempted": true,
-    "sent": true,
-    "reason": null,
-    "message_chars": 614,
-    "line_status": 200,
-    "candidate_count": 20,
+    "attempted": false,
+    "sent": false,
+    "reason": "idempotent_rerun",
+    "candidate_count": 15,
     "selected_count": 5
   }
 }
