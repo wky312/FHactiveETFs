@@ -1,6 +1,6 @@
 {
   "date": "2026-10-08",
-  "scanned_at": "2026-10-08T09:56:58+08:00",
+  "scanned_at": "2026-10-08T15:01:05+08:00",
   "config_snapshot": {
     "r1": {
       "min_daily_pct": 3.0,
@@ -65,175 +65,113 @@
   "skipped_rules": [],
   "candidates": [
     {
-      "id": "R3-3653-20260914-t15",
+      "id": "R3-3026-20260911-t15",
       "rule": "R3",
-      "score": 38.14,
+      "score": 35.75,
       "selected": true,
-      "fact": "9/14 加碼的 健策精密 至今 +19.1%",
+      "fact": "9/11 加碼的 禾伸堂企 至今 +17.9%",
       "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 9/14 加碼健策精密，至今上漲 19.1%，展現主動管理的判斷力。",
+      "draft": "經理人 9/11 加碼禾伸堂企，至今上漲 17.9%，展現主動管理的判斷力。",
       "data": {
-        "stockid": "3653",
-        "event_date": "2026-09-14",
+        "stockid": "3026",
+        "event_date": "2026-09-11",
         "direction": "add",
-        "qty_change_pct": 42.2,
-        "weight_pct": 2.144,
-        "return_since_pct": 19.07,
+        "qty_change_pct": 12.6,
+        "weight_pct": 2.239,
+        "return_since_pct": 17.88,
         "tier": 15
       }
     },
     {
-      "id": "R3-6510-20260923-t8",
-      "rule": "R3",
-      "score": 19.86,
+      "id": "R2-3026-2026-10-08",
+      "rule": "R2",
+      "score": 26.77,
       "selected": true,
-      "fact": "9/23 減碼 中華精測，其後回跌 9.9%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 9/23 提前減碼中華精測，隨後該股回跌 9.9%，成功避開損失。",
-      "data": {
-        "stockid": "6510",
-        "event_date": "2026-09-23",
-        "direction": "trim",
-        "qty_change_pct": -32.3,
-        "weight_pct": 1.951,
-        "return_since_pct": -9.93,
-        "tier": 8
-      }
-    },
-    {
-      "id": "R3-6981 JP-20260924-t8",
-      "rule": "R3",
-      "score": 19.62,
-      "selected": true,
-      "fact": "9/24 加碼的 村田製作所有限公司 至今 +9.8%",
-      "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 9/24 加碼村田製作所有限公司，至今上漲 9.8%，展現主動管理的判斷力。",
-      "data": {
-        "stockid": "6981 JP",
-        "event_date": "2026-09-24",
-        "direction": "add",
-        "qty_change_pct": 25.0,
-        "weight_pct": 1.892,
-        "return_since_pct": 9.81,
-        "tier": 8
-      }
-    },
-    {
-      "id": "R3-009150 KS-20260907-t8",
-      "rule": "R3",
-      "score": 19.53,
-      "selected": true,
-      "fact": "9/7 加碼的 三星電機 至今 +9.8%",
-      "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 9/7 加碼三星電機，至今上漲 9.8%，展現主動管理的判斷力。",
-      "data": {
-        "stockid": "009150 KS",
-        "event_date": "2026-09-07",
-        "direction": "add",
-        "qty_change_pct": 15.1,
-        "weight_pct": 3.253,
-        "return_since_pct": 9.77,
-        "tier": 8
-      }
-    },
-    {
-      "id": "R3-3026-20260916-t8",
-      "rule": "R3",
-      "score": 19.17,
-      "selected": true,
-      "fact": "9/16 加碼的 禾伸堂企 至今 +9.6%",
-      "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 9/16 加碼禾伸堂企，至今上漲 9.6%，展現主動管理的判斷力。",
+      "fact": "獨門持股 禾伸堂企創 60 日新高（00409A 權重 3.57%，其他海外主動 ETF 皆未持有）",
+      "angle": "獨門股發威：別人沒有的上漲",
+      "draft": "今日 禾伸堂企（3026）創 60 日新高。\n00409A 自 8/31 首次買進，並於 9/7、9/11、9/16、9/17 加碼；截至 10/6 持有 659 張、占淨值 3.571%，報酬約 +16.9%。",
       "data": {
         "stockid": "3026",
-        "event_date": "2026-09-16",
-        "direction": "add",
-        "qty_change_pct": 12.1,
-        "weight_pct": 2.706,
-        "return_since_pct": 9.59,
-        "tier": 8
+        "pct_change": 4.53,
+        "weight_pct": 3.57,
+        "exclusive": true,
+        "new_high": true,
+        "others_max_weight": null
       }
     },
     {
-      "id": "R3-2360-20260910-t8",
-      "rule": "R3",
-      "score": 17.89,
-      "selected": false,
-      "fact": "9/10 加碼的 致茂電子 至今 +8.9%",
-      "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 9/10 加碼致茂電子，至今上漲 8.9%，展現主動管理的判斷力。",
+      "id": "R2-3653-2026-10-08",
+      "rule": "R2",
+      "score": 26.42,
+      "selected": true,
+      "fact": "獨門持股 健策精密今日 +5.29%（00409A 權重 3.33%，其他海外主動 ETF 皆未持有）",
+      "angle": "獨門股發威：別人沒有的上漲",
+      "draft": "今日 健策精密（3653）上漲約 5.29%。\n00409A 自 8/31 首次買進，並於 9/11、9/14、9/17 加碼；截至 10/6 持有 69 張、占淨值 3.325%，報酬約 +24.2%。",
       "data": {
-        "stockid": "2360",
-        "event_date": "2026-09-10",
-        "direction": "add",
-        "qty_change_pct": 21.9,
-        "weight_pct": 1.43,
-        "return_since_pct": 8.94,
-        "tier": 8
+        "stockid": "3653",
+        "pct_change": 5.29,
+        "weight_pct": 3.33,
+        "exclusive": true,
+        "new_high": false,
+        "others_max_weight": null
       }
     },
     {
       "id": "R3-8473 JP-20260910-t8",
       "rule": "R3",
-      "score": 17.73,
-      "selected": false,
-      "fact": "9/10 減碼 SBI控股公司，其後回跌 8.9%",
+      "score": 18.07,
+      "selected": true,
+      "fact": "9/10 減碼 SBI控股公司，其後回跌 9.0%",
       "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 9/10 提前減碼SBI控股公司，隨後該股回跌 8.9%，成功避開損失。",
+      "draft": "經理人 9/10 提前減碼SBI控股公司，隨後該股回跌 9.0%，成功避開損失。",
       "data": {
         "stockid": "8473 JP",
         "event_date": "2026-09-10",
         "direction": "trim",
         "qty_change_pct": -39.6,
         "weight_pct": 1.836,
-        "return_since_pct": -8.86,
+        "return_since_pct": -9.03,
         "tier": 8
       }
     },
     {
-      "id": "R3-034020 KS-20260916-t8",
-      "rule": "R3",
-      "score": 17.42,
-      "selected": false,
-      "fact": "9/16 減碼 斗山重工業，其後回跌 8.7%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 9/16 提前減碼斗山重工業，隨後該股回跌 8.7%，成功避開損失。",
+      "id": "R1-3653-2026-10-08",
+      "rule": "R1",
+      "score": 17.62,
+      "selected": true,
+      "fact": "健策精密今日 +5.29%，00409A 持股 3.33%、為海外主動 ETF 觀測群 10 檔中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 健策精密（3653）上漲約 5.29%。\n00409A 自 8/31 首次買進，並於 9/11、9/14、9/17 加碼；截至 10/6 持有 69 張、占淨值 3.325%，報酬約 +24.2%。",
       "data": {
-        "stockid": "034020 KS",
-        "event_date": "2026-09-16",
-        "direction": "trim",
-        "qty_change_pct": -100.0,
-        "weight_pct": 1.704,
-        "return_since_pct": -8.71,
-        "tier": 8
+        "stockid": "3653",
+        "pct_change": 5.29,
+        "weight_pct": 3.33,
+        "is_heaviest_among_universe": true,
+        "universe_size": 10
       }
     },
     {
-      "id": "R3-6787 JP-20260930-t8",
-      "rule": "R3",
-      "score": 17.26,
+      "id": "R1-3026-2026-10-08",
+      "rule": "R1",
+      "score": 16.17,
       "selected": false,
-      "fact": "9/30 加碼的 名幸電子股份有限公司 至今 +8.6%",
-      "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 9/30 加碼名幸電子股份有限公司，至今上漲 8.6%，展現主動管理的判斷力。",
+      "fact": "禾伸堂企今日 +4.53%，00409A 持股 3.57%、為海外主動 ETF 觀測群 10 檔中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 禾伸堂企（3026）上漲約 4.53%。\n00409A 自 8/31 首次買進，並於 9/7、9/11、9/16、9/17 加碼；截至 10/6 持有 659 張、占淨值 3.571%，報酬約 +16.9%。",
       "data": {
-        "stockid": "6787 JP",
-        "event_date": "2026-09-30",
-        "direction": "add",
-        "qty_change_pct": 55.9,
-        "weight_pct": 0.849,
-        "return_since_pct": 8.63,
-        "tier": 8
+        "stockid": "3026",
+        "pct_change": 4.53,
+        "weight_pct": 3.57,
+        "is_heaviest_among_universe": true,
+        "universe_size": 10
       }
     }
   ],
   "push": {
-    "attempted": true,
-    "sent": true,
-    "reason": null,
-    "message_chars": 489,
-    "line_status": 200,
-    "candidate_count": 9,
+    "attempted": false,
+    "sent": false,
+    "reason": "idempotent_rerun",
+    "candidate_count": 6,
     "selected_count": 5
   }
 }
