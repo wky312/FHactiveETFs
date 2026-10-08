@@ -1,0 +1,32 @@
+{
+  "updated_at": "2026-10-08T09:51:41+08:00",
+  "pushed_dates": [
+    "2026-10-07"
+  ],
+  "r3_events": {
+    "8046|2026/09/09": {
+      "direction": "add",
+      "tier_pushed": 30
+    },
+    "3653|2026/09/11": {
+      "direction": "add",
+      "tier_pushed": 15
+    },
+    "6976 JP|2026/10/01": {
+      "direction": "add",
+      "tier_pushed": 8
+    },
+    "6981 JP|2026/09/16": {
+      "direction": "add",
+      "tier_pushed": 8
+    },
+    "3026|2026/09/11": {
+      "direction": "add",
+      "tier_pushed": 8
+    }
+  },
+  "r4_rank": {},
+  "r4_new_high": {},
+  "r5_aum_milestones": [],
+  "r5_last_data_date": ""
+}
