@@ -1,8 +1,9 @@
 {
-  "updated_at": "2026-10-08T09:28:48+08:00",
+  "updated_at": "2026-10-09T06:01:09+08:00",
   "pushed_dates": [
     "2026-10-06",
-    "2026-10-07"
+    "2026-10-07",
+    "2026-10-08"
   ],
   "r3_events": {
     "8046|2026/09/09": {
@@ -58,6 +59,22 @@
       "tier_pushed": 8
     },
     "3026|2026/09/11": {
+      "direction": "add",
+      "tier_pushed": 8
+    },
+    "STX US|2026/10/05": {
+      "direction": "trim",
+      "tier_pushed": 8
+    },
+    "IREN US|2026/10/01": {
+      "direction": "trim",
+      "tier_pushed": 8
+    },
+    "WPM US|2026/09/15": {
+      "direction": "trim",
+      "tier_pushed": 8
+    },
+    "PSX US|2026/09/14": {
       "direction": "add",
       "tier_pushed": 8
     }

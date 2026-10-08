@@ -1,0 +1,149 @@
+{
+  "date": "2026-10-08",
+  "scanned_at": "2026-10-09T06:01:09+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": null
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "overseas"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "stale",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R3-STX US-20261005-t8",
+      "rule": "R3",
+      "score": 25.31,
+      "selected": true,
+      "fact": "10/5 減碼 希捷科技控股公開有限公司，其後回跌 12.7%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/5 提前減碼希捷科技控股公開有限公司，隨後該股回跌 12.7%，成功避開損失。",
+      "data": {
+        "stockid": "STX US",
+        "event_date": "2026-10-05",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 1.061,
+        "return_since_pct": -12.66,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-IREN US-20261001-t8",
+      "rule": "R3",
+      "score": 24.31,
+      "selected": true,
+      "fact": "10/1 減碼 IREN有限公司，其後回跌 12.2%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/1 提前減碼IREN有限公司，隨後該股回跌 12.2%，成功避開損失。",
+      "data": {
+        "stockid": "IREN US",
+        "event_date": "2026-10-01",
+        "direction": "trim",
+        "qty_change_pct": -75.3,
+        "weight_pct": 0.684,
+        "return_since_pct": -12.15,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-WPM US-20260915-t8",
+      "rule": "R3",
+      "score": 20.08,
+      "selected": true,
+      "fact": "9/15 減碼 惠頓貴金屬公司，其後回跌 10.0%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 9/15 提前減碼惠頓貴金屬公司，隨後該股回跌 10.0%，成功避開損失。",
+      "data": {
+        "stockid": "WPM US",
+        "event_date": "2026-09-15",
+        "direction": "trim",
+        "qty_change_pct": -31.5,
+        "weight_pct": 1.998,
+        "return_since_pct": -10.04,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-PSX US-20260914-t8",
+      "rule": "R3",
+      "score": 19.09,
+      "selected": true,
+      "fact": "9/14 加碼的 菲利普66 至今 +9.5%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/14 加碼菲利普66，至今上漲 9.5%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "PSX US",
+        "event_date": "2026-09-14",
+        "direction": "add",
+        "qty_change_pct": 54.5,
+        "weight_pct": 1.599,
+        "return_since_pct": 9.55,
+        "tier": 8
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 430,
+    "line_status": 200,
+    "candidate_count": 4,
+    "selected_count": 4
+  }
+}
