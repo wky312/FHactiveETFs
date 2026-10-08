@@ -1,0 +1,239 @@
+{
+  "date": "2026-10-08",
+  "scanned_at": "2026-10-08T09:56:58+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": null
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "overseas"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "stale",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R3-3653-20260914-t15",
+      "rule": "R3",
+      "score": 38.14,
+      "selected": true,
+      "fact": "9/14 加碼的 健策精密 至今 +19.1%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/14 加碼健策精密，至今上漲 19.1%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "3653",
+        "event_date": "2026-09-14",
+        "direction": "add",
+        "qty_change_pct": 42.2,
+        "weight_pct": 2.144,
+        "return_since_pct": 19.07,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-6510-20260923-t8",
+      "rule": "R3",
+      "score": 19.86,
+      "selected": true,
+      "fact": "9/23 減碼 中華精測，其後回跌 9.9%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 9/23 提前減碼中華精測，隨後該股回跌 9.9%，成功避開損失。",
+      "data": {
+        "stockid": "6510",
+        "event_date": "2026-09-23",
+        "direction": "trim",
+        "qty_change_pct": -32.3,
+        "weight_pct": 1.951,
+        "return_since_pct": -9.93,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-6981 JP-20260924-t8",
+      "rule": "R3",
+      "score": 19.62,
+      "selected": true,
+      "fact": "9/24 加碼的 村田製作所有限公司 至今 +9.8%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/24 加碼村田製作所有限公司，至今上漲 9.8%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "6981 JP",
+        "event_date": "2026-09-24",
+        "direction": "add",
+        "qty_change_pct": 25.0,
+        "weight_pct": 1.892,
+        "return_since_pct": 9.81,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-009150 KS-20260907-t8",
+      "rule": "R3",
+      "score": 19.53,
+      "selected": true,
+      "fact": "9/7 加碼的 三星電機 至今 +9.8%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/7 加碼三星電機，至今上漲 9.8%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "009150 KS",
+        "event_date": "2026-09-07",
+        "direction": "add",
+        "qty_change_pct": 15.1,
+        "weight_pct": 3.253,
+        "return_since_pct": 9.77,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-3026-20260916-t8",
+      "rule": "R3",
+      "score": 19.17,
+      "selected": true,
+      "fact": "9/16 加碼的 禾伸堂企 至今 +9.6%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/16 加碼禾伸堂企，至今上漲 9.6%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "3026",
+        "event_date": "2026-09-16",
+        "direction": "add",
+        "qty_change_pct": 12.1,
+        "weight_pct": 2.706,
+        "return_since_pct": 9.59,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-2360-20260910-t8",
+      "rule": "R3",
+      "score": 17.89,
+      "selected": false,
+      "fact": "9/10 加碼的 致茂電子 至今 +8.9%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/10 加碼致茂電子，至今上漲 8.9%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "2360",
+        "event_date": "2026-09-10",
+        "direction": "add",
+        "qty_change_pct": 21.9,
+        "weight_pct": 1.43,
+        "return_since_pct": 8.94,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-8473 JP-20260910-t8",
+      "rule": "R3",
+      "score": 17.73,
+      "selected": false,
+      "fact": "9/10 減碼 SBI控股公司，其後回跌 8.9%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 9/10 提前減碼SBI控股公司，隨後該股回跌 8.9%，成功避開損失。",
+      "data": {
+        "stockid": "8473 JP",
+        "event_date": "2026-09-10",
+        "direction": "trim",
+        "qty_change_pct": -39.6,
+        "weight_pct": 1.836,
+        "return_since_pct": -8.86,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-034020 KS-20260916-t8",
+      "rule": "R3",
+      "score": 17.42,
+      "selected": false,
+      "fact": "9/16 減碼 斗山重工業，其後回跌 8.7%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 9/16 提前減碼斗山重工業，隨後該股回跌 8.7%，成功避開損失。",
+      "data": {
+        "stockid": "034020 KS",
+        "event_date": "2026-09-16",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 1.704,
+        "return_since_pct": -8.71,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-6787 JP-20260930-t8",
+      "rule": "R3",
+      "score": 17.26,
+      "selected": false,
+      "fact": "9/30 加碼的 名幸電子股份有限公司 至今 +8.6%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/30 加碼名幸電子股份有限公司，至今上漲 8.6%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "6787 JP",
+        "event_date": "2026-09-30",
+        "direction": "add",
+        "qty_change_pct": 55.9,
+        "weight_pct": 0.849,
+        "return_since_pct": 8.63,
+        "tier": 8
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 489,
+    "line_status": 200,
+    "candidate_count": 9,
+    "selected_count": 5
+  }
+}
