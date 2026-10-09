@@ -1,0 +1,179 @@
+{
+  "date": "2026-10-09",
+  "scanned_at": "2026-10-10T06:01:12+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": null
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "overseas"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "stale",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R1-LITE US-2026-10-09",
+      "rule": "R1",
+      "score": 32.83,
+      "selected": true,
+      "fact": "魯門特姆控股公司昨日 +5.22%，00409A 持股 6.29%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 魯門特姆控股公司（LITE）上漲約 5.22%。\n00409A 自 8/21 首次買進，並於 8/31、9/1、9/10、9/18 加碼；截至 10/7 持有 25.5 張、占淨值 6.292%，報酬約 +21.1%。",
+      "data": {
+        "stockid": "LITE US",
+        "pct_change": 5.22,
+        "weight_pct": 6.29,
+        "is_heaviest_among_universe": false,
+        "universe_size": 10
+      }
+    },
+    {
+      "id": "R1-PLTR US-2026-10-09",
+      "rule": "R1",
+      "score": 25.75,
+      "selected": true,
+      "fact": "帕蘭提爾科技公司昨日 +5.17%，00409A 持股 4.98%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 帕蘭提爾科技公司（PLTR）上漲約 5.17%。\n00409A 自 8/20 首次買進，並於 8/28、8/31、9/1、9/4 加碼；截至 10/7 持有 115.5 張、占淨值 4.979%，報酬約 +16.1%。",
+      "data": {
+        "stockid": "PLTR US",
+        "pct_change": 5.17,
+        "weight_pct": 4.98,
+        "is_heaviest_among_universe": false,
+        "universe_size": 10
+      }
+    },
+    {
+      "id": "R3-NET US-20260915-t8",
+      "rule": "R3",
+      "score": 20.6,
+      "selected": true,
+      "fact": "9/15 加碼的 Cloudflare公司 至今 +10.3%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/15 加碼Cloudflare公司，至今上漲 10.3%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "NET US",
+        "event_date": "2026-09-15",
+        "direction": "add",
+        "qty_change_pct": 322.6,
+        "weight_pct": 0.805,
+        "return_since_pct": 10.3,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-INTC US-20261005-t8",
+      "rule": "R3",
+      "score": 19.78,
+      "selected": true,
+      "fact": "10/5 減碼 英特爾，其後回跌 9.9%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/5 提前減碼英特爾，隨後該股回跌 9.9%，成功避開損失。",
+      "data": {
+        "stockid": "INTC US",
+        "event_date": "2026-10-05",
+        "direction": "trim",
+        "qty_change_pct": -16.7,
+        "weight_pct": 2.983,
+        "return_since_pct": -9.89,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-NTRA US-20260918-t8",
+      "rule": "R3",
+      "score": 16.96,
+      "selected": true,
+      "fact": "9/18 加碼的 那提拉公司 至今 +8.5%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/18 加碼那提拉公司，至今上漲 8.5%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "NTRA US",
+        "event_date": "2026-09-18",
+        "direction": "add",
+        "qty_change_pct": 266.7,
+        "weight_pct": 0.74,
+        "return_since_pct": 8.48,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R1-CRWD US-2026-10-09",
+      "rule": "R1",
+      "score": 14.81,
+      "selected": false,
+      "fact": "Crowdstrike控股公司昨日 +4.57%，00409A 持股 3.24%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 Crowdstrike控股公司（CRWD）上漲約 4.57%。\n00409A 自 8/31 首次買進，並於 9/1、9/14 加碼；截至 10/7 持有 55 張、占淨值 3.242%，報酬約 +21.8%。",
+      "data": {
+        "stockid": "CRWD US",
+        "pct_change": 4.57,
+        "weight_pct": 3.24,
+        "is_heaviest_among_universe": false,
+        "universe_size": 10
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 671,
+    "line_status": 200,
+    "candidate_count": 6,
+    "selected_count": 5
+  }
+}

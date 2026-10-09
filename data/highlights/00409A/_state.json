@@ -1,9 +1,10 @@
 {
-  "updated_at": "2026-10-09T09:37:34+08:00",
+  "updated_at": "2026-10-10T06:01:12+08:00",
   "pushed_dates": [
     "2026-10-06",
     "2026-10-07",
-    "2026-10-08"
+    "2026-10-08",
+    "2026-10-09"
   ],
   "r3_events": {
     "8046|2026/09/09": {
@@ -75,6 +76,18 @@
       "tier_pushed": 8
     },
     "PSX US|2026/09/14": {
+      "direction": "add",
+      "tier_pushed": 8
+    },
+    "NET US|2026/09/15": {
+      "direction": "add",
+      "tier_pushed": 8
+    },
+    "INTC US|2026/10/05": {
+      "direction": "trim",
+      "tier_pushed": 8
+    },
+    "NTRA US|2026/09/18": {
       "direction": "add",
       "tier_pushed": 8
     }
