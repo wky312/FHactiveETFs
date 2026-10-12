@@ -1,0 +1,149 @@
+{
+  "date": "2026-10-12",
+  "scanned_at": "2026-10-12T15:01:05+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": null
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "overseas"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "stale",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R3-034020 KS-20260916-t8",
+      "rule": "R3",
+      "score": 29.36,
+      "selected": true,
+      "fact": "9/16 減碼 斗山重工業，其後回跌 14.7%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 9/16 提前減碼斗山重工業，隨後該股回跌 14.7%，成功避開損失。",
+      "data": {
+        "stockid": "034020 KS",
+        "event_date": "2026-09-16",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 1.704,
+        "return_since_pct": -14.68,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-000660 KS-20261006-t8",
+      "rule": "R3",
+      "score": 18.95,
+      "selected": true,
+      "fact": "10/6 減碼 愛思開海力士公司，其後回跌 9.5%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/6 提前減碼愛思開海力士公司，隨後該股回跌 9.5%，成功避開損失。",
+      "data": {
+        "stockid": "000660 KS",
+        "event_date": "2026-10-06",
+        "direction": "trim",
+        "qty_change_pct": -51.9,
+        "weight_pct": 3.979,
+        "return_since_pct": -9.48,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-2360-20260910-t8",
+      "rule": "R3",
+      "score": 16.97,
+      "selected": true,
+      "fact": "9/10 加碼的 致茂電子 至今 +8.5%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/10 加碼致茂電子，至今上漲 8.5%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "2360",
+        "event_date": "2026-09-10",
+        "direction": "add",
+        "qty_change_pct": 21.9,
+        "weight_pct": 1.43,
+        "return_since_pct": 8.49,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-6787 JP-20260930-t8",
+      "rule": "R3",
+      "score": 16.19,
+      "selected": true,
+      "fact": "9/30 加碼的 名幸電子股份有限公司 至今 +8.1%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/30 加碼名幸電子股份有限公司，至今上漲 8.1%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "6787 JP",
+        "event_date": "2026-09-30",
+        "direction": "add",
+        "qty_change_pct": 55.9,
+        "weight_pct": 0.849,
+        "return_since_pct": 8.09,
+        "tier": 8
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 418,
+    "line_status": 200,
+    "candidate_count": 4,
+    "selected_count": 4
+  }
+}
