@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-12T14:01:53+08:00",
+  "updated_at": "2026-10-12T22:43:42+08:00",
   "pushed_dates": [
     "2026-07-03",
     "2026-07-06",
@@ -65,10 +65,6 @@
       "direction": "add",
       "tier_pushed": 8
     },
-    "3081|2026/08/12": {
-      "direction": "add",
-      "tier_pushed": 15
-    },
     "3081|2026/08/17": {
       "direction": "add",
       "tier_pushed": 15
@@ -76,10 +72,6 @@
     "5274|2026/09/02": {
       "direction": "add",
       "tier_pushed": 15
-    },
-    "3665|2026/08/12": {
-      "direction": "trim",
-      "tier_pushed": 8
     },
     "6669|2026/09/09": {
       "direction": "trim",

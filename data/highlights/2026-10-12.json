@@ -1,6 +1,6 @@
 {
   "date": "2026-10-12",
-  "scanned_at": "2026-10-12T14:01:53+08:00",
+  "scanned_at": "2026-10-12T22:43:42+08:00",
   "config_snapshot": {
     "r1": {
       "min_daily_pct": 3.0,
@@ -54,7 +54,7 @@
     }
   },
   "sources": {
-    "own_holdings": "stale",
+    "own_holdings": "ok",
     "attr_supabase": "ok",
     "twse_mis": "ok",
     "yahoo": "ok",
@@ -63,33 +63,12 @@
     "peer_redemption": "ok"
   },
   "skipped_rules": [],
-  "candidates": [
-    {
-      "id": "R3-6223-20260909-t8",
-      "rule": "R3",
-      "score": 18.34,
-      "selected": true,
-      "fact": "9/9 加碼的 旺矽科技 至今 +9.2%",
-      "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 9/9 加碼旺矽科技，至今上漲 9.2%，展現主動管理的判斷力。",
-      "data": {
-        "stockid": "6223",
-        "event_date": "2026-09-09",
-        "direction": "add",
-        "qty_change_pct": 18.4,
-        "weight_pct": 3.172,
-        "return_since_pct": 9.17,
-        "tier": 8
-      }
-    }
-  ],
+  "candidates": [],
   "push": {
-    "attempted": true,
-    "sent": true,
-    "reason": null,
-    "message_chars": 135,
-    "line_status": 200,
-    "candidate_count": 1,
-    "selected_count": 1
+    "attempted": false,
+    "sent": false,
+    "reason": "no_candidates",
+    "candidate_count": 0,
+    "selected_count": 0
   }
 }
