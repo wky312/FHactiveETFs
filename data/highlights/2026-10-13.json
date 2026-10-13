@@ -1,6 +1,6 @@
 {
   "date": "2026-10-13",
-  "scanned_at": "2026-10-13T14:01:26+08:00",
+  "scanned_at": "2026-10-13T21:46:43+08:00",
   "config_snapshot": {
     "r1": {
       "min_daily_pct": 3.0,
@@ -54,7 +54,7 @@
     }
   },
   "sources": {
-    "own_holdings": "stale",
+    "own_holdings": "ok",
     "attr_supabase": "ok",
     "twse_mis": "ok",
     "yahoo": "ok",
@@ -65,49 +65,29 @@
   "skipped_rules": [],
   "candidates": [
     {
-      "id": "R3-2308-20261005-t8",
+      "id": "R3-2308-20261012-t8",
       "rule": "R3",
-      "score": 22.94,
+      "score": 19.34,
       "selected": true,
-      "fact": "10/5 減碼 台達電子，其後回跌 11.5%",
+      "fact": "10/12 減碼 台達電子，其後回跌 9.7%",
       "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 10/5 提前減碼台達電子，隨後該股回跌 11.5%，成功避開損失。",
+      "draft": "經理人 10/12 提前減碼台達電子，隨後該股回跌 9.7%，成功避開損失。",
       "data": {
         "stockid": "2308",
-        "event_date": "2026-10-05",
-        "direction": "trim",
-        "qty_change_pct": -25.4,
-        "weight_pct": 2.038,
-        "return_since_pct": -11.47,
-        "tier": 8
-      }
-    },
-    {
-      "id": "R3-3008-20261012-t8",
-      "rule": "R3",
-      "score": 18.47,
-      "selected": true,
-      "fact": "10/12 加碼的 大立光電 至今 +9.2%",
-      "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 10/12 加碼大立光電，至今上漲 9.2%，展現主動管理的判斷力。",
-      "data": {
-        "stockid": "3008",
         "event_date": "2026-10-12",
-        "direction": "add",
-        "qty_change_pct": 8500.0,
-        "weight_pct": 0.812,
-        "return_since_pct": 9.23,
+        "direction": "trim",
+        "qty_change_pct": -69.2,
+        "weight_pct": 1.638,
+        "return_since_pct": -9.67,
         "tier": 8
       }
     }
   ],
   "push": {
-    "attempted": true,
-    "sent": true,
-    "reason": null,
-    "message_chars": 226,
-    "line_status": 200,
-    "candidate_count": 2,
-    "selected_count": 2
+    "attempted": false,
+    "sent": false,
+    "reason": "idempotent_rerun",
+    "candidate_count": 1,
+    "selected_count": 1
   }
 }
