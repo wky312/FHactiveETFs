@@ -1,6 +1,6 @@
 {
   "date": "2026-10-13",
-  "scanned_at": "2026-10-13T00:17:54+08:00",
+  "scanned_at": "2026-10-13T15:01:16+08:00",
   "config_snapshot": {
     "r1": {
       "min_daily_pct": 3.0,
@@ -63,12 +63,105 @@
     "peer_redemption": "ok"
   },
   "skipped_rules": [],
-  "candidates": [],
+  "candidates": [
+    {
+      "id": "R3-000660 KS-20261006-t15",
+      "rule": "R3",
+      "score": 37.23,
+      "selected": true,
+      "fact": "10/6 減碼 愛思開海力士公司，其後回跌 18.6%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/6 提前減碼愛思開海力士公司，隨後該股回跌 18.6%，成功避開損失。",
+      "data": {
+        "stockid": "000660 KS",
+        "event_date": "2026-10-06",
+        "direction": "trim",
+        "qty_change_pct": -51.9,
+        "weight_pct": 3.979,
+        "return_since_pct": -18.61,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-034020 KS-20260916-t15",
+      "rule": "R3",
+      "score": 32.46,
+      "selected": true,
+      "fact": "9/16 減碼 斗山重工業，其後回跌 16.2%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 9/16 提前減碼斗山重工業，隨後該股回跌 16.2%，成功避開損失。",
+      "data": {
+        "stockid": "034020 KS",
+        "event_date": "2026-09-16",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 1.704,
+        "return_since_pct": -16.23,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-285A JP-20260911-t15",
+      "rule": "R3",
+      "score": 31.43,
+      "selected": true,
+      "fact": "9/11 減碼 鎧俠控股公司，其後回跌 15.7%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 9/11 提前減碼鎧俠控股公司，隨後該股回跌 15.7%，成功避開損失。",
+      "data": {
+        "stockid": "285A JP",
+        "event_date": "2026-09-11",
+        "direction": "trim",
+        "qty_change_pct": -35.7,
+        "weight_pct": 3.188,
+        "return_since_pct": -15.71,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-009150 KS-20261001-t8",
+      "rule": "R3",
+      "score": 25.37,
+      "selected": true,
+      "fact": "10/1 減碼 三星電機，其後回跌 12.7%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/1 提前減碼三星電機，隨後該股回跌 12.7%，成功避開損失。",
+      "data": {
+        "stockid": "009150 KS",
+        "event_date": "2026-10-01",
+        "direction": "trim",
+        "qty_change_pct": -94.3,
+        "weight_pct": 1.226,
+        "return_since_pct": -12.68,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-2454-20261001-t8",
+      "rule": "R3",
+      "score": 18.27,
+      "selected": true,
+      "fact": "10/1 減碼 聯發科技，其後回跌 9.1%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/1 提前減碼聯發科技，隨後該股回跌 9.1%，成功避開損失。",
+      "data": {
+        "stockid": "2454",
+        "event_date": "2026-10-01",
+        "direction": "trim",
+        "qty_change_pct": -24.3,
+        "weight_pct": 3.542,
+        "return_since_pct": -9.14,
+        "tier": 8
+      }
+    }
+  ],
   "push": {
-    "attempted": false,
-    "sent": false,
-    "reason": "no_candidates",
-    "candidate_count": 0,
-    "selected_count": 0
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 501,
+    "line_status": 200,
+    "candidate_count": 5,
+    "selected_count": 5
   }
 }
