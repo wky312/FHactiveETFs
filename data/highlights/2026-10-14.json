@@ -1,6 +1,6 @@
 {
   "date": "2026-10-14",
-  "scanned_at": "2026-10-14T14:01:16+08:00",
+  "scanned_at": "2026-10-14T19:24:15+08:00",
   "config_snapshot": {
     "r1": {
       "min_daily_pct": 3.0,
@@ -54,7 +54,7 @@
     }
   },
   "sources": {
-    "own_holdings": "stale",
+    "own_holdings": "ok",
     "attr_supabase": "ok",
     "twse_mis": "ok",
     "yahoo": "ok",
@@ -65,65 +65,27 @@
   "skipped_rules": [],
   "candidates": [
     {
-      "id": "R3-1303-20260930-t30",
-      "rule": "R3",
-      "score": 73.19,
-      "selected": true,
-      "fact": "9/30 加碼的 南亞塑膠 至今 +36.6%",
-      "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 9/30 加碼南亞塑膠，至今上漲 36.6%，展現主動管理的判斷力。",
-      "data": {
-        "stockid": "1303",
-        "event_date": "2026-09-30",
-        "direction": "add",
-        "qty_change_pct": 14.3,
-        "weight_pct": 2.62,
-        "return_since_pct": 36.59,
-        "tier": 30
-      }
-    },
-    {
       "id": "R1-2327-2026-10-14",
       "rule": "R1",
-      "score": 21.76,
+      "score": 22.65,
       "selected": true,
-      "fact": "國巨股份今日 +4.67%，00991A 持股 4.66%",
+      "fact": "國巨股份今日 +4.67%，00991A 持股 4.85%",
       "angle": "重倉命中：主動選股的含金量",
-      "draft": "國巨股份大漲 4.67%，00991A 以 4.66% 持股重倉布局，經理人重押命中。",
+      "draft": "國巨股份大漲 4.67%，00991A 以 4.85% 持股重倉布局，經理人重押命中。",
       "data": {
         "stockid": "2327",
         "pct_change": 4.67,
-        "weight_pct": 4.66,
+        "weight_pct": 4.85,
         "is_heaviest_among_universe": false,
         "universe_size": 17
-      }
-    },
-    {
-      "id": "R3-6505-20261012-t8",
-      "rule": "R3",
-      "score": 20.28,
-      "selected": true,
-      "fact": "10/12 加碼的 台塑石化 至今 +10.1%",
-      "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 10/12 加碼台塑石化，至今上漲 10.1%，展現主動管理的判斷力。",
-      "data": {
-        "stockid": "6505",
-        "event_date": "2026-10-12",
-        "direction": "add",
-        "qty_change_pct": 17.6,
-        "weight_pct": 1.399,
-        "return_since_pct": 10.14,
-        "tier": 8
       }
     }
   ],
   "push": {
-    "attempted": true,
-    "sent": true,
-    "reason": null,
-    "message_chars": 328,
-    "line_status": 200,
-    "candidate_count": 3,
-    "selected_count": 3
+    "attempted": false,
+    "sent": false,
+    "reason": "idempotent_rerun",
+    "candidate_count": 1,
+    "selected_count": 1
   }
 }
