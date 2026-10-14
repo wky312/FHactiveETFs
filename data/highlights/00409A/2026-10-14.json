@@ -1,0 +1,257 @@
+{
+  "date": "2026-10-14",
+  "scanned_at": "2026-10-15T06:01:05+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": null
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "overseas"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "stale",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R3-IREN US-20261001-t15",
+      "rule": "R3",
+      "score": 49.64,
+      "selected": true,
+      "fact": "10/1 減碼 IREN有限公司，其後回跌 24.8%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/1 提前減碼IREN有限公司，隨後該股回跌 24.8%，成功避開損失。",
+      "data": {
+        "stockid": "IREN US",
+        "event_date": "2026-10-01",
+        "direction": "trim",
+        "qty_change_pct": -75.3,
+        "weight_pct": 0.684,
+        "return_since_pct": -24.82,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-SNDK US-20261005-t15",
+      "rule": "R3",
+      "score": 35.3,
+      "selected": true,
+      "fact": "10/5 減碼 晟碟公司（德拉瓦州），其後回跌 17.7%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/5 提前減碼晟碟公司（德拉瓦州），隨後該股回跌 17.7%，成功避開損失。",
+      "data": {
+        "stockid": "SNDK US",
+        "event_date": "2026-10-05",
+        "direction": "trim",
+        "qty_change_pct": -18.2,
+        "weight_pct": 3.942,
+        "return_since_pct": -17.65,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-MU US-20261007-t15",
+      "rule": "R3",
+      "score": 31.96,
+      "selected": true,
+      "fact": "10/7 減碼 美光科技公司，其後回跌 16.0%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/7 提前減碼美光科技公司，隨後該股回跌 16.0%，成功避開損失。",
+      "data": {
+        "stockid": "MU US",
+        "event_date": "2026-10-07",
+        "direction": "trim",
+        "qty_change_pct": -22.7,
+        "weight_pct": 4.48,
+        "return_since_pct": -15.98,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-PSX US-20260914-t15",
+      "rule": "R3",
+      "score": 31.3,
+      "selected": true,
+      "fact": "9/14 加碼的 菲利普66 至今 +15.7%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 9/14 加碼菲利普66，至今上漲 15.7%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "PSX US",
+        "event_date": "2026-09-14",
+        "direction": "add",
+        "qty_change_pct": 54.5,
+        "weight_pct": 1.599,
+        "return_since_pct": 15.65,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-INTC US-20261005-t15",
+      "rule": "R3",
+      "score": 31.1,
+      "selected": true,
+      "fact": "10/5 減碼 英特爾，其後回跌 15.6%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/5 提前減碼英特爾，隨後該股回跌 15.6%，成功避開損失。",
+      "data": {
+        "stockid": "INTC US",
+        "event_date": "2026-10-05",
+        "direction": "trim",
+        "qty_change_pct": -16.7,
+        "weight_pct": 2.983,
+        "return_since_pct": -15.55,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-WPM US-20260921-t8",
+      "rule": "R3",
+      "score": 24.49,
+      "selected": false,
+      "fact": "9/21 減碼 惠頓貴金屬公司，其後回跌 12.2%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 9/21 提前減碼惠頓貴金屬公司，隨後該股回跌 12.2%，成功避開損失。",
+      "data": {
+        "stockid": "WPM US",
+        "event_date": "2026-09-21",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 1.375,
+        "return_since_pct": -12.24,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-HOOD US-20261005-t8",
+      "rule": "R3",
+      "score": 22.84,
+      "selected": false,
+      "fact": "10/5 減碼 羅賓漢市場公司，其後回跌 11.4%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/5 提前減碼羅賓漢市場公司，隨後該股回跌 11.4%，成功避開損失。",
+      "data": {
+        "stockid": "HOOD US",
+        "event_date": "2026-10-05",
+        "direction": "trim",
+        "qty_change_pct": -15.0,
+        "weight_pct": 3.594,
+        "return_since_pct": -11.42,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-GDX US-20260914-t8",
+      "rule": "R3",
+      "score": 22.82,
+      "selected": false,
+      "fact": "9/14 減碼 VanEck黃金礦業交易所交易基金，其後回跌 11.4%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 9/14 提前減碼VanEck黃金礦業交易所交易基金，隨後該股回跌 11.4%，成功避開損失。",
+      "data": {
+        "stockid": "GDX US",
+        "event_date": "2026-09-14",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 1.141,
+        "return_since_pct": -11.41,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-COHR US-20260929-t8",
+      "rule": "R3",
+      "score": 19.77,
+      "selected": false,
+      "fact": "9/29 減碼 高意公司，其後回跌 9.9%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 9/29 提前減碼高意公司，隨後該股回跌 9.9%，成功避開損失。",
+      "data": {
+        "stockid": "COHR US",
+        "event_date": "2026-09-29",
+        "direction": "trim",
+        "qty_change_pct": -92.1,
+        "weight_pct": 1.268,
+        "return_since_pct": -9.89,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-BMNR US-20261007-t8",
+      "rule": "R3",
+      "score": 19.55,
+      "selected": false,
+      "fact": "10/7 減碼 BitMine Immersion技術公司，其後回跌 9.8%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/7 提前減碼BitMine Immersion技術公司，隨後該股回跌 9.8%，成功避開損失。",
+      "data": {
+        "stockid": "BMNR US",
+        "event_date": "2026-10-07",
+        "direction": "trim",
+        "qty_change_pct": -54.3,
+        "weight_pct": 2.487,
+        "return_since_pct": -9.77,
+        "tier": 8
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 511,
+    "line_status": 200,
+    "candidate_count": 10,
+    "selected_count": 5
+  }
+}

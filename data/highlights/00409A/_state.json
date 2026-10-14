@@ -1,12 +1,13 @@
 {
-  "updated_at": "2026-10-14T08:48:24+08:00",
+  "updated_at": "2026-10-15T06:01:05+08:00",
   "pushed_dates": [
     "2026-10-06",
     "2026-10-07",
     "2026-10-08",
     "2026-10-09",
     "2026-10-12",
-    "2026-10-13"
+    "2026-10-13",
+    "2026-10-14"
   ],
   "r3_events": {
     "8046|2026/09/09": {
@@ -71,7 +72,7 @@
     },
     "IREN US|2026/10/01": {
       "direction": "trim",
-      "tier_pushed": 8
+      "tier_pushed": 15
     },
     "WPM US|2026/09/15": {
       "direction": "trim",
@@ -79,7 +80,7 @@
     },
     "PSX US|2026/09/14": {
       "direction": "add",
-      "tier_pushed": 8
+      "tier_pushed": 15
     },
     "NET US|2026/09/15": {
       "direction": "add",
@@ -87,7 +88,7 @@
     },
     "INTC US|2026/10/05": {
       "direction": "trim",
-      "tier_pushed": 8
+      "tier_pushed": 15
     },
     "NTRA US|2026/09/18": {
       "direction": "add",
@@ -95,7 +96,7 @@
     },
     "SNDK US|2026/10/05": {
       "direction": "trim",
-      "tier_pushed": 8
+      "tier_pushed": 15
     },
     "INTC US|2026/10/06": {
       "direction": "trim",
@@ -103,7 +104,7 @@
     },
     "MU US|2026/10/07": {
       "direction": "trim",
-      "tier_pushed": 8
+      "tier_pushed": 15
     },
     "SPCX US|2026/09/11": {
       "direction": "add",
