@@ -1,6 +1,6 @@
 {
   "date": "2026-10-14",
-  "scanned_at": "2026-10-14T15:01:11+08:00",
+  "scanned_at": "2026-10-14T20:33:53+08:00",
   "config_snapshot": {
     "r1": {
       "min_daily_pct": 3.0,
@@ -65,24 +65,6 @@
   "skipped_rules": [],
   "candidates": [
     {
-      "id": "R3-000660 KS-20260929-t15",
-      "rule": "R3",
-      "score": 39.21,
-      "selected": true,
-      "fact": "9/29 減碼 愛思開海力士公司，其後回跌 19.6%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 9/29 提前減碼愛思開海力士公司，隨後該股回跌 19.6%，成功避開損失。",
-      "data": {
-        "stockid": "000660 KS",
-        "event_date": "2026-09-29",
-        "direction": "trim",
-        "qty_change_pct": -18.5,
-        "weight_pct": 4.498,
-        "return_since_pct": -19.6,
-        "tier": 15
-      }
-    },
-    {
       "id": "R2-3026-2026-10-14",
       "rule": "R2",
       "score": 36.12,
@@ -97,6 +79,24 @@
         "exclusive": true,
         "new_high": false,
         "others_max_weight": null
+      }
+    },
+    {
+      "id": "R3-000660 KS-20261007-t15",
+      "rule": "R3",
+      "score": 35.29,
+      "selected": true,
+      "fact": "10/7 減碼 愛思開海力士公司，其後回跌 17.6%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/7 提前減碼愛思開海力士公司，隨後該股回跌 17.6%，成功避開損失。",
+      "data": {
+        "stockid": "000660 KS",
+        "event_date": "2026-10-07",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 1.934,
+        "return_since_pct": -17.64,
+        "tier": 15
       }
     },
     {
@@ -116,46 +116,10 @@
       }
     },
     {
-      "id": "R3-285A JP-20260917-t8",
-      "rule": "R3",
-      "score": 23.3,
-      "selected": true,
-      "fact": "9/17 減碼 鎧俠控股公司，其後回跌 11.6%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 9/17 提前減碼鎧俠控股公司，隨後該股回跌 11.6%，成功避開損失。",
-      "data": {
-        "stockid": "285A JP",
-        "event_date": "2026-09-17",
-        "direction": "trim",
-        "qty_change_pct": -100.0,
-        "weight_pct": 1.863,
-        "return_since_pct": -11.65,
-        "tier": 8
-      }
-    },
-    {
-      "id": "R3-009150 KS-20260930-t8",
-      "rule": "R3",
-      "score": 18.37,
-      "selected": true,
-      "fact": "9/30 減碼 三星電機，其後回跌 9.2%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 9/30 提前減碼三星電機，隨後該股回跌 9.2%，成功避開損失。",
-      "data": {
-        "stockid": "009150 KS",
-        "event_date": "2026-09-30",
-        "direction": "trim",
-        "qty_change_pct": -48.5,
-        "weight_pct": 2.253,
-        "return_since_pct": -9.19,
-        "tier": 8
-      }
-    },
-    {
       "id": "R3-2454-20261006-t8",
       "rule": "R3",
       "score": 18.09,
-      "selected": false,
+      "selected": true,
       "fact": "10/6 減碼 聯發科技，其後回跌 9.0%",
       "angle": "操作驗證：減碼躲過回檔",
       "draft": "經理人 10/6 提前減碼聯發科技，隨後該股回跌 9.0%，成功避開損失。",
@@ -173,7 +137,7 @@
       "id": "R1-6976 JP-2026-10-14",
       "rule": "R1",
       "score": 7.22,
-      "selected": false,
+      "selected": true,
       "fact": "太陽誘電今日 +3.59%，00409A 持股 2.01%、為海外主動 ETF 觀測群 10 檔中持有最重",
       "angle": "重倉命中：主動選股的含金量",
       "draft": "今日 太陽誘電（6976）上漲約 3.59%。\n00409A 自 9/30 首次買進，並於 10/1、10/7、10/8 加碼；截至 10/12 持有 123 張、占淨值 2.012%，報酬約 +5.2%。",
@@ -187,12 +151,10 @@
     }
   ],
   "push": {
-    "attempted": true,
-    "sent": true,
-    "reason": null,
-    "message_chars": 701,
-    "line_status": 200,
-    "candidate_count": 7,
+    "attempted": false,
+    "sent": false,
+    "reason": "idempotent_rerun",
+    "candidate_count": 5,
     "selected_count": 5
   }
 }
