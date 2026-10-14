@@ -1,6 +1,6 @@
 {
   "date": "2026-10-13",
-  "scanned_at": "2026-10-14T06:01:07+08:00",
+  "scanned_at": "2026-10-14T08:48:24+08:00",
   "config_snapshot": {
     "r1": {
       "min_daily_pct": 3.0,
@@ -65,31 +65,256 @@
   "skipped_rules": [],
   "candidates": [
     {
-      "id": "R3-SNDK US-20261007-t8",
-      "rule": "R3",
-      "score": 24.83,
+      "id": "R1-LITE US-2026-10-13",
+      "rule": "R1",
+      "score": NaN,
       "selected": true,
-      "fact": "10/7 減碼 晟碟公司（德拉瓦州），其後回跌 12.4%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 10/7 提前減碼晟碟公司（德拉瓦州），隨後該股回跌 12.4%，成功避開損失。",
+      "fact": "魯門特姆控股公司昨日 +nan%，00409A 持股 5.91%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 魯門特姆控股公司（LITE）上漲約 nan%。\n00409A 自 8/21 首次買進，並於 8/31、9/1、9/10、9/18 加碼；截至 10/12 持有 25.5 張、占淨值 5.909%，報酬約 +nan%。",
       "data": {
-        "stockid": "SNDK US",
-        "event_date": "2026-10-07",
-        "direction": "trim",
-        "qty_change_pct": -33.3,
-        "weight_pct": 2.156,
-        "return_since_pct": -12.41,
-        "tier": 8
+        "stockid": "LITE US",
+        "pct_change": NaN,
+        "weight_pct": 5.91,
+        "is_heaviest_among_universe": false,
+        "universe_size": 10
+      }
+    },
+    {
+      "id": "R1-PLTR US-2026-10-13",
+      "rule": "R1",
+      "score": NaN,
+      "selected": true,
+      "fact": "帕蘭提爾科技公司昨日 +nan%，00409A 持股 5.62%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 帕蘭提爾科技公司（PLTR）上漲約 nan%。\n00409A 自 8/20 首次買進，並於 8/28、8/31、9/1、9/4 加碼；截至 10/12 持有 115.5 張、占淨值 5.62%，報酬約 +nan%。",
+      "data": {
+        "stockid": "PLTR US",
+        "pct_change": NaN,
+        "weight_pct": 5.62,
+        "is_heaviest_among_universe": false,
+        "universe_size": 10
+      }
+    },
+    {
+      "id": "R1-BE US-2026-10-13",
+      "rule": "R1",
+      "score": NaN,
+      "selected": true,
+      "fact": "布魯姆能源公司昨日 +nan%，00409A 持股 5.19%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 布魯姆能源公司（BE）上漲約 nan%。\n00409A 自 8/26 首次買進，並於 8/28、9/4、9/8、9/17 加碼；截至 10/12 持有 85 張、占淨值 5.19%，報酬約 +nan%。",
+      "data": {
+        "stockid": "BE US",
+        "pct_change": NaN,
+        "weight_pct": 5.19,
+        "is_heaviest_among_universe": false,
+        "universe_size": 10
+      }
+    },
+    {
+      "id": "R1-NVDA US-2026-10-13",
+      "rule": "R1",
+      "score": NaN,
+      "selected": true,
+      "fact": "輝達公司昨日 +nan%，00409A 持股 4.21%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 輝達公司（NVDA）上漲約 nan%。\n00409A 自 8/24 首次買進，並於 8/26、8/28、9/3、9/4 加碼；截至 10/12 持有 80 張、占淨值 4.215%，報酬約 +nan%。",
+      "data": {
+        "stockid": "NVDA US",
+        "pct_change": NaN,
+        "weight_pct": 4.21,
+        "is_heaviest_among_universe": false,
+        "universe_size": 10
+      }
+    },
+    {
+      "id": "R1-MU US-2026-10-13",
+      "rule": "R1",
+      "score": NaN,
+      "selected": true,
+      "fact": "美光科技公司昨日 +nan%，00409A 持股 3.52%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 美光科技公司（MU）上漲約 nan%。\n00409A 自 8/21 首次買進，並於 8/27、8/28、8/31、9/2 加碼；截至 10/12 持有 15.3 張、占淨值 3.523%，報酬約 +nan%。",
+      "data": {
+        "stockid": "MU US",
+        "pct_change": NaN,
+        "weight_pct": 3.52,
+        "is_heaviest_among_universe": false,
+        "universe_size": 10
+      }
+    },
+    {
+      "id": "R1-CRWD US-2026-10-13",
+      "rule": "R1",
+      "score": NaN,
+      "selected": false,
+      "fact": "Crowdstrike控股公司昨日 +nan%，00409A 持股 3.37%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 Crowdstrike控股公司（CRWD）上漲約 nan%。\n00409A 自 8/31 首次買進，並於 9/1、9/14 加碼；截至 10/12 持有 55 張、占淨值 3.368%，報酬約 +nan%。",
+      "data": {
+        "stockid": "CRWD US",
+        "pct_change": NaN,
+        "weight_pct": 3.37,
+        "is_heaviest_among_universe": false,
+        "universe_size": 10
+      }
+    },
+    {
+      "id": "R1-HOOD US-2026-10-13",
+      "rule": "R1",
+      "score": NaN,
+      "selected": false,
+      "fact": "羅賓漢市場公司昨日 +nan%，00409A 持股 2.8%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 羅賓漢市場公司（HOOD）上漲約 nan%。\n00409A 自 8/20 首次買進，並於 8/28、9/1、9/4、9/21 加碼；截至 10/12 持有 110 張、占淨值 2.797%，報酬約 +nan%。",
+      "data": {
+        "stockid": "HOOD US",
+        "pct_change": NaN,
+        "weight_pct": 2.8,
+        "is_heaviest_among_universe": false,
+        "universe_size": 10
+      }
+    },
+    {
+      "id": "R1-SPCX US-2026-10-13",
+      "rule": "R1",
+      "score": NaN,
+      "selected": false,
+      "fact": "太空探索科技公司昨日 +nan%，00409A 持股 2.66%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 太空探索科技公司（SPCX）上漲約 nan%。\n00409A 自 8/27 首次買進，並於 8/28、8/31、9/4、9/11 加碼；截至 10/12 持有 70 張、占淨值 2.663%，報酬約 +nan%。",
+      "data": {
+        "stockid": "SPCX US",
+        "pct_change": NaN,
+        "weight_pct": 2.66,
+        "is_heaviest_among_universe": false,
+        "universe_size": 10
+      }
+    },
+    {
+      "id": "R1-TSM US-2026-10-13",
+      "rule": "R1",
+      "score": NaN,
+      "selected": false,
+      "fact": "台灣積體電路製造股份有限公司昨日 +nan%，00409A 持股 2.59%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 台灣積體電路製造股份有限公司（TSM）上漲約 nan%。\n00409A 自 8/28 首次買進；截至 10/12 持有 25 張、占淨值 2.586%，報酬約 +nan%。",
+      "data": {
+        "stockid": "TSM US",
+        "pct_change": NaN,
+        "weight_pct": 2.59,
+        "is_heaviest_among_universe": false,
+        "universe_size": 10
+      }
+    },
+    {
+      "id": "R1-MRVL US-2026-10-13",
+      "rule": "R1",
+      "score": NaN,
+      "selected": false,
+      "fact": "Marvell Technology Inc昨日 +nan%，00409A 持股 2.46%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 Marvell Technology Inc（MRVL）上漲約 nan%。\n00409A 自 8/20 首次買進，並於 8/25、8/27、10/7 加碼；截至 10/12 持有 39.8 張、占淨值 2.463%，報酬約 +nan%。",
+      "data": {
+        "stockid": "MRVL US",
+        "pct_change": NaN,
+        "weight_pct": 2.46,
+        "is_heaviest_among_universe": false,
+        "universe_size": 10
+      }
+    },
+    {
+      "id": "R2-ALAB US-2026-10-13",
+      "rule": "R2",
+      "score": 10.55,
+      "selected": false,
+      "fact": "顯著超配持股 Astera實驗室公司創 60 日新高（00409A 權重 2.11%，其他海外主動 ETF 最高僅 0.73%）",
+      "angle": "顯著超配股發威：別人沒有的上漲",
+      "draft": "昨日 Astera實驗室公司（ALAB）創 60 日新高。\n00409A 最近於 9/22 重新建倉，並於 9/23 加碼；截至 10/12 持有 28 張、占淨值 2.113%，報酬約 +nan%。",
+      "data": {
+        "stockid": "ALAB US",
+        "pct_change": NaN,
+        "weight_pct": 2.11,
+        "exclusive": false,
+        "new_high": false,
+        "others_max_weight": 0.734
+      }
+    },
+    {
+      "id": "R2-AEHR US-2026-10-13",
+      "rule": "R2",
+      "score": 6.15,
+      "selected": false,
+      "fact": "獨門持股 愛赫測試系統創 60 日新高（00409A 權重 0.82%，其他海外主動 ETF 皆未持有）",
+      "angle": "獨門股發威：別人沒有的上漲",
+      "draft": "昨日 愛赫測試系統（AEHR）創 60 日新高。\n00409A 自 9/9 首次買進，並於 9/17 加碼；截至 10/12 持有 45 張、占淨值 0.819%，報酬約 +nan%。",
+      "data": {
+        "stockid": "AEHR US",
+        "pct_change": NaN,
+        "weight_pct": 0.82,
+        "exclusive": true,
+        "new_high": false,
+        "others_max_weight": null
+      }
+    },
+    {
+      "id": "R2-STM US-2026-10-13",
+      "rule": "R2",
+      "score": 5.55,
+      "selected": false,
+      "fact": "獨門持股 意法半導體公司創 60 日新高（00409A 權重 0.74%，其他海外主動 ETF 皆未持有）",
+      "angle": "獨門股發威：別人沒有的上漲",
+      "draft": "昨日 意法半導體公司（STM）創 60 日新高。\n00409A 自 10/5 首次買進，並於 10/6 加碼；截至 10/12 持有 63 張、占淨值 0.74%，報酬約 +nan%。",
+      "data": {
+        "stockid": "STM US",
+        "pct_change": NaN,
+        "weight_pct": 0.74,
+        "exclusive": true,
+        "new_high": false,
+        "others_max_weight": null
+      }
+    },
+    {
+      "id": "R2-AXTI US-2026-10-13",
+      "rule": "R2",
+      "score": 4.35,
+      "selected": false,
+      "fact": "獨門持股 AXT公司創 60 日新高（00409A 權重 0.58%，其他海外主動 ETF 皆未持有）",
+      "angle": "獨門股發威：別人沒有的上漲",
+      "draft": "昨日 AXT公司（AXTI）創 60 日新高。\n00409A 自 9/9 首次買進，並於 9/11、9/16、9/21 加碼；截至 10/12 持有 40 張、占淨值 0.577%，報酬約 +nan%。",
+      "data": {
+        "stockid": "AXTI US",
+        "pct_change": NaN,
+        "weight_pct": 0.58,
+        "exclusive": true,
+        "new_high": false,
+        "others_max_weight": null
+      }
+    },
+    {
+      "id": "R2-FORM US-2026-10-13",
+      "rule": "R2",
+      "score": 4.12,
+      "selected": false,
+      "fact": "獨門持股 福達電子公司創 60 日新高（00409A 權重 0.55%，其他海外主動 ETF 皆未持有）",
+      "angle": "獨門股發威：別人沒有的上漲",
+      "draft": "昨日 福達電子公司（FORM）創 60 日新高。\n00409A 自 9/29 首次買進；截至 10/12 持有 18 張、占淨值 0.546%，報酬約 +nan%。",
+      "data": {
+        "stockid": "FORM US",
+        "pct_change": NaN,
+        "weight_pct": 0.55,
+        "exclusive": true,
+        "new_high": false,
+        "others_max_weight": null
       }
     }
   ],
   "push": {
-    "attempted": true,
-    "sent": true,
-    "reason": null,
-    "message_chars": 151,
-    "line_status": 200,
-    "candidate_count": 1,
-    "selected_count": 1
+    "attempted": false,
+    "sent": false,
+    "reason": "idempotent_rerun",
+    "candidate_count": 15,
+    "selected_count": 5
   }
 }
