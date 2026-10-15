@@ -85,6 +85,19 @@ async function tryFetch(ticker: string, from: Date, today: Date, interval: '1d' 
     );
     const rawQuotes = result?.quotes ?? result;
     if (!Array.isArray(rawQuotes) || !rawQuotes.length) return null;
+    // 收盤競價成交時間戳略晚於收盤時間（例：LITE/PLTR/BE/CRWD/HOOD 的最後成交 20:00:01Z，
+    // regular.end 是 20:00:00Z）時，Yahoo 會把當天日 K 的 close/adjclose 回傳 null，但 meta.regularMarketPrice
+    // 已是正式收盤價。整列濾掉會讓這些個股在「收盤影響」被當成查無報價而排除（2026-10-14 實例：
+    // 00409A 第一大持股 LITE 缺席、涵蓋率僅 22.7%）。→ 場次已結束時，用 regularMarketPrice 補最後一列。
+    const meta = result?.meta;
+    const lastRow = rawQuotes[rawQuotes.length - 1];
+    const sessionEnd = meta?.currentTradingPeriod?.regular?.end;
+    if (lastRow && lastRow.close == null && meta?.regularMarketPrice && meta?.regularMarketTime && sessionEnd
+        && new Date(meta.regularMarketTime).getTime() >= new Date(sessionEnd).getTime()
+        && new Date(lastRow.date).getTime() >= new Date(meta.currentTradingPeriod.regular.start).getTime() - 3600_000) {
+      lastRow.close = meta.regularMarketPrice;
+      if (lastRow.adjclose == null) lastRow.adjclose = meta.regularMarketPrice;
+    }
     // Filter rows with null close (incomplete current session)
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const quotes = rawQuotes.filter((q: any) => q.close != null);
