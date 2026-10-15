@@ -1,6 +1,6 @@
 {
   "date": "2026-10-15",
-  "scanned_at": "2026-10-15T14:01:20+08:00",
+  "scanned_at": "2026-10-15T19:01:15+08:00",
   "config_snapshot": {
     "r1": {
       "min_daily_pct": 3.0,
@@ -54,7 +54,7 @@
     }
   },
   "sources": {
-    "own_holdings": "stale",
+    "own_holdings": "ok",
     "attr_supabase": "ok",
     "twse_mis": "ok",
     "yahoo": "ok",
@@ -65,85 +65,47 @@
   "skipped_rules": [],
   "candidates": [
     {
-      "id": "R3-2308-20261005-t15",
+      "id": "R3-2308-20261012-t8",
       "rule": "R3",
-      "score": 37.41,
+      "score": 28.42,
       "selected": true,
-      "fact": "10/5 減碼 台達電子，其後回跌 18.7%",
+      "fact": "10/12 減碼 台達電子，其後回跌 14.2%",
       "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 10/5 提前減碼台達電子，隨後該股回跌 18.7%，成功避開損失。",
+      "draft": "經理人 10/12 提前減碼台達電子，隨後該股回跌 14.2%，成功避開損失。",
       "data": {
         "stockid": "2308",
-        "event_date": "2026-10-05",
+        "event_date": "2026-10-12",
         "direction": "trim",
-        "qty_change_pct": -25.4,
-        "weight_pct": 2.038,
-        "return_since_pct": -18.7,
-        "tier": 15
+        "qty_change_pct": -69.2,
+        "weight_pct": 1.638,
+        "return_since_pct": -14.21,
+        "tier": 8
       }
     },
     {
-      "id": "R3-2303-20261005-t8",
+      "id": "R3-2303-20261006-t8",
       "rule": "R3",
-      "score": 24.92,
+      "score": 18.98,
       "selected": true,
-      "fact": "10/5 減碼 聯華電子，其後回跌 12.5%",
+      "fact": "10/6 減碼 聯華電子，其後回跌 9.5%",
       "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 10/5 提前減碼聯華電子，隨後該股回跌 12.5%，成功避開損失。",
+      "draft": "經理人 10/6 提前減碼聯華電子，隨後該股回跌 9.5%，成功避開損失。",
       "data": {
         "stockid": "2303",
-        "event_date": "2026-10-05",
+        "event_date": "2026-10-06",
         "direction": "trim",
-        "qty_change_pct": -23.1,
-        "weight_pct": 2.084,
-        "return_since_pct": -12.46,
-        "tier": 8
-      }
-    },
-    {
-      "id": "R3-6669-20260917-t8",
-      "rule": "R3",
-      "score": 21.55,
-      "selected": true,
-      "fact": "9/17 減碼 緯穎科技，其後回跌 10.8%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 9/17 提前減碼緯穎科技，隨後該股回跌 10.8%，成功避開損失。",
-      "data": {
-        "stockid": "6669",
-        "event_date": "2026-09-17",
-        "direction": "trim",
-        "qty_change_pct": -23.3,
-        "weight_pct": 4.252,
-        "return_since_pct": -10.77,
-        "tier": 8
-      }
-    },
-    {
-      "id": "R3-5274-20261007-t8",
-      "rule": "R3",
-      "score": 20.34,
-      "selected": true,
-      "fact": "10/7 減碼 信驊科技，其後回跌 10.2%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 10/7 提前減碼信驊科技，隨後該股回跌 10.2%，成功避開損失。",
-      "data": {
-        "stockid": "5274",
-        "event_date": "2026-10-07",
-        "direction": "trim",
-        "qty_change_pct": -21.4,
-        "weight_pct": 3.31,
-        "return_since_pct": -10.17,
+        "qty_change_pct": -99.9,
+        "weight_pct": 1.48,
+        "return_since_pct": -9.49,
         "tier": 8
       }
     }
   ],
   "push": {
-    "attempted": true,
-    "sent": true,
-    "reason": null,
-    "message_chars": 400,
-    "line_status": 200,
-    "candidate_count": 4,
-    "selected_count": 4
+    "attempted": false,
+    "sent": false,
+    "reason": "idempotent_rerun",
+    "candidate_count": 2,
+    "selected_count": 2
   }
 }
