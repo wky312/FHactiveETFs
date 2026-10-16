@@ -2,7 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CalendarPayload, Category, MarketEvent, Metric, ReactionStats } from '@/lib/marketCalendar/types';
 import { CATEGORY_META, METRIC_LABEL_ZH } from '@/lib/marketCalendar/config';
-import { solarTermOn } from '@/lib/solarTerms';
+import { solarTermOn, solarTermsBetween, type SolarTerm } from '@/lib/solarTerms';
 
 /* ── 復華設計 token（與 Dashboard 一致）── */
 const RED    = '#C00000';   // 台股慣例：漲 / 高於預期 = 紅
@@ -509,17 +509,24 @@ export default function MarketCalendarTab() {
   const thisWeek = upcoming.filter(e => inWeek(e, monday));
   const nextWeek = upcoming.filter(e => inWeek(e, addDays(monday, 7)));
 
-  /* 搜尋：標題 / 代碼 / 類型 / 指標名稱（中英文），不受下方類別、重要性篩選影響 */
-  const searchHits = useMemo(() => {
+  /* 搜尋：標題 / 代碼 / 類型 / 指標名稱（中英文）＋二十四節氣，不受下方類別、重要性篩選影響 */
+  type Hit = { id: string; date: string; sort: string; ev?: MarketEvent; term?: SolarTerm };
+  const searchHits = useMemo<Hit[] | null>(() => {
     const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
     if (!terms.length) return null;
-    return (data?.events ?? []).filter(e => {
+    const hits: Hit[] = (data?.events ?? []).filter(e => {
       if (!searchPast && endMs(e) < now) return false;
       const hay = [e.title, e.type, e.symbol, e.historyKey, e.category, CATEGORY_META[e.category].label,
         ...(e.metrics ?? []).flatMap(m => [m.label, METRIC_LABEL_ZH[m.label]])].filter(Boolean).join(' ').toLowerCase();
       return terms.every(t => hay.includes(t));
-    }).sort((a, b) => searchPast ? b.start.localeCompare(a.start) : a.start.localeCompare(b.start));
-  }, [data, query, searchPast, now]);
+    }).map(e => ({ id: e.id, date: when(e, tz).date, sort: e.start, ev: e }));
+    const t0 = ymdIn(now, 'Asia/Taipei');
+    for (const { date, term } of solarTermsBetween(searchPast ? addDays(t0, -400) : t0, addDays(t0, 400))) {
+      const hay = `${term.name} ${term.kind} 節氣 二十四節氣`;
+      if (terms.every(t => hay.includes(t))) hits.push({ id: `term-${date}`, date, sort: `${date}T00:00:00`, term });
+    }
+    return hits.sort((a, c) => searchPast ? c.sort.localeCompare(a.sort) : a.sort.localeCompare(c.sort));
+  }, [data, query, searchPast, now, tz]);
   const jumpTo = (e: MarketEvent) => {
     const d = when(e, tz).date;
     setMonth(d.slice(0, 7) === curMonth ? null : d.slice(0, 7)); setSelDay(d); setOpenId(e.id);
@@ -577,7 +584,7 @@ export default function MarketCalendarTab() {
       {/* 搜尋 */}
       <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: '12px 16px', display: 'grid', gap: 10 }}>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="搜尋事件，例如 intel、ppi、台積電、fomc、nvda…"
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="搜尋事件或節氣，例如 intel、ppi、台積電、fomc、霜降、立冬…"
             style={{ flex: '1 1 260px', padding: '8px 12px', border: `1.4px solid ${BORDER}`, borderRadius: 8, fontSize: '.9rem', fontFamily: SANS, outline: 'none' }} />
           <label style={{ fontSize: '.8rem', color: SUB, display: 'inline-flex', gap: 5, alignItems: 'center', cursor: 'pointer' }}>
             <input type="checkbox" checked={searchPast} onChange={e => setSearchPast(e.target.checked)} />含已過事件
@@ -587,11 +594,27 @@ export default function MarketCalendarTab() {
         {searchHits && (searchHits.length === 0
           ? <div style={{ fontSize: '.84rem', color: SUB }}>找不到符合「{query.trim()}」的{searchPast ? '' : '後續'}事件。</div>
           : <div style={{ maxHeight: 320, overflowY: 'auto' }}>
-              {searchHits.slice(0, 60).map(e => {
+              {searchHits.slice(0, 60).map(h => {
+                if (h.term) {
+                  const past = h.date < today, days = Math.ceil((Date.parse(h.date + 'T00:00:00+08:00') - now) / DAY);
+                  const col = h.term.kind === '節' ? TERM_JIE : TERM_QI;
+                  return (
+                    <button key={h.id} onClick={() => { setMonth(h.date.slice(0, 7) === curMonth ? null : h.date.slice(0, 7)); setSelDay(h.date); setOpenId(null); document.getElementById('mc-month')?.scrollIntoView({ behavior: 'smooth', block: 'start' }); }} style={{
+                      all: 'unset', boxSizing: 'border-box', width: '100%', cursor: 'pointer', display: 'flex', gap: 12, alignItems: 'center',
+                      padding: '7px 4px', borderBottom: `1px solid ${GRID}`, fontFamily: SANS, flexWrap: 'wrap',
+                    }}>
+                      <span style={{ fontFamily: MONO, fontWeight: 700, width: 150, flexShrink: 0, color: past ? SUB : TEXT, fontSize: '.86rem' }}>{h.date}（{wd(h.date)}）</span>
+                      <span style={{ fontSize: '.7rem', fontWeight: 600, color: col, background: `${col}14`, borderRadius: 3, padding: '0 5px' }}>{h.term.kind === '節' ? '節氣・節' : '節氣・氣'}</span>
+                      <span style={{ fontWeight: 700, fontSize: '.88rem', color: past ? SUB : TEXT }}>{h.term.name}</span>
+                      <span style={{ marginLeft: 'auto', fontSize: '.78rem', color: SUB }}>{past ? '已過' : days <= 0 ? '今天' : `${days} 天後`}</span>
+                    </button>
+                  );
+                }
+                const e = h.ev!;
                 const w = when(e, tz), past = endMs(e) < now;
                 const days = Math.ceil((Date.parse(e.allDay ? e.date + 'T00:00:00+08:00' : e.start) - now) / DAY);
                 return (
-                  <button key={e.id} onClick={() => jumpTo(e)} style={{
+                  <button key={h.id} onClick={() => jumpTo(e)} style={{
                     all: 'unset', boxSizing: 'border-box', width: '100%', cursor: 'pointer', display: 'flex', gap: 12, alignItems: 'center',
                     padding: '7px 4px', borderBottom: `1px solid ${GRID}`, fontFamily: SANS, flexWrap: 'wrap',
                   }}>

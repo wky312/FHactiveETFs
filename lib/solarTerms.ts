@@ -61,3 +61,12 @@ export function solarTermsOfYear(year: number): Map<string, SolarTerm> {
 }
 
 export const solarTermOn = (ymd: string): SolarTerm | undefined => solarTermsOfYear(Number(ymd.slice(0, 4))).get(ymd);
+
+/* 區間內的節氣清單（含頭尾），依日期排序 */
+export function solarTermsBetween(fromYmd: string, toYmd: string): { date: string; term: SolarTerm }[] {
+  const out: { date: string; term: SolarTerm }[] = [];
+  for (let y = Number(fromYmd.slice(0, 4)); y <= Number(toYmd.slice(0, 4)); y++) {
+    for (const [date, term] of solarTermsOfYear(y)) if (date >= fromYmd && date <= toYmd) out.push({ date, term });
+  }
+  return out.sort((a, b) => a.date.localeCompare(b.date));
+}
