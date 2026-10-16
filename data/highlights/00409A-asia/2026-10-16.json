@@ -1,0 +1,212 @@
+{
+  "date": "2026-10-16",
+  "scanned_at": "2026-10-16T15:01:08+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": null
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "overseas"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "stale",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R3-009150 KS-20260930-t15",
+      "rule": "R3",
+      "score": 42.96,
+      "selected": true,
+      "fact": "9/30 減碼 三星電機，其後回跌 21.5%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 9/30 提前減碼三星電機，隨後該股回跌 21.5%，成功避開損失。",
+      "data": {
+        "stockid": "009150 KS",
+        "event_date": "2026-09-30",
+        "direction": "trim",
+        "qty_change_pct": -48.5,
+        "weight_pct": 2.253,
+        "return_since_pct": -21.48,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R1-3017-2026-10-16",
+      "rule": "R1",
+      "score": 32.53,
+      "selected": true,
+      "fact": "奇鋐科技今日 +7.46%，00409A 持股 4.36%、為海外主動 ETF 觀測群 9 檔中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 奇鋐科技（3017）上漲約 7.46%。\n00409A 自 8/26 首次買進，並於 8/27、8/28、9/3、9/7 加碼；截至 10/14 持有 173 張、占淨值 4.358%，報酬約 +1.3%。",
+      "data": {
+        "stockid": "3017",
+        "pct_change": 7.46,
+        "weight_pct": 4.36,
+        "is_heaviest_among_universe": true,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R3-2454-20261006-t8",
+      "rule": "R3",
+      "score": 27.24,
+      "selected": true,
+      "fact": "10/6 減碼 聯發科技，其後回跌 13.6%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/6 提前減碼聯發科技，隨後該股回跌 13.6%，成功避開損失。",
+      "data": {
+        "stockid": "2454",
+        "event_date": "2026-10-06",
+        "direction": "trim",
+        "qty_change_pct": -31.0,
+        "weight_pct": 2.824,
+        "return_since_pct": -13.62,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-6981 JP-20260930-t8",
+      "rule": "R3",
+      "score": 24.23,
+      "selected": true,
+      "fact": "9/30 減碼 村田製作所有限公司，其後回跌 12.1%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 9/30 提前減碼村田製作所有限公司，隨後該股回跌 12.1%，成功避開損失。",
+      "data": {
+        "stockid": "6981 JP",
+        "event_date": "2026-09-30",
+        "direction": "trim",
+        "qty_change_pct": -35.0,
+        "weight_pct": 1.998,
+        "return_since_pct": -12.11,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R2-6505-2026-10-16",
+      "rule": "R2",
+      "score": 19.39,
+      "selected": true,
+      "fact": "獨門持股 台塑石化今日 +9.87%（00409A 權重 1.31%，其他海外主動 ETF 皆未持有）",
+      "angle": "獨門股發威：別人沒有的上漲",
+      "draft": "今日 台塑石化（6505）上漲約 9.87%。\n00409A 自 10/13 首次買進，並於 10/14 加碼；截至 10/14 持有 1445 張、占淨值 1.312%，報酬約 +3.9%。",
+      "data": {
+        "stockid": "6505",
+        "pct_change": 9.87,
+        "weight_pct": 1.31,
+        "exclusive": true,
+        "new_high": true,
+        "others_max_weight": null
+      }
+    },
+    {
+      "id": "R1-6505-2026-10-16",
+      "rule": "R1",
+      "score": 12.93,
+      "selected": false,
+      "fact": "台塑石化今日 +9.87%，00409A 持股 1.31%、為海外主動 ETF 觀測群 9 檔中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 台塑石化（6505）上漲約 9.87%。\n00409A 自 10/13 首次買進，並於 10/14 加碼；截至 10/14 持有 1445 張、占淨值 1.312%，報酬約 +3.9%。",
+      "data": {
+        "stockid": "6505",
+        "pct_change": 9.87,
+        "weight_pct": 1.31,
+        "is_heaviest_among_universe": true,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-5274-2026-10-16",
+      "rule": "R1",
+      "score": 8.03,
+      "selected": false,
+      "fact": "信驊科技今日 +3.36%，00409A 持股 2.39%、為海外主動 ETF 觀測群 9 檔中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 信驊科技（5274）上漲約 3.36%。\n00409A 自 9/2 首次買進，並於 9/9、9/10、9/16、9/18 加碼；截至 10/14 持有 18 張、占淨值 2.394%，報酬約 -8.7%。",
+      "data": {
+        "stockid": "5274",
+        "pct_change": 3.36,
+        "weight_pct": 2.39,
+        "is_heaviest_among_universe": true,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-6787 JP-2026-10-16",
+      "rule": "R1",
+      "score": 7.27,
+      "selected": false,
+      "fact": "名幸電子股份有限公司今日 +4.25%，00409A 持股 1.71%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 名幸電子股份有限公司（6787）上漲約 4.25%。\n00409A 自 9/24 首次買進，並於 9/30、10/1、10/7 加碼；截至 10/14 持有 43.5 張、占淨值 1.707%，報酬約 -12.5%。",
+      "data": {
+        "stockid": "6787 JP",
+        "pct_change": 4.25,
+        "weight_pct": 1.71,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 686,
+    "line_status": 200,
+    "candidate_count": 8,
+    "selected_count": 5
+  }
+}
