@@ -1,6 +1,6 @@
 {
   "date": "2026-10-16",
-  "scanned_at": "2026-10-16T15:01:08+08:00",
+  "scanned_at": "2026-10-16T20:00:28+08:00",
   "config_snapshot": {
     "r1": {
       "min_daily_pct": 3.0,
@@ -65,24 +65,6 @@
   "skipped_rules": [],
   "candidates": [
     {
-      "id": "R3-009150 KS-20260930-t15",
-      "rule": "R3",
-      "score": 42.96,
-      "selected": true,
-      "fact": "9/30 減碼 三星電機，其後回跌 21.5%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 9/30 提前減碼三星電機，隨後該股回跌 21.5%，成功避開損失。",
-      "data": {
-        "stockid": "009150 KS",
-        "event_date": "2026-09-30",
-        "direction": "trim",
-        "qty_change_pct": -48.5,
-        "weight_pct": 2.253,
-        "return_since_pct": -21.48,
-        "tier": 15
-      }
-    },
-    {
       "id": "R1-3017-2026-10-16",
       "rule": "R1",
       "score": 32.53,
@@ -99,38 +81,38 @@
       }
     },
     {
-      "id": "R3-2454-20261006-t8",
+      "id": "R3-2454-20261007-t8",
       "rule": "R3",
-      "score": 27.24,
+      "score": 24.2,
       "selected": true,
-      "fact": "10/6 減碼 聯發科技，其後回跌 13.6%",
+      "fact": "10/7 減碼 聯發科技，其後回跌 12.1%",
       "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 10/6 提前減碼聯發科技，隨後該股回跌 13.6%，成功避開損失。",
+      "draft": "經理人 10/7 提前減碼聯發科技，隨後該股回跌 12.1%，成功避開損失。",
       "data": {
         "stockid": "2454",
-        "event_date": "2026-10-06",
+        "event_date": "2026-10-07",
         "direction": "trim",
-        "qty_change_pct": -31.0,
-        "weight_pct": 2.824,
-        "return_since_pct": -13.62,
+        "qty_change_pct": -15.5,
+        "weight_pct": 1.942,
+        "return_since_pct": -12.1,
         "tier": 8
       }
     },
     {
-      "id": "R3-6981 JP-20260930-t8",
+      "id": "R3-009150 KS-20260914-t8",
       "rule": "R3",
-      "score": 24.23,
+      "score": 22.29,
       "selected": true,
-      "fact": "9/30 減碼 村田製作所有限公司，其後回跌 12.1%",
+      "fact": "9/14 減碼 三星電機，其後回跌 11.1%",
       "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 9/30 提前減碼村田製作所有限公司，隨後該股回跌 12.1%，成功避開損失。",
+      "draft": "經理人 9/14 提前減碼三星電機，隨後該股回跌 11.1%，成功避開損失。",
       "data": {
-        "stockid": "6981 JP",
-        "event_date": "2026-09-30",
+        "stockid": "009150 KS",
+        "event_date": "2026-09-14",
         "direction": "trim",
-        "qty_change_pct": -35.0,
-        "weight_pct": 1.998,
-        "return_since_pct": -12.11,
+        "qty_change_pct": -41.1,
+        "weight_pct": 3.242,
+        "return_since_pct": -11.14,
         "tier": 8
       }
     },
@@ -149,6 +131,24 @@
         "exclusive": true,
         "new_high": true,
         "others_max_weight": null
+      }
+    },
+    {
+      "id": "R3-6981 JP-20261013-t8",
+      "rule": "R3",
+      "score": 17.99,
+      "selected": true,
+      "fact": "10/13 減碼 村田製作所有限公司，其後回跌 9.0%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/13 提前減碼村田製作所有限公司，隨後該股回跌 9.0%，成功避開損失。",
+      "data": {
+        "stockid": "6981 JP",
+        "event_date": "2026-10-13",
+        "direction": "trim",
+        "qty_change_pct": -46.2,
+        "weight_pct": 1.522,
+        "return_since_pct": -8.99,
+        "tier": 8
       }
     },
     {
@@ -201,11 +201,9 @@
     }
   ],
   "push": {
-    "attempted": true,
-    "sent": true,
-    "reason": null,
-    "message_chars": 686,
-    "line_status": 200,
+    "attempted": false,
+    "sent": false,
+    "reason": "idempotent_rerun",
     "candidate_count": 8,
     "selected_count": 5
   }
