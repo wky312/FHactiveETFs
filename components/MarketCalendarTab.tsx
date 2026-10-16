@@ -443,6 +443,8 @@ export default function MarketCalendarTab() {
   const [month, setMonth] = useState<string | null>(null);          // null＝跟著「今天」所在月份
   const [selDay, setSelDay] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [searchPast, setSearchPast] = useState(false);
 
   /* 深連結 ?m=YYYY-MM：進站還原、切月寫回（保留 tab / etf 等其他參數）。
      在 effect 內讀 window 以免 SSR hydration mismatch。 */
@@ -507,6 +509,23 @@ export default function MarketCalendarTab() {
   const thisWeek = upcoming.filter(e => inWeek(e, monday));
   const nextWeek = upcoming.filter(e => inWeek(e, addDays(monday, 7)));
 
+  /* 搜尋：標題 / 代碼 / 類型 / 指標名稱（中英文），不受下方類別、重要性篩選影響 */
+  const searchHits = useMemo(() => {
+    const terms = query.trim().toLowerCase().split(/\s+/).filter(Boolean);
+    if (!terms.length) return null;
+    return (data?.events ?? []).filter(e => {
+      if (!searchPast && endMs(e) < now) return false;
+      const hay = [e.title, e.type, e.symbol, e.historyKey, e.category, CATEGORY_META[e.category].label,
+        ...(e.metrics ?? []).flatMap(m => [m.label, METRIC_LABEL_ZH[m.label]])].filter(Boolean).join(' ').toLowerCase();
+      return terms.every(t => hay.includes(t));
+    }).sort((a, b) => searchPast ? b.start.localeCompare(a.start) : a.start.localeCompare(b.start));
+  }, [data, query, searchPast, now]);
+  const jumpTo = (e: MarketEvent) => {
+    const d = when(e, tz).date;
+    setMonth(d.slice(0, 7) === curMonth ? null : d.slice(0, 7)); setSelDay(d); setOpenId(e.id);
+    document.getElementById('mc-month')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  };
+
   const historyRank = useMemo(() => Object.values(data?.history ?? {})
     .map(h => ({ h, tw: h.markets.find(m => m.symbol === '^TWII')?.volRatio ?? NaN, us: h.markets.find(m => m.symbol === '^IXIC')?.volRatio ?? NaN }))
     .sort((a, b) => (fin(b.tw) ? b.tw : 0) - (fin(a.tw) ? a.tw : 0)), [data]);
@@ -555,6 +574,43 @@ export default function MarketCalendarTab() {
         </div>
       </div>
 
+      {/* 搜尋 */}
+      <div style={{ background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: '12px 16px', display: 'grid', gap: 10 }}>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="搜尋事件，例如 intel、ppi、台積電、fomc、nvda…"
+            style={{ flex: '1 1 260px', padding: '8px 12px', border: `1.4px solid ${BORDER}`, borderRadius: 8, fontSize: '.9rem', fontFamily: SANS, outline: 'none' }} />
+          <label style={{ fontSize: '.8rem', color: SUB, display: 'inline-flex', gap: 5, alignItems: 'center', cursor: 'pointer' }}>
+            <input type="checkbox" checked={searchPast} onChange={e => setSearchPast(e.target.checked)} />含已過事件
+          </label>
+          {query && <button style={toggleBtn(false)} onClick={() => setQuery('')}>清除</button>}
+        </div>
+        {searchHits && (searchHits.length === 0
+          ? <div style={{ fontSize: '.84rem', color: SUB }}>找不到符合「{query.trim()}」的{searchPast ? '' : '後續'}事件。</div>
+          : <div style={{ maxHeight: 320, overflowY: 'auto' }}>
+              {searchHits.slice(0, 60).map(e => {
+                const w = when(e, tz), past = endMs(e) < now;
+                const days = Math.ceil((Date.parse(e.allDay ? e.date + 'T00:00:00+08:00' : e.start) - now) / DAY);
+                return (
+                  <button key={e.id} onClick={() => jumpTo(e)} style={{
+                    all: 'unset', boxSizing: 'border-box', width: '100%', cursor: 'pointer', display: 'flex', gap: 12, alignItems: 'center',
+                    padding: '7px 4px', borderBottom: `1px solid ${GRID}`, fontFamily: SANS, flexWrap: 'wrap',
+                  }}>
+                    <span style={{ fontFamily: MONO, fontWeight: 700, width: 150, flexShrink: 0, color: past ? SUB : TEXT, fontSize: '.86rem' }}>
+                      {w.date}（{wd(w.date)}）{w.time ? <span style={{ fontWeight: 500, color: SUB }}> {w.time}</span> : null}
+                    </span>
+                    <Stars n={e.importance} />
+                    <span style={{ fontWeight: 700, fontSize: '.88rem', color: past ? SUB : TEXT }}>{e.title}</span>
+                    {e.tentative && <Tentative />}
+                    <span style={{ marginLeft: 'auto', fontSize: '.78rem', color: days <= 3 && !past ? RED : SUB, fontWeight: days <= 3 && !past ? 700 : 400 }}>
+                      {past ? '已過' : days <= 0 ? '今天' : `${days} 天後`}
+                    </span>
+                  </button>
+                );
+              })}
+              {searchHits.length > 60 && <div style={{ fontSize: '.76rem', color: SUB, padding: '6px 4px' }}>僅顯示前 60 筆，請再輸入更精確的關鍵字。</div>}
+            </div>)}
+      </div>
+
       {/* 篩選 */}
       <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', alignItems: 'center', background: CARD, border: `1px solid ${BORDER}`, borderRadius: 12, padding: '12px 16px' }}>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -572,7 +628,7 @@ export default function MarketCalendarTab() {
         </div>
       </div>
 
-      <Section title={monthLabel(shown)}
+      <div id="mc-month" style={{ height: 0, marginTop: -18, scrollMarginTop: 30 }} /><Section title={monthLabel(shown)}
         note={shown < curMonth
           ? '歷史月份：已公布的事件顯示預期／前值／實際（✓ 表示已有實際值）。可往前回看一年。'
           : '✓ 表示已公布實際值；虛線框＝日期尚未官方確認。美國 CPI／PPI／非農／PCE 只排到官方已公布的日程，新年度日程公布後自動補上。'}
