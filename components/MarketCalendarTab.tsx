@@ -2,6 +2,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { CalendarPayload, Category, MarketEvent, Metric, ReactionStats } from '@/lib/marketCalendar/types';
 import { CATEGORY_META, METRIC_LABEL_ZH } from '@/lib/marketCalendar/config';
+import { solarTermOn } from '@/lib/solarTerms';
 
 /* ── 復華設計 token（與 Dashboard 一致）── */
 const RED    = '#C00000';   // 台股慣例：漲 / 高於預期 = 紅
@@ -15,6 +16,10 @@ const BORDER = '#E8E3DF';
 const GRID   = '#EFEAE4';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
+
+/* 二十四節氣標示色：節（月初）／氣（月中），純顯示用 */
+const TERM_JIE = '#2E7F5B';
+const TERM_QI  = '#8A6D1F';
 
 const CATS = Object.keys(CATEGORY_META) as Category[];
 const TZ = { tpe: { id: 'Asia/Taipei', label: '台灣時間' }, et: { id: 'America/New_York', label: '美東時間' } } as const;
@@ -302,6 +307,7 @@ function MonthGrid({ month, events, tz, today, selected, onSelect }: {
           .mc-chips { flex-direction: row !important; flex-wrap: wrap; gap: 3px !important; }
           .mc-chip { padding: 0 !important; width: 7px; height: 7px; border-radius: 50% !important; border: 0 !important; background: var(--c) !important; }
           .mc-chip-txt, .mc-more { display: none !important; }
+          .mc-term { font-size: .6rem !important; padding: 0 2px !important; }
         }
       `}</style>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(7, minmax(0, 1fr))', gap: 1, background: GRID, border: `1px solid ${GRID}`, borderRadius: 8, overflow: 'hidden' }}>
@@ -313,6 +319,7 @@ function MonthGrid({ month, events, tz, today, selected, onSelect }: {
           if (dayNum < 1 || dayNum > dim) return <div key={i} style={{ background: '#FBF9F7' }} />;
           const ymd = `${month}-${String(dayNum).padStart(2, '0')}`;
           const evs = byDay.get(ymd) ?? [];
+          const term = solarTermOn(ymd);
           const isToday = ymd === today, isSel = ymd === selected;
           const weekend = i % 7 >= 5;
           return (
@@ -320,10 +327,18 @@ function MonthGrid({ month, events, tz, today, selected, onSelect }: {
               background: isSel ? '#FFF4F2' : weekend ? '#FCFAF8' : CARD, padding: 5, cursor: 'pointer', display: 'flex', flexDirection: 'column', gap: 3,
               outline: isSel ? `2px solid ${RED}` : 'none', outlineOffset: -2, minWidth: 0,
             }}>
-              <span style={{
-                fontFamily: MONO, fontSize: '.78rem', fontWeight: isToday ? 700 : 500, color: isToday ? '#fff' : weekend ? SUB : TEXT,
-                background: isToday ? RED : 'transparent', borderRadius: 999, minWidth: 20, height: 20, lineHeight: '20px', textAlign: 'center', alignSelf: 'flex-start',
-              }}>{dayNum}</span>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, minWidth: 0 }}>
+                <span style={{
+                  fontFamily: MONO, fontSize: '.78rem', fontWeight: isToday ? 700 : 500, color: isToday ? '#fff' : weekend ? SUB : TEXT,
+                  background: isToday ? RED : 'transparent', borderRadius: 999, minWidth: 20, height: 20, lineHeight: '20px', textAlign: 'center', flexShrink: 0,
+                }}>{dayNum}</span>
+                {term && (
+                  <span title={`${term.name}（${term.kind === '節' ? '節：月初' : '氣：月中'}）`} className="mc-term" style={{
+                    fontSize: '.66rem', lineHeight: 1.3, padding: '0 4px', borderRadius: 3, whiteSpace: 'nowrap', fontFamily: SANS, fontWeight: 600,
+                    color: term.kind === '節' ? TERM_JIE : TERM_QI, background: `${term.kind === '節' ? TERM_JIE : TERM_QI}14`,
+                  }}>{term.name}</span>
+                )}
+              </div>
               <div className="mc-chips" style={{ display: 'flex', flexDirection: 'column', gap: 2, minWidth: 0 }}>
                 {evs.slice(0, 3).map(e => {
                   const c = CATEGORY_META[e.category].color;
@@ -577,6 +592,9 @@ export default function MarketCalendarTab() {
           {CATS.map(c => <span key={c} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
             <i style={{ width: 9, height: 9, borderRadius: 2, background: CATEGORY_META[c].color, display: 'inline-block' }} />{CATEGORY_META[c].label}
           </span>)}
+          <span style={{ color: TERM_JIE, fontWeight: 600 }}>節（月初）</span>
+          <span style={{ color: TERM_QI, fontWeight: 600 }}>氣（月中）</span>
+          <span>二十四節氣僅供參考，台北日期</span>
           <span>點日期只看當天；再點一次取消</span>
         </div>
       </Section>

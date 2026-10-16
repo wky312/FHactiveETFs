@@ -83,6 +83,7 @@ export const EARNINGS_WATCHLIST: EarningsSpec[] = [
   { symbol: 'TSLA',  key: 'TSLA',  title: 'Tesla 財報',             time: '16:10', tz: 'America/New_York' },
   { symbol: 'AMD',   key: 'AMD',   title: 'AMD 財報',               time: '16:05', tz: 'America/New_York' },
   { symbol: 'MU',    key: 'MU',    title: 'Micron (MU) 財報',       time: '16:05', tz: 'America/New_York' },
+  { symbol: 'INTC',  key: 'INTC',  title: 'Intel 財報',             time: '16:30', tz: 'America/New_York' },
   { symbol: '2454.TW', key: 'MEDIATEK', title: '聯發科法說會',      time: '15:00', tz: 'Asia/Taipei' },
   { symbol: 'SPCX',  key: 'SPCX',  title: 'SpaceX 財報',            time: '16:30', tz: 'America/New_York' },
 ];
@@ -103,7 +104,7 @@ export const HISTORY_LABELS: Record<string, string> = {
   'earnings:NVDA': 'Nvidia 財報', 'earnings:TSMC': '台積電法說會',
   'earnings:GOOGL': 'Google 財報', 'earnings:META': 'Meta 財報', 'earnings:AMZN': 'Amazon 財報',
   'earnings:MSFT': 'Microsoft 財報', 'earnings:AAPL': 'Apple 財報', 'earnings:TSLA': 'Tesla 財報', 'earnings:SPCX': 'SpaceX 財報',
-  'earnings:AMD': 'AMD 財報', 'earnings:MU': 'Micron (MU) 財報', 'earnings:MEDIATEK': '聯發科法說會',
+  'earnings:AMD': 'AMD 財報', 'earnings:MU': 'Micron (MU) 財報', 'earnings:INTC': 'Intel 財報', 'earnings:MEDIATEK': '聯發科法說會',
   election_us: '美國大選 / 期中選舉', election_tw: '台灣選舉', diplomacy_uscn: '美中元首會晤',
   policy: '重大政策衝擊',
 };
