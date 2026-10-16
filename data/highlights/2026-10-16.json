@@ -1,0 +1,147 @@
+{
+  "date": "2026-10-16",
+  "scanned_at": "2026-10-16T14:01:17+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": "0050"
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "tw_active"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "stale",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R3-6505-20261001-t30",
+      "rule": "R3",
+      "score": 60.08,
+      "selected": true,
+      "fact": "10/1 加碼的 台塑石化 至今 +30.0%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 10/1 加碼台塑石化，至今上漲 30.0%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "6505",
+        "event_date": "2026-10-01",
+        "direction": "add",
+        "qty_change_pct": 112.5,
+        "weight_pct": 1.008,
+        "return_since_pct": 30.04,
+        "tier": 30
+      }
+    },
+    {
+      "id": "R1-3017-2026-10-16",
+      "rule": "R1",
+      "score": 41.03,
+      "selected": true,
+      "fact": "奇鋐科技今日 +7.46%，00991A 持股 5.5%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "奇鋐科技大漲 7.46%，00991A 以 5.5% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "3017",
+        "pct_change": 7.46,
+        "weight_pct": 5.5,
+        "is_heaviest_among_universe": false,
+        "universe_size": 17
+      }
+    },
+    {
+      "id": "R3-2308-20261012-t8",
+      "rule": "R3",
+      "score": 27.89,
+      "selected": true,
+      "fact": "10/12 減碼 台達電子，其後回跌 13.9%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/12 提前減碼台達電子，隨後該股回跌 13.9%，成功避開損失。",
+      "data": {
+        "stockid": "2308",
+        "event_date": "2026-10-12",
+        "direction": "trim",
+        "qty_change_pct": -69.2,
+        "weight_pct": 1.638,
+        "return_since_pct": -13.95,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-2303-20261006-t8",
+      "rule": "R3",
+      "score": 19.66,
+      "selected": true,
+      "fact": "10/6 減碼 聯華電子，其後回跌 9.8%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/6 提前減碼聯華電子，隨後該股回跌 9.8%，成功避開損失。",
+      "data": {
+        "stockid": "2303",
+        "event_date": "2026-10-06",
+        "direction": "trim",
+        "qty_change_pct": -99.9,
+        "weight_pct": 1.48,
+        "return_since_pct": -9.83,
+        "tier": 8
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 411,
+    "line_status": 200,
+    "candidate_count": 4,
+    "selected_count": 4
+  }
+}
