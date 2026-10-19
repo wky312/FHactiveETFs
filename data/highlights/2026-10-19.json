@@ -1,6 +1,6 @@
 {
   "date": "2026-10-19",
-  "scanned_at": "2026-10-19T14:01:23+08:00",
+  "scanned_at": "2026-10-19T20:28:47+08:00",
   "config_snapshot": {
     "r1": {
       "min_daily_pct": 3.0,
@@ -54,7 +54,7 @@
     }
   },
   "sources": {
-    "own_holdings": "stale",
+    "own_holdings": "ok",
     "attr_supabase": "ok",
     "twse_mis": "ok",
     "yahoo": "ok",
