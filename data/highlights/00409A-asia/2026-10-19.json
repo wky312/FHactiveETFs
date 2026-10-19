@@ -1,6 +1,6 @@
 {
   "date": "2026-10-19",
-  "scanned_at": "2026-10-19T15:01:10+08:00",
+  "scanned_at": "2026-10-19T22:10:18+08:00",
   "config_snapshot": {
     "r1": {
       "min_daily_pct": 3.0,
@@ -63,87 +63,12 @@
     "peer_redemption": "ok"
   },
   "skipped_rules": [],
-  "candidates": [
-    {
-      "id": "R3-2454-20261007-t8",
-      "rule": "R3",
-      "score": 26.06,
-      "selected": true,
-      "fact": "10/7 減碼 聯發科技，其後回跌 13.0%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 10/7 提前減碼聯發科技，隨後該股回跌 13.0%，成功避開損失。",
-      "data": {
-        "stockid": "2454",
-        "event_date": "2026-10-07",
-        "direction": "trim",
-        "qty_change_pct": -15.5,
-        "weight_pct": 1.942,
-        "return_since_pct": -13.03,
-        "tier": 8
-      }
-    },
-    {
-      "id": "R3-2449-20261001-t8",
-      "rule": "R3",
-      "score": 21.96,
-      "selected": true,
-      "fact": "10/1 減碼 京元電子，其後回跌 11.0%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 10/1 提前減碼京元電子，隨後該股回跌 11.0%，成功避開損失。",
-      "data": {
-        "stockid": "2449",
-        "event_date": "2026-10-01",
-        "direction": "trim",
-        "qty_change_pct": -100.0,
-        "weight_pct": 1.171,
-        "return_since_pct": -10.98,
-        "tier": 8
-      }
-    },
-    {
-      "id": "R3-6981 JP-20261013-t8",
-      "rule": "R3",
-      "score": 20.68,
-      "selected": true,
-      "fact": "10/13 減碼 村田製作所有限公司，其後回跌 10.3%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 10/13 提前減碼村田製作所有限公司，隨後該股回跌 10.3%，成功避開損失。",
-      "data": {
-        "stockid": "6981 JP",
-        "event_date": "2026-10-13",
-        "direction": "trim",
-        "qty_change_pct": -46.2,
-        "weight_pct": 1.522,
-        "return_since_pct": -10.34,
-        "tier": 8
-      }
-    },
-    {
-      "id": "R3-5274-20261008-t8",
-      "rule": "R3",
-      "score": 17.21,
-      "selected": true,
-      "fact": "10/8 減碼 信驊科技，其後回跌 8.6%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 10/8 提前減碼信驊科技，隨後該股回跌 8.6%，成功避開損失。",
-      "data": {
-        "stockid": "5274",
-        "event_date": "2026-10-08",
-        "direction": "trim",
-        "qty_change_pct": -37.9,
-        "weight_pct": 3.585,
-        "return_since_pct": -8.61,
-        "tier": 8
-      }
-    }
-  ],
+  "candidates": [],
   "push": {
-    "attempted": true,
-    "sent": true,
-    "reason": null,
-    "message_chars": 412,
-    "line_status": 200,
-    "candidate_count": 4,
-    "selected_count": 4
+    "attempted": false,
+    "sent": false,
+    "reason": "no_candidates",
+    "candidate_count": 0,
+    "selected_count": 0
   }
 }
