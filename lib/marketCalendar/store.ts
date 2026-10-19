@@ -10,7 +10,7 @@ import { addDays, ymdInTz } from './time';
    - state：跨次累積的市場預期與實際值（ForexFactory 只有本週，錯過就沒了）
    - history：歷史市場反應，約每週或有新樣本滿 T+5 時重算
    本機沒設 Supabase 時退回記憶體，行為相同只是不持久。 */
-const K_EVENTS = 'market_calendar_events_v3';
+const K_EVENTS = 'market_calendar_events_v4';
 const K_STATE = 'market_calendar_state_v1';
 const K_HIST = 'market_calendar_history_v1';
 
