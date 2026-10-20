@@ -632,3 +632,13 @@ def test_is_twse_trading_day_today_unknown_when_holiday_api_down(monkeypatch):
     monkeypatch.setattr(ds, '_twse_trading_days', lambda y, m: set())
     monkeypatch.setattr(ds, '_twse_holidays', lambda y: None)
     assert ds.is_twse_trading_day(date(2026, 10, 7)) is None
+
+
+def test_build_diff_rows_skips_cash_lines():
+    """現金類科目（stockid 空白）不算持股異動；股票照常比。"""
+    def h(sid, name, q):
+        return {'stockid': sid, 'stockname': name, 'qshare': q, 'mvalue': q * 10.0, 'prate_addaccint': 1.0}
+    base = [h('', '應付買回款(NTD)', 5), h('', '扣除應付買入證券款後現金餘額(USD)', 9), h('JPM US', 'JPMORGAN', 200)]
+    cmp_ = [h('', '扣除應付買入證券款後現金餘額(USD)', 3), h('JPM US', 'JPMORGAN', 100)]
+    rows = ds.build_diff_rows(base, cmp_)
+    assert [r['stockid'] for r in rows] == ['JPM US']

@@ -1818,9 +1818,12 @@ def find_trading_day_with_data(start: date, fund_id: str, max_lookback: int = 10
 # ── Diff logic ────────────────────────────────────────────────────────────────
 
 def build_diff_rows(base_holdings, cmp_holdings):
-    """Return only changed rows, sorted by 異動金額 descending."""
-    curr_map = {(h['stockid'] or h['stockname']): h for h in base_holdings}
-    prev_map = {(h['stockid'] or h['stockname']): h for h in cmp_holdings}
+    """Return only changed rows, sorted by 異動金額 descending.
+
+    復華的現金類科目（應付買回款、應付申購預收款、各幣別現金餘額、期貨保證金）stockid 一律是空的，
+    不是持股異動 → 只比有代碼的列（2026-10-20 實測 ETF23/24/26 近 12 個交易日皆如此）。"""
+    curr_map = {h['stockid']: h for h in base_holdings if str(h['stockid'] or '').strip()}
+    prev_map = {h['stockid']: h for h in cmp_holdings if str(h['stockid'] or '').strip()}
     keys = set(curr_map) | set(prev_map)
 
     rows = []
