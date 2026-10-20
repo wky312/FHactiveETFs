@@ -1,0 +1,184 @@
+{
+  "date": "2026-10-20",
+  "scanned_at": "2026-10-21T06:01:04+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": null
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "overseas"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "stale",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R3-TSEM US-20261015-t8",
+      "rule": "R3",
+      "score": 24.8,
+      "selected": true,
+      "fact": "10/15 減碼 塔爾半導體有限公司，其後回跌 12.4%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/15 提前減碼塔爾半導體有限公司，隨後該股回跌 12.4%，成功避開損失。",
+      "data": {
+        "stockid": "TSEM US",
+        "event_date": "2026-10-15",
+        "direction": "trim",
+        "qty_change_pct": -58.8,
+        "weight_pct": 0.869,
+        "return_since_pct": -12.4,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-HOOD US-20261001-t8",
+      "rule": "R3",
+      "score": 23.28,
+      "selected": true,
+      "fact": "10/1 減碼 羅賓漢市場公司，其後回跌 11.6%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/1 提前減碼羅賓漢市場公司，隨後該股回跌 11.6%，成功避開損失。",
+      "data": {
+        "stockid": "HOOD US",
+        "event_date": "2026-10-01",
+        "direction": "trim",
+        "qty_change_pct": -24.6,
+        "weight_pct": 4.719,
+        "return_since_pct": -11.64,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-WPM US-20260921-t8",
+      "rule": "R3",
+      "score": 22.25,
+      "selected": true,
+      "fact": "9/21 減碼 惠頓貴金屬公司，其後回跌 11.1%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 9/21 提前減碼惠頓貴金屬公司，隨後該股回跌 11.1%，成功避開損失。",
+      "data": {
+        "stockid": "WPM US",
+        "event_date": "2026-09-21",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 1.375,
+        "return_since_pct": -11.13,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-AEHR US-20261015-t8",
+      "rule": "R3",
+      "score": 20.86,
+      "selected": true,
+      "fact": "10/15 減碼 愛赫測試系統，其後回跌 10.4%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/15 提前減碼愛赫測試系統，隨後該股回跌 10.4%，成功避開損失。",
+      "data": {
+        "stockid": "AEHR US",
+        "event_date": "2026-10-15",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 0.786,
+        "return_since_pct": -10.43,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-INTC US-20261012-t8",
+      "rule": "R3",
+      "score": 19.06,
+      "selected": true,
+      "fact": "10/12 減碼 英特爾，其後回跌 9.5%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/12 提前減碼英特爾，隨後該股回跌 9.5%，成功避開損失。",
+      "data": {
+        "stockid": "INTC US",
+        "event_date": "2026-10-12",
+        "direction": "trim",
+        "qty_change_pct": -37.5,
+        "weight_pct": 1.961,
+        "return_since_pct": -9.53,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R2-SAP US-2026-10-20",
+      "rule": "R2",
+      "score": 3.52,
+      "selected": false,
+      "fact": "獨門持股 思愛普創 60 日新高（00409A 權重 0.47%，其他海外主動 ETF 皆未持有）",
+      "angle": "獨門股發威：別人沒有的上漲",
+      "draft": "昨日 思愛普（SAP）創 60 日新高。\n00409A 自 10/15 首次買進；截至 10/19 持有 8 張、占淨值 0.467%，報酬約 +2.0%。",
+      "data": {
+        "stockid": "SAP US",
+        "pct_change": 1.31,
+        "weight_pct": 0.47,
+        "exclusive": true,
+        "new_high": true,
+        "others_max_weight": null
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 515,
+    "line_status": 200,
+    "candidate_count": 6,
+    "selected_count": 5
+  }
+}
