@@ -36,7 +36,11 @@ export interface DailyChangeResult {
 interface HoldRow { stockid: string; stockname: string; qshare: number | string | null }
 
 const TTL_MS = 10 * 60 * 1000;
-const _cache = new Map<string, { ts: number; data: DailyChangeResult }>();   // key＝查詢日期（'latest' 表最新）
+const FRESH_MIN_MS = 60 * 1000;      // fresh=1 也至少間隔 60 秒才真的重算，避免被拿來連續打資料庫
+const CACHE_MAX = 16;                // 快取鍵數量上限（key＝查詢日期，'latest' 表最新）
+const MAX_LOOKBACK_DAYS = 400;
+const _cache = new Map<string, { ts: number; data: DailyChangeResult }>();
+const _inflight = new Map<string, Promise<DailyChangeResult>>();
 const FUND_CONCURRENCY = 4;
 
 async function loadSnapshot(ticker: string, date: string): Promise<Map<string, { name: string; q: number }>> {
@@ -59,9 +63,25 @@ async function loadSnapshot(ticker: string, date: string): Promise<Map<string, {
    opts.fresh：繞過 10 分鐘快取（17:30 後使用者要立刻看到剛入庫的當日持股）。 */
 export async function computeDailyChange(opts: { date?: string; fresh?: boolean } = {}): Promise<DailyChangeResult> {
   if (!supabaseReady || !supabase) throw new Error('Supabase 未設定（缺 NEXT_PUBLIC_SUPABASE_URL / KEY）');
+  if (opts.date) {
+    const t = Date.parse(opts.date + 'T00:00:00Z');
+    if (!Number.isFinite(t) || new Date(t).toISOString().slice(0, 10) !== opts.date) throw new Error('date 不是有效日期');
+    const age = (Date.now() - t) / 86400_000;
+    if (age > MAX_LOOKBACK_DAYS || age < -1) throw new Error(`date 只能查最近 ${MAX_LOOKBACK_DAYS} 天內`);
+  }
   const key = opts.date ?? 'latest';
   const hit = _cache.get(key);
-  if (!opts.fresh && hit && Date.now() - hit.ts < TTL_MS) return hit.data;
+  const ttl = opts.fresh ? FRESH_MIN_MS : TTL_MS;
+  if (hit && Date.now() - hit.ts < ttl) return hit.data;
+  const running = _inflight.get(key);                 // 同一個 key 同時多個請求只算一次
+  if (running) return running;
+  const p = doCompute(opts, key).finally(() => _inflight.delete(key));
+  _inflight.set(key, p);
+  return p;
+}
+
+async function doCompute(opts: { date?: string }, key: string): Promise<DailyChangeResult> {
+  if (!supabase) throw new Error('Supabase 未設定');
 
   const { data: etfs } = await supabase
     .from('etf').select('ticker,name')
@@ -119,6 +139,8 @@ export async function computeDailyChange(opts: { date?: string; fresh?: boolean 
   }));
 
   const data: DailyChangeResult = { asOf, funds, stocks };
+  _cache.delete(key);
   _cache.set(key, { ts: Date.now(), data });
+  while (_cache.size > CACHE_MAX) _cache.delete(_cache.keys().next().value as string);   // 淘汰最舊
   return data;
 }
