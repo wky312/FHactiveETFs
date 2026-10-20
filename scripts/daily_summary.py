@@ -50,6 +50,9 @@ ETFS = [
     # 海外檔的持股 T+1 才公告：今天(T)拿到 T-1、對比 T-2 是正常的，別再打 ⚠️（holdingsLag=1）。
     {'ticker': '00409A', 'name': '復華全球未來50主動式ETF', 'fundId': 'ETF26', 'yfTicker': '00409A.TW',
      'holdingsLag': 1},
+    # 00998A 同為海外檔（holdingsLag=1）；上櫃 → Yahoo 代號是 .TWO（.TW 查不到價）。
+    {'ticker': '00998A', 'name': '復華全球金融股票主動式ETF', 'fundId': 'ETF24', 'yfTicker': '00998A.TWO',
+     'holdingsLag': 1},
 ]
 
 # 單位數注意商品：主管機關要求成立以來平均單位數不得低於發行時單位數之一半。
