@@ -1,6 +1,6 @@
 {
   "date": "2026-10-19",
-  "scanned_at": "2026-10-20T06:01:03+08:00",
+  "scanned_at": "2026-10-20T08:52:13+08:00",
   "config_snapshot": {
     "r1": {
       "min_daily_pct": 3.0,
@@ -65,163 +65,231 @@
   "skipped_rules": [],
   "candidates": [
     {
-      "id": "R3-DELL US-20261001-t15",
-      "rule": "R3",
-      "score": 31.86,
-      "selected": true,
-      "fact": "10/1 減碼 戴爾科技公司，其後回跌 15.9%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 10/1 提前減碼戴爾科技公司，隨後該股回跌 15.9%，成功避開損失。",
-      "data": {
-        "stockid": "DELL US",
-        "event_date": "2026-10-01",
-        "direction": "trim",
-        "qty_change_pct": -16.7,
-        "weight_pct": 2.001,
-        "return_since_pct": -15.93,
-        "tier": 15
-      }
-    },
-    {
-      "id": "R3-HOOD US-20261005-t15",
-      "rule": "R3",
-      "score": 30.83,
-      "selected": true,
-      "fact": "10/5 減碼 羅賓漢市場公司，其後回跌 15.4%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 10/5 提前減碼羅賓漢市場公司，隨後該股回跌 15.4%，成功避開損失。",
-      "data": {
-        "stockid": "HOOD US",
-        "event_date": "2026-10-05",
-        "direction": "trim",
-        "qty_change_pct": -15.0,
-        "weight_pct": 3.594,
-        "return_since_pct": -15.41,
-        "tier": 15
-      }
-    },
-    {
-      "id": "R3-BMNR US-20261007-t8",
-      "rule": "R3",
-      "score": 25.06,
-      "selected": true,
-      "fact": "10/7 減碼 BitMine Immersion技術公司，其後回跌 12.5%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 10/7 提前減碼BitMine Immersion技術公司，隨後該股回跌 12.5%，成功避開損失。",
-      "data": {
-        "stockid": "BMNR US",
-        "event_date": "2026-10-07",
-        "direction": "trim",
-        "qty_change_pct": -54.3,
-        "weight_pct": 2.487,
-        "return_since_pct": -12.53,
-        "tier": 8
-      }
-    },
-    {
       "id": "R1-PLTR US-2026-10-19",
       "rule": "R1",
-      "score": 24.33,
+      "score": NaN,
       "selected": true,
-      "fact": "帕蘭提爾科技公司昨日 +4.36%，00409A 持股 5.58%",
+      "fact": "帕蘭提爾科技公司昨日 +nan%，00409A 持股 5.58%",
       "angle": "重倉命中：主動選股的含金量",
-      "draft": "昨日 帕蘭提爾科技公司（PLTR）上漲約 4.36%。\n00409A 自 8/20 首次買進，並於 8/28、8/31、9/1、9/4 加碼；截至 10/16 持有 115.5 張、占淨值 5.576%，報酬約 +7.8%。",
+      "draft": "昨日 帕蘭提爾科技公司（PLTR）上漲約 nan%。\n00409A 自 8/20 首次買進，並於 8/28、8/31、9/1、9/4 加碼；截至 10/16 持有 115.5 張、占淨值 5.576%，報酬約 +nan%。",
       "data": {
         "stockid": "PLTR US",
-        "pct_change": 4.36,
+        "pct_change": NaN,
         "weight_pct": 5.58,
         "is_heaviest_among_universe": false,
         "universe_size": 9
       }
     },
     {
-      "id": "R3-PANW US-20260923-t8",
-      "rule": "R3",
-      "score": 23.57,
+      "id": "R1-LITE US-2026-10-19",
+      "rule": "R1",
+      "score": NaN,
       "selected": true,
-      "fact": "9/23 減碼 Palo Alto Networks Inc，其後回跌 11.8%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 9/23 提前減碼Palo Alto Networks Inc，隨後該股回跌 11.8%，成功避開損失。",
+      "fact": "魯門特姆控股公司昨日 +nan%，00409A 持股 5.45%、為海外主動 ETF 觀測群 9 檔中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 魯門特姆控股公司（LITE）上漲約 nan%。\n00409A 自 8/21 首次買進，並於 8/31、9/1、9/10、9/18 加碼；截至 10/16 持有 25.5 張、占淨值 5.454%，報酬約 +nan%。",
       "data": {
-        "stockid": "PANW US",
-        "event_date": "2026-09-23",
-        "direction": "trim",
-        "qty_change_pct": -27.7,
-        "weight_pct": 1.704,
-        "return_since_pct": -11.78,
-        "tier": 8
+        "stockid": "LITE US",
+        "pct_change": NaN,
+        "weight_pct": 5.45,
+        "is_heaviest_among_universe": true,
+        "universe_size": 9
       }
     },
     {
-      "id": "R3-WPM US-20260921-t8",
-      "rule": "R3",
-      "score": 21.22,
-      "selected": false,
-      "fact": "9/21 減碼 惠頓貴金屬公司，其後回跌 10.6%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 9/21 提前減碼惠頓貴金屬公司，隨後該股回跌 10.6%，成功避開損失。",
+      "id": "R1-NVDA US-2026-10-19",
+      "rule": "R1",
+      "score": NaN,
+      "selected": true,
+      "fact": "輝達公司昨日 +nan%，00409A 持股 4.45%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 輝達公司（NVDA）上漲約 nan%。\n00409A 自 8/24 首次買進，並於 8/26、8/28、9/3、9/4 加碼；截至 10/16 持有 80 張、占淨值 4.445%，報酬約 +nan%。",
       "data": {
-        "stockid": "WPM US",
-        "event_date": "2026-09-21",
-        "direction": "trim",
-        "qty_change_pct": -100.0,
-        "weight_pct": 1.375,
-        "return_since_pct": -10.61,
-        "tier": 8
+        "stockid": "NVDA US",
+        "pct_change": NaN,
+        "weight_pct": 4.45,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
       }
     },
     {
-      "id": "R3-INTC US-20261012-t8",
-      "rule": "R3",
-      "score": 18.39,
-      "selected": false,
-      "fact": "10/12 減碼 英特爾，其後回跌 9.2%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 10/12 提前減碼英特爾，隨後該股回跌 9.2%，成功避開損失。",
+      "id": "R1-BE US-2026-10-19",
+      "rule": "R1",
+      "score": NaN,
+      "selected": true,
+      "fact": "布魯姆能源公司昨日 +nan%，00409A 持股 4.31%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 布魯姆能源公司（BE）上漲約 nan%。\n00409A 自 8/26 首次買進，並於 8/28、9/4、9/8、9/17 加碼；截至 10/16 持有 75 張、占淨值 4.307%，報酬約 +nan%。",
       "data": {
-        "stockid": "INTC US",
-        "event_date": "2026-10-12",
-        "direction": "trim",
-        "qty_change_pct": -37.5,
-        "weight_pct": 1.961,
-        "return_since_pct": -9.2,
-        "tier": 8
+        "stockid": "BE US",
+        "pct_change": NaN,
+        "weight_pct": 4.31,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
       }
     },
     {
-      "id": "R3-AEHR US-20261015-t8",
-      "rule": "R3",
-      "score": 16.99,
-      "selected": false,
-      "fact": "10/15 減碼 愛赫測試系統，其後回跌 8.5%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 10/15 提前減碼愛赫測試系統，隨後該股回跌 8.5%，成功避開損失。",
+      "id": "R1-MU US-2026-10-19",
+      "rule": "R1",
+      "score": NaN,
+      "selected": true,
+      "fact": "美光科技公司昨日 +nan%，00409A 持股 3.49%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 美光科技公司（MU）上漲約 nan%。\n00409A 自 8/21 首次買進，並於 8/27、8/28、8/31、9/2 加碼；截至 10/16 持有 15.3 張、占淨值 3.489%，報酬約 +nan%。",
       "data": {
-        "stockid": "AEHR US",
-        "event_date": "2026-10-15",
-        "direction": "trim",
-        "qty_change_pct": -100.0,
-        "weight_pct": 0.786,
-        "return_since_pct": -8.5,
-        "tier": 8
+        "stockid": "MU US",
+        "pct_change": NaN,
+        "weight_pct": 3.49,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
       }
     },
     {
-      "id": "R3-AXTI US-20261012-t8",
-      "rule": "R3",
-      "score": 16.75,
+      "id": "R1-CRWD US-2026-10-19",
+      "rule": "R1",
+      "score": NaN,
       "selected": false,
-      "fact": "10/12 減碼 AXT公司，其後回跌 8.4%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 10/12 提前減碼AXT公司，隨後該股回跌 8.4%，成功避開損失。",
+      "fact": "Crowdstrike控股公司昨日 +nan%，00409A 持股 3.25%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 Crowdstrike控股公司（CRWD）上漲約 nan%。\n00409A 自 8/31 首次買進，並於 9/1、9/14 加碼；截至 10/16 持有 55 張、占淨值 3.245%，報酬約 +nan%。",
       "data": {
-        "stockid": "AXTI US",
-        "event_date": "2026-10-12",
-        "direction": "trim",
-        "qty_change_pct": -68.0,
-        "weight_pct": 2.051,
-        "return_since_pct": -8.37,
-        "tier": 8
+        "stockid": "CRWD US",
+        "pct_change": NaN,
+        "weight_pct": 3.25,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-MSFT US-2026-10-19",
+      "rule": "R1",
+      "score": NaN,
+      "selected": false,
+      "fact": "微軟公司昨日 +nan%，00409A 持股 3.21%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 微軟公司（MSFT）上漲約 nan%。\n00409A 自 8/25 首次買進，並於 9/1、9/2、10/13、10/15 加碼；截至 10/16 持有 23.35 張、占淨值 3.206%，報酬約 +nan%。",
+      "data": {
+        "stockid": "MSFT US",
+        "pct_change": NaN,
+        "weight_pct": 3.21,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-HOOD US-2026-10-19",
+      "rule": "R1",
+      "score": NaN,
+      "selected": false,
+      "fact": "羅賓漢市場公司昨日 +nan%，00409A 持股 2.82%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 羅賓漢市場公司（HOOD）上漲約 nan%。\n00409A 自 8/20 首次買進，並於 8/28、9/1、9/4、9/21 加碼；截至 10/16 持有 110 張、占淨值 2.822%，報酬約 +nan%。",
+      "data": {
+        "stockid": "HOOD US",
+        "pct_change": NaN,
+        "weight_pct": 2.82,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-TSM US-2026-10-19",
+      "rule": "R1",
+      "score": NaN,
+      "selected": false,
+      "fact": "台灣積體電路製造股份有限公司昨日 +nan%，00409A 持股 2.68%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 台灣積體電路製造股份有限公司（TSM）上漲約 nan%。\n00409A 自 8/28 首次買進；截至 10/16 持有 25 張、占淨值 2.677%，報酬約 +nan%。",
+      "data": {
+        "stockid": "TSM US",
+        "pct_change": NaN,
+        "weight_pct": 2.68,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-SPCX US-2026-10-19",
+      "rule": "R1",
+      "score": NaN,
+      "selected": false,
+      "fact": "太空探索科技公司昨日 +nan%，00409A 持股 2.65%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 太空探索科技公司（SPCX）上漲約 nan%。\n00409A 自 8/27 首次買進，並於 8/28、8/31、9/4、9/11 加碼；截至 10/16 持有 70 張、占淨值 2.653%，報酬約 +nan%。",
+      "data": {
+        "stockid": "SPCX US",
+        "pct_change": NaN,
+        "weight_pct": 2.65,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R2-ALAB US-2026-10-19",
+      "rule": "R2",
+      "score": 10.4,
+      "selected": false,
+      "fact": "顯著超配持股 Astera實驗室公司創 60 日新高（00409A 權重 2.08%，其他海外主動 ETF 最高僅 0.7%）",
+      "angle": "顯著超配股發威：別人沒有的上漲",
+      "draft": "昨日 Astera實驗室公司（ALAB）創 60 日新高。\n00409A 最近於 9/22 重新建倉，並於 9/23 加碼；截至 10/16 持有 28 張、占淨值 2.077%，報酬約 +nan%。",
+      "data": {
+        "stockid": "ALAB US",
+        "pct_change": NaN,
+        "weight_pct": 2.08,
+        "exclusive": false,
+        "new_high": false,
+        "others_max_weight": 0.704
+      }
+    },
+    {
+      "id": "R2-PSX US-2026-10-19",
+      "rule": "R2",
+      "score": 7.05,
+      "selected": false,
+      "fact": "獨門持股 菲利普66創 60 日新高（00409A 權重 0.94%，其他海外主動 ETF 皆未持有）",
+      "angle": "獨門股發威：別人沒有的上漲",
+      "draft": "昨日 菲利普66（PSX）創 60 日新高。\n00409A 最近於 10/8 重新建倉，並於 10/15 加碼；截至 10/16 持有 12.379 張、占淨值 0.942%，報酬約 +nan%。",
+      "data": {
+        "stockid": "PSX US",
+        "pct_change": NaN,
+        "weight_pct": 0.94,
+        "exclusive": true,
+        "new_high": false,
+        "others_max_weight": null
+      }
+    },
+    {
+      "id": "R2-FORM US-2026-10-19",
+      "rule": "R2",
+      "score": 3.68,
+      "selected": false,
+      "fact": "獨門持股 福達電子公司創 60 日新高（00409A 權重 0.49%，其他海外主動 ETF 皆未持有）",
+      "angle": "獨門股發威：別人沒有的上漲",
+      "draft": "昨日 福達電子公司（FORM）創 60 日新高。\n00409A 自 9/29 首次買進；截至 10/16 持有 18 張、占淨值 0.491%，報酬約 +nan%。",
+      "data": {
+        "stockid": "FORM US",
+        "pct_change": NaN,
+        "weight_pct": 0.49,
+        "exclusive": true,
+        "new_high": false,
+        "others_max_weight": null
+      }
+    },
+    {
+      "id": "R2-ESLT US-2026-10-19",
+      "rule": "R2",
+      "score": 3.68,
+      "selected": false,
+      "fact": "獨門持股 埃爾比系統公司創 60 日新高（00409A 權重 0.49%，其他海外主動 ETF 皆未持有）",
+      "angle": "獨門股發威：別人沒有的上漲",
+      "draft": "昨日 埃爾比系統公司（ESLT）創 60 日新高。\n00409A 自 10/15 首次買進；截至 10/16 持有 2.5 張、占淨值 0.49%，報酬約 +nan%。",
+      "data": {
+        "stockid": "ESLT US",
+        "pct_change": NaN,
+        "weight_pct": 0.49,
+        "exclusive": true,
+        "new_high": false,
+        "others_max_weight": null
       }
     },
     {
@@ -231,24 +299,22 @@
       "selected": false,
       "fact": "獨門持股 思愛普創 60 日新高（00409A 權重 0.47%，其他海外主動 ETF 皆未持有）",
       "angle": "獨門股發威：別人沒有的上漲",
-      "draft": "昨日 思愛普（SAP）創 60 日新高。\n00409A 自 10/15 首次買進；截至 10/16 持有 8 張、占淨值 0.466%，報酬約 +0.7%。",
+      "draft": "昨日 思愛普（SAP）創 60 日新高。\n00409A 自 10/15 首次買進；截至 10/16 持有 8 張、占淨值 0.466%，報酬約 +nan%。",
       "data": {
         "stockid": "SAP US",
-        "pct_change": 0.78,
+        "pct_change": NaN,
         "weight_pct": 0.47,
         "exclusive": true,
-        "new_high": true,
+        "new_high": false,
         "others_max_weight": null
       }
     }
   ],
   "push": {
-    "attempted": true,
-    "sent": true,
-    "reason": null,
-    "message_chars": 653,
-    "line_status": 200,
-    "candidate_count": 10,
+    "attempted": false,
+    "sent": false,
+    "reason": "idempotent_rerun",
+    "candidate_count": 15,
     "selected_count": 5
   }
 }
