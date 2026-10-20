@@ -36,7 +36,7 @@ export interface DailyChangeResult {
 interface HoldRow { stockid: string; stockname: string; qshare: number | string | null }
 
 const TTL_MS = 10 * 60 * 1000;
-let _cache: { ts: number; data: DailyChangeResult } | null = null;
+const _cache = new Map<string, { ts: number; data: DailyChangeResult }>();   // key＝查詢日期（'latest' 表最新）
 const FUND_CONCURRENCY = 4;
 
 async function loadSnapshot(ticker: string, date: string): Promise<Map<string, { name: string; q: number }>> {
@@ -55,9 +55,13 @@ async function loadSnapshot(ticker: string, date: string): Promise<Map<string, {
   return m;
 }
 
-export async function computeDailyChange(): Promise<DailyChangeResult> {
+/* opts.date（YYYY-MM-DD）：查指定持股日 vs 其前一持股日；該檔當天沒有持股就 curDate=null（前端標示「該日無資料」）。
+   opts.fresh：繞過 10 分鐘快取（17:30 後使用者要立刻看到剛入庫的當日持股）。 */
+export async function computeDailyChange(opts: { date?: string; fresh?: boolean } = {}): Promise<DailyChangeResult> {
   if (!supabaseReady || !supabase) throw new Error('Supabase 未設定（缺 NEXT_PUBLIC_SUPABASE_URL / KEY）');
-  if (_cache && Date.now() - _cache.ts < TTL_MS) return _cache.data;
+  const key = opts.date ?? 'latest';
+  const hit = _cache.get(key);
+  if (!opts.fresh && hit && Date.now() - hit.ts < TTL_MS) return hit.data;
 
   const { data: etfs } = await supabase
     .from('etf').select('ticker,name')
@@ -66,8 +70,9 @@ export async function computeDailyChange(): Promise<DailyChangeResult> {
   if (!etfList.length) throw new Error('查無 ETF 清單');
 
   const perFund = await mapLimit(etfList, FUND_CONCURRENCY, async (e) => {
-    const { data: cur } = await supabase!.from('holding').select('date')
-      .eq('ticker', e.ticker).order('date', { ascending: false }).limit(1).maybeSingle();
+    let q = supabase!.from('holding').select('date').eq('ticker', e.ticker);
+    if (opts.date) q = q.eq('date', opts.date);
+    const { data: cur } = await q.order('date', { ascending: false }).limit(1).maybeSingle();
     const curDate = (cur?.date as string) ?? null;
     if (!curDate) return { e, curDate: null, prevDate: null, curMap: null, prevMap: null };
     const { data: prv } = await supabase!.from('holding').select('date')
@@ -114,6 +119,6 @@ export async function computeDailyChange(): Promise<DailyChangeResult> {
   }));
 
   const data: DailyChangeResult = { asOf, funds, stocks };
-  _cache = { ts: Date.now(), data };
+  _cache.set(key, { ts: Date.now(), data });
   return data;
 }

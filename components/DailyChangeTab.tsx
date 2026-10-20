@@ -59,14 +59,21 @@ export default function DailyChangeTab() {
   const [sortKey,  setSortKey]  = useState<SortKey>('amount');
   const [sortAsc,  setSortAsc]  = useState(false);
   const [openId,   setOpenId]   = useState<string | null>(null);
+  const [queryDate, setQueryDate] = useState('');            // ''＝最新持股日
+  const [now,       setNow]       = useState(() => Date.now());
+  const [lastTry,   setLastTry]   = useState<number | null>(null);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (opts: { date?: string; fresh?: boolean } = {}) => {
     setLoading(true); setError('');
     try {
-      const res  = await fetch('/api/daily-change', { cache: 'no-store' });
+      const qs = new URLSearchParams();
+      if (opts.date) qs.set('date', opts.date);
+      if (opts.fresh) qs.set('fresh', '1');
+      const res  = await fetch(`/api/daily-change${qs.size ? `?${qs}` : ''}`, { cache: 'no-store' });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
       setData(json as DailyChangeResult);
+      setLastTry(Date.now());
     } catch (e) {
       setError(e instanceof Error ? e.message : '載入失敗');
     } finally {
@@ -80,6 +87,17 @@ export default function DailyChangeTab() {
     didInitRef.current = true;
     load();
   }, [load]);
+
+  useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(t); }, []);
+
+  /* 台北時間：今天日期、是否已過 17:30（各投信約此時公告當日持股、資料庫約此時入庫） */
+  const tpe = useMemo(() => {
+    const f = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei', hourCycle: 'h23', ...o }).format(new Date(now));
+    const ymd = f({ year: 'numeric', month: '2-digit', day: '2-digit' });
+    const [h, m] = f({ hour: '2-digit', minute: '2-digit' }).split(':').map(Number);
+    const wd = new Date(ymd + 'T00:00:00Z').getUTCDay();
+    return { ymd, mins: h * 60 + m, weekday: wd >= 1 && wd <= 5 };
+  }, [now]);
 
   const toggleTicker = (t: string) =>
     setSelected(prev => prev.includes(t) ? prev.filter(x => x !== t) : [...prev, t]);
@@ -137,6 +155,16 @@ export default function DailyChangeTab() {
   const curDates = [...new Set(selFunds.map(f => f.curDate).filter(Boolean))] as string[];
   const noPrev = selFunds.filter(f => f.curDate && !f.prevDate);
 
+  /* 17:30 之後、查「最新」時，還沒入庫今日持股的 ETF → 每 3 分鐘自動重查（強制繞過快取），到 22:00 或全數更新為止 */
+  const pending = !queryDate && tpe.weekday && tpe.mins >= 17 * 60 + 30 && tpe.mins < 22 * 60 && selected.length > 0 && data
+    ? selFunds.filter(f => (f.curDate ?? '') < tpe.ymd) : [];
+  const polling = pending.length > 0;
+  useEffect(() => {
+    if (!polling) return;
+    const t = setInterval(() => load({ fresh: true }), 3 * 60_000);
+    return () => clearInterval(t);
+  }, [polling, load]);
+
   const chip = (active: boolean): React.CSSProperties => ({
     padding: '5px 12px', borderRadius: 999, fontSize: '.8rem', fontFamily: MONO, cursor: 'pointer',
     border: `1px solid ${active ? RED : BORDER}`, background: active ? RED : '#fff', color: active ? '#fff' : TEXT,
@@ -156,12 +184,32 @@ export default function DailyChangeTab() {
         ))}
         <button onClick={() => setSelected(DEFAULT_TICKERS)} style={{ ...chip(false), fontFamily: SANS }}>預設三檔</button>
         {data && <button onClick={() => setSelected(data.funds.map(f => f.ticker))} style={{ ...chip(false), fontFamily: SANS }}>全部 {data.funds.length} 檔</button>}
-        <button onClick={load} disabled={loading}
+        <button onClick={() => load({ date: queryDate || undefined, fresh: true })} disabled={loading}
           style={{ marginLeft: 'auto', padding: '6px 18px', background: loading ? '#999' : RED, color: '#fff', border: 'none', borderRadius: 6,
             cursor: loading ? 'not-allowed' : 'pointer', fontSize: '.84rem', fontWeight: 600, fontFamily: SANS }}>
-          {loading ? '載入中…' : '重新整理'}
+          {loading ? '載入中…' : '強制查最新'}
         </button>
       </div>
+
+      <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14, fontSize: '.82rem' }}>
+        <span style={{ color: SUB }}>查詢持股日</span>
+        <input type="date" value={queryDate} max={tpe.ymd} onChange={e => { const v = e.target.value; setQueryDate(v); load({ date: v || undefined, fresh: true }); }}
+          style={{ padding: '4px 8px', border: `1px solid ${BORDER}`, borderRadius: 6, fontFamily: MONO, fontSize: '.82rem' }} />
+        <button onClick={() => { setQueryDate(''); load({ fresh: true }); }} style={{ ...chip(!queryDate), fontFamily: SANS }}>最新</button>
+        <span style={{ color: SUB }}>{queryDate ? `顯示 ${queryDate} 相對其前一持股日的加減碼；該日沒資料的 ETF 會標示。` : '顯示各檔最新持股日。'}</span>
+      </div>
+
+      {polling && (
+        <div style={{ fontSize: '.8rem', color: '#b45309', background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 6, padding: '8px 12px', marginBottom: 12, lineHeight: 1.6 }}>
+          ⏳ 今日（{tpe.ymd}）持股尚未入庫：{pending.map(f => `${f.ticker}（${f.curDate ?? '無資料'}）`).join('、')}。
+          各投信約 17:30 公告、資料庫約 17:40 前後入庫，本頁每 3 分鐘自動重查{lastTry ? `（上次 ${new Date(lastTry).toLocaleTimeString('en-GB', { timeZone: 'Asia/Taipei', hour: '2-digit', minute: '2-digit' })}）` : ''}，更新後會直接換成今日資料。
+        </div>
+      )}
+      {queryDate && data && selFunds.some(f => !f.curDate) && (
+        <div style={{ fontSize: '.78rem', color: '#b45309', marginBottom: 8 }}>
+          ⚠ {queryDate} 沒有持股資料的 ETF：{selFunds.filter(f => !f.curDate).map(f => f.ticker).join('、')}（休市日或尚未揭露）。
+        </div>
+      )}
 
       {error && <div style={{ color: RED, marginBottom: 12, fontSize: '.85rem' }}>⚠ {error}</div>}
       {loading && !data && <div style={{ color: SUB, padding: 24 }}>載入中…（首次約需數十秒）</div>}
