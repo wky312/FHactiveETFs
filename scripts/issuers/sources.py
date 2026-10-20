@@ -399,10 +399,10 @@ def uni(ticker: str, date: str | None = None) -> list[dict]:
 # ---------------------------------------------------------------------------
 # 群益（00982A/00992A）：POST buyback，body {"fundId":"399"}；data.stocks[]
 # ---------------------------------------------------------------------------
-_CAPITAL_FUND = {"00982A": "399", "00992A": "500", "00997A": "502"}
+_CAPITAL_FUND = {"00982A": "399", "00992A": "500", "00997A": "502", "00415A": "504"}
 
 
-@register("00982A", "00992A", "00997A")
+@register("00982A", "00992A", "00997A", "00415A")
 def capital(ticker: str, date: str | None = None) -> list[dict]:
     s = _session("https://www.capitalfund.com.tw/")
     s.headers["Content-Type"] = "application/json"

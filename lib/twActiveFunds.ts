@@ -42,6 +42,7 @@ export const TW_ACTIVE_FUNDS: OverseasFundConfig[] = [
   { ticker: '00407A', name: '主動凱基台灣',     source: 'cmoney',  fundId: '00407A' },
   { ticker: '00408A', name: '主動第一金優股息', source: 'cmoney',  fundId: '00408A' },
   { ticker: '00410A', name: '主動永豐科技趨勢', source: 'cmoney',  fundId: '00410A' },
+  { ticker: '00415A', name: '主動群益核心50',   source: 'cmoney',  fundId: '00415A' },
 ];
 
 export function listTwActiveFunds(): { ticker: string; name: string }[] {

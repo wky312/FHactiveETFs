@@ -54,6 +54,7 @@ export const BENEFICIARY_TICKERS: BeneficiaryTicker[] = [
   { ticker: '00406A', name: '主動中信台灣收益', group: 'tw' },
   { ticker: '00407A', name: '主動凱基台灣',     group: 'tw' },
   { ticker: '00408A', name: '主動第一金優股息', group: 'tw' },
+  { ticker: '00415A', name: '主動群益核心50',   group: 'tw' },
   { ticker: '00983A', name: '主動中信ARK創新',   group: 'overseas' },
   { ticker: '00986A', name: '主動台新全球龍頭', group: 'overseas' },
   { ticker: '00988A', name: '主動統一全球創新', group: 'overseas' },

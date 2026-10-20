@@ -36,6 +36,7 @@ export const PEER_GROUPS: Record<string, { label: string; items: PeerItem[] }> =
       { ticker: '00407A', yfTicker: '00407A.TW', name: '主動凱基台灣' },
       { ticker: '00408A', yfTicker: '00408A.TW', name: '主動第一金優股息' },
       { ticker: '00410A', yfTicker: '00410A.TW', name: '主動永豐科技趨勢' },
+      { ticker: '00415A', yfTicker: '00415A.TW', name: '主動群益核心50' },
       { ticker: '0050',   yfTicker: '0050.TW',   name: '元大台灣50',   benchmark: true },
       { ticker: '^TWII',  yfTicker: '^TWII',     name: '台灣加權指數', benchmark: true },
       { ticker: '^TWOII', yfTicker: '^TWOII',    name: '台灣OTC指數',  benchmark: true },

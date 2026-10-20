@@ -45,6 +45,7 @@ export const BREAK_ISSUE_FUNDS: BreakIssueFund[] = [
   { ticker: '00406A', name: '主動中信台灣收益',     issuer: '中信',   yfTicker: '00406A.TW',  listDate: '2026-06-02', issuePrice: 10 },
   { ticker: '00407A', name: '主動凱基台灣',         issuer: '凱基',   yfTicker: '00407A.TW',  listDate: '2026-06-16', issuePrice: 10 },
   { ticker: '00408A', name: '主動第一金優股息',     issuer: '第一金', yfTicker: '00408A.TW',  listDate: '2026-07-07', issuePrice: 10 },
+  { ticker: '00415A', name: '主動群益核心50',       issuer: '群益',   yfTicker: '00415A.TW',  listDate: '2026-10-20', issuePrice: 10 },
   { ticker: '00409A', name: '主動復華全球50',       issuer: '復華',   yfTicker: '00409A.TW',  listDate: '2026-09-02', issuePrice: 10 },
   { ticker: '00410A', name: '主動永豐科技趨勢',     issuer: '永豐',   yfTicker: '00410A.TW',  listDate: '2026-07-28', issuePrice: 10 },
   { ticker: '00411A', name: '主動統一前沿科技',     issuer: '統一',   yfTicker: '00411A.TWO', listDate: '2026-08-26', issuePrice: 10, tpex: true },

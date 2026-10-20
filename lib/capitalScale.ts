@@ -12,6 +12,7 @@ export interface CapitalDay {
 export const CAPITAL_FUNDS: Record<string, string> = {
   '00982A': '399',
   '00992A': '500',
+  '00415A': '504',   // 主動群益核心50（2026-10-20 掛牌）
   '00997A': '502',   // 主動群益美國增長（海外，公告日 = 交易日 +2 交易日）
 };
 

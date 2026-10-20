@@ -403,6 +403,9 @@ PEER_ETFS = [
      'since': '2026-01-07'},
     {'ticker': '00408A', 'name': '第一金408', 'source': 'fsitc', 'key': '183',  'group': 'tw_active',
      'since': '2026-07-15'},
+    # 群益 00415A 主動群益核心50（2026-10-20 掛牌）：fundNo 504，buyback 可回溯 → since＝掛牌日。
+    {'ticker': '00415A', 'name': '群益415', 'source': 'capital', 'key': '504',  'group': 'tw_active',
+     'since': '2026-10-20'},
     # 永豐 / 兆豐：⚠ 兩家都**只拿得到最新一期**（永豐試過 ?date=/?Date=/?dataDate=/路徑帶日期全
     # 無效；兆豐是 WebForms postback，沒有日期控制項）→ since 設「開始追蹤日」而非掛牌日，
     # 否則掛牌日到今天之間每個交易日都會永遠缺一檔。歷史只能放棄。

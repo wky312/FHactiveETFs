@@ -70,7 +70,7 @@ const REDEMPTION_GROUPS: RedemptionGroup[] = [
   },
   {
     id: 'tw_active_all',
-    label: '台股主動式ETF（全部22檔）',
+    label: '台股主動式ETF（全部23檔）',
     dbGroup: 'tw_active',
     /* 全市場台股型主動式ETF —— 基準是 TWSE/TPEx 的 ISIN 清單（`C_public.jsp?strMode=2|4`
        篩 `^00\d{3}A$`），2026-10-02 稽核出全市場 22 檔台股型，其中 17 檔已接通申贖來源。
@@ -106,6 +106,8 @@ const REDEMPTION_GROUPS: RedemptionGroup[] = [
       { ticker: '00996A', name: '兆豐996', source: 'mega',      key: '23' },
       { ticker: '00410A', name: '永豐410', source: 'sinopac',   key: '00410A' },
       { ticker: '00408A', name: '第一金408', source: 'fsitc',   key: '183' },
+      // 2026-10-20 掛牌即接通：群益 fundNo 504（/CFWeb/api/etf/items 對出來）。
+      { ticker: '00415A', name: '群益415', source: 'capital',   key: '504' },
     ],
   },
   {
