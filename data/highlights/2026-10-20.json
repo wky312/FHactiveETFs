@@ -1,6 +1,6 @@
 {
   "date": "2026-10-20",
-  "scanned_at": "2026-10-20T14:01:26+08:00",
+  "scanned_at": "2026-10-20T19:05:26+08:00",
   "config_snapshot": {
     "r1": {
       "min_daily_pct": 3.0,
@@ -54,7 +54,7 @@
     }
   },
   "sources": {
-    "own_holdings": "stale",
+    "own_holdings": "ok",
     "attr_supabase": "ok",
     "twse_mis": "ok",
     "yahoo": "ok",
@@ -65,85 +65,29 @@
   "skipped_rules": [],
   "candidates": [
     {
-      "id": "R3-2303-20261005-t15",
+      "id": "R3-6223-20260922-t8",
       "rule": "R3",
-      "score": 33.44,
+      "score": 16.65,
       "selected": true,
-      "fact": "10/5 減碼 聯華電子，其後回跌 16.7%",
+      "fact": "9/22 減碼 旺矽科技，其後回跌 8.3%",
       "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 10/5 提前減碼聯華電子，隨後該股回跌 16.7%，成功避開損失。",
-      "data": {
-        "stockid": "2303",
-        "event_date": "2026-10-05",
-        "direction": "trim",
-        "qty_change_pct": -23.1,
-        "weight_pct": 2.084,
-        "return_since_pct": -16.72,
-        "tier": 15
-      }
-    },
-    {
-      "id": "R3-2308-20261012-t15",
-      "rule": "R3",
-      "score": 31.05,
-      "selected": true,
-      "fact": "10/12 減碼 台達電子，其後回跌 15.5%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 10/12 提前減碼台達電子，隨後該股回跌 15.5%，成功避開損失。",
-      "data": {
-        "stockid": "2308",
-        "event_date": "2026-10-12",
-        "direction": "trim",
-        "qty_change_pct": -69.2,
-        "weight_pct": 1.638,
-        "return_since_pct": -15.53,
-        "tier": 15
-      }
-    },
-    {
-      "id": "R3-6223-20260924-t8",
-      "rule": "R3",
-      "score": 19.02,
-      "selected": true,
-      "fact": "9/24 減碼 旺矽科技，其後回跌 9.5%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 9/24 提前減碼旺矽科技，隨後該股回跌 9.5%，成功避開損失。",
+      "draft": "經理人 9/22 提前減碼旺矽科技，隨後該股回跌 8.3%，成功避開損失。",
       "data": {
         "stockid": "6223",
-        "event_date": "2026-09-24",
+        "event_date": "2026-09-22",
         "direction": "trim",
-        "qty_change_pct": -10.7,
-        "weight_pct": 1.986,
-        "return_since_pct": -9.51,
-        "tier": 8
-      }
-    },
-    {
-      "id": "R3-2327-20260923-t8",
-      "rule": "R3",
-      "score": 17.45,
-      "selected": true,
-      "fact": "9/23 減碼 國巨股份，其後回跌 8.7%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 9/23 提前減碼國巨股份，隨後該股回跌 8.7%，成功避開損失。",
-      "data": {
-        "stockid": "2327",
-        "event_date": "2026-09-23",
-        "direction": "trim",
-        "qty_change_pct": -10.7,
-        "weight_pct": 5.4,
-        "return_since_pct": -8.73,
+        "qty_change_pct": -33.3,
+        "weight_pct": 3.14,
+        "return_since_pct": -8.33,
         "tier": 8
       }
     }
   ],
   "push": {
-    "attempted": true,
-    "sent": true,
-    "reason": null,
-    "message_chars": 398,
-    "line_status": 200,
-    "candidate_count": 4,
-    "selected_count": 4
+    "attempted": false,
+    "sent": false,
+    "reason": "idempotent_rerun",
+    "candidate_count": 1,
+    "selected_count": 1
   }
 }
