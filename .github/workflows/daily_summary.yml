@@ -4,7 +4,11 @@ on:
   workflow_dispatch:  # triggered by cron-job.org via /api/cron/trigger
     inputs:
       test_date:
-        description: '手動測試：只送指定日期的 00991A 進出場摘要 Pushover（YYYY-MM-DD，留空為正常每日排程）'
+        description: '手動測試：只送指定日期、單一檔的進出場摘要 Pushover（YYYY-MM-DD，留空為正常每日排程）'
+        required: false
+        default: ''
+      test_ticker:
+        description: '手動測試的那一檔（00991A / 00409A / 00998A，留空＝00991A）；只在有填 test_date 時生效'
         required: false
         default: ''
 
@@ -56,6 +60,7 @@ jobs:
           SUPABASE_URL:        ${{ secrets.SUPABASE_URL }}
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           TEST_DATE:           ${{ github.event.inputs.test_date }}
+          TEST_TICKER:         ${{ github.event.inputs.test_ticker }}
           # Email 副本（與 Pushover 同內容、同時機）。GMAIL_APP_PASSWORD 是 Google 帳號的
           # 「應用程式密碼」（非登入密碼），做法同 fantasy-baseball repo。
           # 三個 env 沒設齊時 send_email() 會靜默略過，不影響 Pushover。

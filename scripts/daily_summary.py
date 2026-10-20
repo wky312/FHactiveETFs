@@ -2758,13 +2758,18 @@ async def main():
         sys.exit('ERROR: PUSHOVER_TOKEN and PUSHOVER_USER must be set.')
 
     test_date_raw = os.environ.get('TEST_DATE', '').strip()
+    test_ticker   = os.environ.get('TEST_TICKER', '').strip().upper() or ETFS[0]['ticker']
     if test_date_raw:
-        # 手動測試單一日期的 00991A 進出場摘要：只送這一則 Pushover，
+        # 手動測試單一日期、單一檔（TEST_TICKER，預設 00991A）的進出場摘要：只送這一則 Pushover，
         # 不動 peer_redemption / unit_watch / overseas（避免重寫已正確的 DB 資料、
         # 重複推播同業申贖）。
         test_date = datetime.strptime(test_date_raw, '%Y-%m-%d').date()
         print(f'TEST_DATE (TST): {test_date}')
-        await process_etf(ETFS[0], test_date)
+        etf = next((e for e in ETFS if e['ticker'] == test_ticker), None)
+        if etf is None:
+            print(f'  Unknown TEST_TICKER {test_ticker}; choices: {[e["ticker"] for e in ETFS]}')
+            return
+        await process_etf(etf, test_date)
         flush_email_digest(test_date)
         return
 
