@@ -114,18 +114,17 @@ function prevTradingDay(from: Date): Date {
   do { d.setDate(d.getDate() - 1); } while (d.getDay() === 0 || d.getDay() === 6);
   return d;
 }
-function defaultDate(): string {
+/* 預設的「基準日／比較日」。lag = 該檔持股落後幾個交易日（EtfConfig.holdingsLag）：
+   海外檔今天查不到今天的持股，基準日要再往前推一個交易日，比較日則是基準日的前一個交易日。 */
+function defaultDates(lag = 0): { base: string; cmp: string } {
   const now = new Date();
   // Taiwan time = UTC+8
   const twHour = new Date(now.getTime() + 8 * 3600 * 1000).getUTCHours();
   // Before 17:00 Taiwan time, holdings data hasn't updated yet → use previous trading day
-  const base = twHour < 17 ? prevTradingDay(now) : now;
-  const day = base.getDay();
-  if (day === 0 || day === 6) return localStr(prevTradingDay(base));
-  return localStr(base);
-}
-function prevDay(): string {
-  return localStr(prevTradingDay(new Date(defaultDate())));
+  let base = twHour < 17 ? prevTradingDay(now) : now;
+  if (base.getDay() === 0 || base.getDay() === 6) base = prevTradingDay(base);
+  for (let i = 0; i < lag; i++) base = prevTradingDay(base);
+  return { base: localStr(base), cmp: localStr(prevTradingDay(base)) };
 }
 function toApiDate(s: string) { return s.replace(/-/g, '/'); }
 
@@ -187,8 +186,30 @@ function EmptyHint({ text }: { text: string }) {
   return <p style={{ color: '#AAA', textAlign: 'center', padding: '40px 0', fontSize: '.9rem' }}>{text}</p>;
 }
 
-const Card = forwardRef<HTMLDivElement, { title: string; children: React.ReactNode; onSave?: () => void }>(
-  ({ title, children, onSave }, ref) => (
+/* 基金切換：放在各分頁卡片標題下方，一眼看得到目前是哪一檔、點一下就換。
+   原本是頁首左上角的下拉選單，使用者回饋不直覺（不知道那是切換基金用的）。 */
+function FundPicker({ value, onChange }: { value: string; onChange: (ticker: string) => void }) {
+  return (
+    <div role="radiogroup" aria-label="選擇基金" className="fund-pills">
+      {ETF_LIST.map(e => {
+        const sel = e.ticker === value;
+        return (
+          <button
+            key={e.ticker} type="button" role="radio" aria-checked={sel}
+            onClick={() => { if (!sel) onChange(e.ticker); }}
+            className={`fund-pill${sel ? ' is-active' : ''}`}
+          >
+            <span className="fund-pill-code">{e.ticker}</span>
+            <span className="fund-pill-name">{e.short}</span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+const Card = forwardRef<HTMLDivElement, { title: string; children: React.ReactNode; onSave?: () => void; picker?: React.ReactNode }>(
+  ({ title, children, onSave, picker }, ref) => (
     <div ref={ref} style={{ background: CARD, borderRadius: 10, padding: '20px 22px', boxShadow: '0 1px 6px rgba(0,0,0,.07)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 18 }}>
         <h2 style={{
@@ -207,6 +228,7 @@ const Card = forwardRef<HTMLDivElement, { title: string; children: React.ReactNo
           </button>
         )}
       </div>
+      {picker}
       {children}
     </div>
   )
@@ -224,6 +246,9 @@ export default function Dashboard() {
      這樣分享出去的連結才分得出是哪一檔基金的哪一頁（只帶 ?tab= 的話對方永遠開到預設的 00991A）。
      刻意在 effect 裡還原而不是用 useState 初始值：初始值在 SSR 讀不到 window，
      client 讀得到就會 hydration mismatch。 */
+  // 網址還原出來的基金，給下方「進站自動載入」用——不能在那邊重讀網址：下一個 effect 會先把
+  // 網址同步成 state 的初始值（00991A），讀到的就不是使用者連進來的那檔了。
+  const initialEtfRef = useRef<EtfConfig>(DEFAULT_ETF);
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
     const t = sp.get('tab') as Tab | null;
@@ -233,6 +258,7 @@ export default function Dashboard() {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- 一次性還原網址狀態，不會串連渲染
     if (mappedT && ALL_TABS.includes(mappedT)) setActiveTab(mappedT);
     if (etf) setSelectedEtf(etf);
+    initialEtfRef.current = etf ?? DEFAULT_ETF;
   }, []);
   useEffect(() => {
     const sp = new URLSearchParams(window.location.search);
@@ -261,19 +287,19 @@ export default function Dashboard() {
     };
   }, [openGroup]);
 
-  const [holdDate,    setHoldDate]    = useState(defaultDate());
+  const [holdDate,    setHoldDate]    = useState(() => defaultDates().base);
   const [holdData,    setHoldData]    = useState<LoadedData | null>(null);
   const [holdLoading, setHoldLoading] = useState(false);
   const [holdError,   setHoldError]   = useState('');
 
-  const [baseDate,   setBaseDate]   = useState(defaultDate());
-  const [cmpDate,    setCmpDate]    = useState(prevDay());
+  const [baseDate,   setBaseDate]   = useState(() => defaultDates().base);
+  const [cmpDate,    setCmpDate]    = useState(() => defaultDates().cmp);
   const [baseData,   setBaseData]   = useState<LoadedData | null>(null);
   const [cmpData,    setCmpData]    = useState<LoadedData | null>(null);
   const [cmpLoading, setCmpLoading] = useState(false);
   const [cmpError,   setCmpError]   = useState('');
 
-  const [perfDate,    setPerfDate]    = useState(defaultDate());
+  const [perfDate,    setPerfDate]    = useState(() => defaultDates().base);
   const [perfData,    setPerfData]    = useState<PerfData | null>(null);
   const [perfLoading, setPerfLoading] = useState(false);
   const [perfError,   setPerfError]   = useState('');
@@ -296,42 +322,70 @@ export default function Dashboard() {
     return json as LoadedData;
   }, []);
 
-  const loadHoldings = useCallback(async (force = false) => {
+  /* 載入函式可指定 etf：切換基金的當下 selectedEtf 這個 state 還沒更新，要直接帶新的那檔進來。
+     每次載入遞增序號、回來時序號不符就丟掉——連點不同基金時，慢回來的舊請求不會蓋掉新的。 */
+  const holdSeq = useRef(0), cmpSeq = useRef(0), perfSeq = useRef(0);
+
+  const loadHoldings = useCallback(async (force = false, etf: EtfConfig = selectedEtf, date: string = holdDate) => {
+    const seq = ++holdSeq.current;
     setHoldLoading(true); setHoldError('');
-    try   { setHoldData(await fetchData(holdDate, selectedEtf.fundId, force)); }
-    catch (e) { setHoldError(e instanceof Error ? e.message : '載入失敗'); }
-    finally   { setHoldLoading(false); }
+    try {
+      const d = await fetchData(date, etf.fundId, force);
+      if (seq === holdSeq.current) setHoldData(d);
+    } catch (e) { if (seq === holdSeq.current) setHoldError(e instanceof Error ? e.message : '載入失敗'); }
+    finally     { if (seq === holdSeq.current) setHoldLoading(false); }
   }, [holdDate, selectedEtf, fetchData]);
 
-  const loadCompare = useCallback(async (force = false) => {
+  const loadCompare = useCallback(async (force = false, etf: EtfConfig = selectedEtf,
+                                        base: string = baseDate, cmp: string = cmpDate) => {
+    const seq = ++cmpSeq.current;
     setCmpLoading(true); setCmpError('');
     try {
       const [b, c] = await Promise.all([
-        fetchData(baseDate, selectedEtf.fundId, force),
-        fetchData(cmpDate, selectedEtf.fundId, force),
+        fetchData(base, etf.fundId, force),
+        fetchData(cmp, etf.fundId, force),
       ]);
-      setBaseData(b); setCmpData(c);
-    } catch (e) { setCmpError(e instanceof Error ? e.message : '載入失敗'); }
-    finally     { setCmpLoading(false); }
+      if (seq === cmpSeq.current) { setBaseData(b); setCmpData(c); }
+    } catch (e) { if (seq === cmpSeq.current) setCmpError(e instanceof Error ? e.message : '載入失敗'); }
+    finally     { if (seq === cmpSeq.current) setCmpLoading(false); }
   }, [baseDate, cmpDate, selectedEtf, fetchData]);
 
-  const loadPerformance = useCallback(async () => {
+  const loadPerformance = useCallback(async (etf: EtfConfig = selectedEtf) => {
+    const seq = ++perfSeq.current;
     setPerfLoading(true); setPerfError('');
     try {
-      const res  = await fetch(`/api/performance?date=${encodeURIComponent(toApiDate(perfDate))}&fundId=${encodeURIComponent(selectedEtf.fundId)}`, { cache: 'no-store' });
+      const res  = await fetch(`/api/performance?date=${encodeURIComponent(toApiDate(perfDate))}&fundId=${encodeURIComponent(etf.fundId)}`, { cache: 'no-store' });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? '載入失敗');
-      setPerfData(json as PerfData);
-    } catch (e) { setPerfError(e instanceof Error ? e.message : '載入失敗'); }
-    finally     { setPerfLoading(false); }
+      if (seq === perfSeq.current) setPerfData(json as PerfData);
+    } catch (e) { if (seq === perfSeq.current) setPerfError(e instanceof Error ? e.message : '載入失敗'); }
+    finally     { if (seq === perfSeq.current) setPerfLoading(false); }
   }, [perfDate, selectedEtf]);
 
-  // 進站自動載入最近交易日的「當日摘要」資料，讓落地頁直接有內容（只跑一次；失敗則靜默，使用者仍可手動載入）
+  /* 依分頁重新載入「那一頁要的資料」。基金選單搬進各分頁後，切換基金就該直接看到新基金的內容，
+     不再清空後要使用者自己找「載入」按鈕。股價表現要打 Yahoo 15–30 秒，不自動跑，維持手動。 */
+  const reloadFor = useCallback((tab: Tab, etf: EtfConfig, d: { base: string; cmp: string }) => {
+    if (tab === 'summary' || tab === 'compare') loadCompare(false, etf, d.base, d.cmp);
+    else if (tab === 'holdings' || tab === 'country') loadHoldings(false, etf, d.base);
+  }, [loadCompare, loadHoldings]);
+
+  /* 換基金時日期一律重設成那檔的預設值（國內/海外可查到的最新日不同）；回傳新日期給呼叫端直接用，
+     因為 setState 要到下一輪 render 才生效。 */
+  const resetDatesFor = useCallback((etf: EtfConfig) => {
+    const d = defaultDates(etf.holdingsLag);
+    setHoldDate(d.base); setBaseDate(d.base); setCmpDate(d.cmp); setPerfDate(d.base);
+    return d;
+  }, []);
+
+  // 進站自動載入：等網址上的 ?tab= / ?etf= 還原完，用還原後的基金載入（原本固定先載 00991A，
+  // 用 ?etf=00998A 進站會拿到 00991A 的資料、卻標成 00998A）。只跑一次；失敗則靜默，使用者仍可手動載入。
   const autoLoadedRef = useRef(false);
   useEffect(() => {
     if (autoLoadedRef.current) return;
     autoLoadedRef.current = true;
-    loadCompare();
+    const etf = initialEtfRef.current;
+    const d = resetDatesFor(etf);
+    loadCompare(false, etf, d.base, d.cmp);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
@@ -340,7 +394,10 @@ export default function Dashboard() {
     setSelectedEtf(etf);
     setHoldData(null); setBaseData(null); setCmpData(null); setPerfData(null);
     setHoldError(''); setCmpError(''); setPerfError('');
-  }, []);
+    reloadFor(activeTab, etf, resetDatesFor(etf));
+  }, [activeTab, reloadFor, resetDatesFor]);
+
+  const fundPicker = <FundPicker value={selectedEtf.ticker} onChange={handleEtfChange} />;
 
   const saveImage = useCallback(async (ref: React.RefObject<HTMLDivElement | null>, filename: string) => {
     if (!ref.current) return;
@@ -354,26 +411,12 @@ export default function Dashboard() {
     <div style={{ minHeight: '100vh', background: BG, fontFamily: SANS }}>
 
       {/* ── Sticky Header ──
-           基金選單原本縮在右上角、只顯示代號，容易被忽略。改放到標題正下方（原副標題的位置），
-           選單本身就顯示「代號＋簡稱」，等於把副標題的資訊一起吃掉，不必再另外印一行。 */}
+           基金選單已搬進各分頁卡片（FundPicker），頁首只留標題。 */}
       <header className="site-header">
         <div style={{ minWidth: 0 }}>
           <h1 className="site-title">
             <span style={{ color: RED }}>復華</span>主動式ETF 持股資訊
           </h1>
-          <div className="site-fundpick">
-            <span className="site-fundpick-label">基金</span>
-            <select
-              className="site-fundpick-select"
-              aria-label="選擇基金"
-              value={selectedEtf.ticker}
-              onChange={e => handleEtfChange(e.target.value)}
-            >
-              {ETF_LIST.map(e => (
-                <option key={e.ticker} value={e.ticker}>{e.ticker}　{e.short}</option>
-              ))}
-            </select>
-          </div>
         </div>
       </header>
 
@@ -441,12 +484,12 @@ export default function Dashboard() {
 
         {activeTab === 'holdings' && (
           <Card
-            ref={holdingsRef} title="持股清單"
+            ref={holdingsRef} title="持股清單" picker={fundPicker}
             onSave={holdData ? () => saveImage(holdingsRef, imgName('持股清單')) : undefined}
           >
             <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 18, flexWrap: 'wrap' }}>
               <DateInput label="資料日期" value={holdDate} onChange={setHoldDate} />
-              <ActionButton onClick={loadHoldings} loading={holdLoading} label="載入" />
+              <ActionButton onClick={() => loadHoldings()} loading={holdLoading} label="載入" />
               <ActionButton onClick={() => loadHoldings(true)} loading={holdLoading} label="強制查詢最新資料" />
             </div>
             <ErrorMsg msg={holdError} onReset={() => { setHoldError(''); setHoldData(null); }} />
@@ -459,13 +502,13 @@ export default function Dashboard() {
 
         {activeTab === 'compare' && (
           <Card
-            ref={compareRef} title="持股比較"
+            ref={compareRef} title="持股比較" picker={fundPicker}
             onSave={baseData && cmpData ? () => saveImage(compareRef, imgName('持股比較')) : undefined}
           >
             <div style={{ display: 'flex', gap: 20, alignItems: 'flex-end', marginBottom: 18, flexWrap: 'wrap' }}>
               <DateInput label="比較日期" value={cmpDate}  onChange={setCmpDate} />
               <DateInput label="基準日期" value={baseDate} onChange={setBaseDate} />
-              <ActionButton onClick={loadCompare} loading={cmpLoading} label="載入比較" />
+              <ActionButton onClick={() => loadCompare()} loading={cmpLoading} label="載入比較" />
               <ActionButton onClick={() => loadCompare(true)} loading={cmpLoading} label="強制查詢最新資料" />
             </div>
             <ErrorMsg msg={cmpError} onReset={() => { setCmpError(''); setBaseData(null); setCmpData(null); }} />
@@ -477,7 +520,7 @@ export default function Dashboard() {
         )}
 
         {activeTab === 'summary' && (
-          <Card ref={summaryRef} title="當日摘要" onSave={baseData && cmpData ? () => saveImage(summaryRef, imgName('當日摘要')) : undefined}>
+          <Card ref={summaryRef} title="當日摘要" picker={fundPicker} onSave={baseData && cmpData ? () => saveImage(summaryRef, imgName('當日摘要')) : undefined}>
             {baseData && cmpData
               ? (
                 <>
@@ -501,7 +544,7 @@ export default function Dashboard() {
                   <div style={{ display: 'flex', gap: 20, justifyContent: 'center', alignItems: 'flex-end', flexWrap: 'wrap' }}>
                     <DateInput label="基準日期" value={baseDate} onChange={setBaseDate} />
                     <DateInput label="比較日期" value={cmpDate}  onChange={setCmpDate} />
-                    <ActionButton onClick={loadCompare} loading={cmpLoading} label="載入比較" />
+                    <ActionButton onClick={() => loadCompare()} loading={cmpLoading} label="載入比較" />
                     <ActionButton onClick={() => loadCompare(true)} loading={cmpLoading} label="強制查詢最新資料" />
                   </div>
                   <ErrorMsg msg={cmpError} onReset={() => { setCmpError(''); setBaseData(null); setCmpData(null); }} />
@@ -515,7 +558,7 @@ export default function Dashboard() {
           /* 兩張獨立的卡片：一頁看完國家配置＋持股清單，但「儲存 / 分享」各存各的圖。 */
           <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
             <Card
-              ref={countryRef} title="國家 / 資產配置"
+              ref={countryRef} title="國家 / 資產配置" picker={fundPicker}
               onSave={() => saveImage(countryRef, imgName('國家配置'))}
             >
               <p style={{ fontSize: '.82rem', color: SUB, marginBottom: 16, marginTop: 0 }}>資料來源：持股清單 {holdData.date}</p>
@@ -529,7 +572,7 @@ export default function Dashboard() {
             </Card>
           </div>
         ) : (
-          <Card ref={countryRef} title="國家 / 資產配置">
+          <Card ref={countryRef} title="國家 / 資產配置" picker={fundPicker}>
             <div style={{ textAlign: 'center', padding: '40px 0' }}>
               <p style={{ color: '#AAA', fontSize: '.9rem', marginBottom: 18 }}>請先在「當天持股清單」頁面載入資料</p>
               <div style={{ display: 'flex', gap: 12, justifyContent: 'center', alignItems: 'flex-end', flexWrap: 'wrap' }}>
@@ -546,15 +589,15 @@ export default function Dashboard() {
 
         {activeTab === 'performance' && (
           <Card
-            ref={performanceRef} title="持股股價表現"
+            ref={performanceRef} title="持股股價表現" picker={fundPicker}
             onSave={perfData ? () => saveImage(performanceRef, `${selectedEtf.ticker}_股價表現_${perfDate}.png`) : undefined}
           >
             <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 18, flexWrap: 'wrap' }}>
               <DateInput label="持股日期" value={perfDate} onChange={setPerfDate} />
-              <ActionButton onClick={loadPerformance} loading={perfLoading} label="載入" />
+              <ActionButton onClick={() => loadPerformance()} loading={perfLoading} label="載入" />
               {perfData && !perfLoading && (
                 <button
-                  onClick={loadPerformance}
+                  onClick={() => loadPerformance()}
                   style={{
                     padding: '8px 18px', background: '#fff', color: RED,
                     border: `1.5px solid ${RED}`, borderRadius: 6,
@@ -579,13 +622,13 @@ export default function Dashboard() {
         )}
 
         {activeTab === 'trajectory' && (
-          <Card title="個股持股軌跡">
+          <Card title="個股持股軌跡" picker={fundPicker}>
             <StockTrajectoryTab selectedEtf={selectedEtf} />
           </Card>
         )}
 
         {activeTab === 'scorecard' && (
-          <Card title="經理人選股對帳單">
+          <Card title="經理人選股對帳單" picker={fundPicker}>
             <ScorecardTab selectedEtf={selectedEtf} />
           </Card>
         )}
@@ -603,7 +646,7 @@ export default function Dashboard() {
         )}
 
         {activeTab === 'scale' && (
-          <Card title="規模變化">
+          <Card title="規模變化" picker={fundPicker}>
             <ScaleTab key={selectedEtf.fundId} fundId={selectedEtf.fundId} etfTicker={selectedEtf.ticker} />
           </Card>
         )}

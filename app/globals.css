@@ -83,47 +83,45 @@ button:hover:not(:disabled) { filter: brightness(0.93); }
   line-height: 1.25;
   font-family: var(--sans);
 }
-/* 基金選單：站在標題正下方（原副標題的位置），是全站唯一切換標的的入口，
-   所以刻意做得比一般表單控件重一點——白底、金色左邊條、粗體代號。 */
-.site-fundpick {
+/* 基金切換（FundPicker）：放在各分頁卡片標題下方的一排按鈕，三檔並列、選中的那檔紅底白字，
+   不必知道「要去哪裡切」。手機上按鈕等寬排成一列（只顯示代號＋簡稱兩行）。 */
+.fund-pills {
   display: flex;
-  align-items: center;
+  flex-wrap: wrap;
   gap: 8px;
-  margin-top: 5px;
-  max-width: 100%;
+  margin: -6px 0 18px;
 }
-.site-fundpick-label {
-  font-size: .72rem;
-  font-weight: 600;
-  letter-spacing: .5px;
-  color: var(--text-sub);
-  flex-shrink: 0;
-}
-.site-fundpick-select {
-  min-width: 0;
-  max-width: 100%;
-  padding: 5px 10px;
+.fund-pill {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 7px 14px;
   border: 1px solid var(--border);
-  border-left: 3px solid var(--brand-gold);
-  border-radius: 6px;
-  background: var(--bg-card);
-  color: var(--text-main);
+  border-radius: 8px;
+  background: var(--bg-header);
+  color: var(--text-sub);
   font-family: var(--sans);
   font-size: .86rem;
-  font-weight: 600;
   line-height: 1.3;
   cursor: pointer;
+  transition: background .15s, border-color .15s, color .15s;
 }
-.site-fundpick-select:hover { border-color: var(--brand-gold); }
-.site-fundpick-select:focus {
-  outline: none;
+.fund-pill:hover { border-color: var(--brand-gold); color: var(--text-main); }
+.fund-pill:focus-visible { outline: 2px solid var(--brand-red); outline-offset: 2px; }
+.fund-pill-code { font-family: var(--mono); font-weight: 600; }
+.fund-pill.is-active {
+  background: var(--brand-red);
   border-color: var(--brand-red);
-  box-shadow: 0 0 0 2px rgba(192, 0, 0, .12);
+  color: #fff;
+  cursor: default;
 }
+.fund-pill.is-active .fund-pill-name { font-weight: 600; }
 @media (max-width: 520px) {
   .site-header { padding: 8px 16px; min-height: 56px; gap: 8px; }
   .site-title { font-size: 1rem; }
-  .site-fundpick-select { font-size: .8rem; padding: 4px 8px; }
+  .fund-pills { gap: 6px; }
+  .fund-pill { flex: 1 1 0; min-width: 0; flex-direction: column; align-items: center; gap: 1px; padding: 6px 4px; font-size: .78rem; }
+  .fund-pill-name { font-size: .7rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 }
 
 /* ── 手機版表格（.mt 掛在表格外層的橫向捲動容器上）──
