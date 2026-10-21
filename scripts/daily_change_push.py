@@ -123,11 +123,11 @@ def _pills(items: list[dict]) -> str:
         return f'<span style="color:{SUB}">—</span>'
     out = []
     for p in items:
+        # 手機上圖會被縮小 → 不畫框/底色，只留「代號＋金額」，加減碼靠金額的紅綠色判斷
         c = dir_color(p['shares'])
-        bg = '#FDECEC' if p['shares'] > 0 else '#E8F7EE'
         tag = f'<span style="color:{c};font-size:11px">({p["tag"]})</span>' if p['tag'] else ''
         val = fmt_money(p['amount']) if p['amount'] is not None else f'{fmt_lots(p["shares"])} 張'
-        out.append(f'<span class="pill" style="border-color:{c};background:{bg}"><b>{p["ticker"]}</b>{tag}'
+        out.append(f'<span class="pill"><b>{p["ticker"]}</b>{tag}'
                    f'<span style="color:{c}">{val}</span></span>')
     return '<div class="pills">' + ''.join(out) + '</div>'
 
@@ -171,8 +171,8 @@ table{{border-collapse:collapse;width:100%;border:1px solid {BORDER}}}
 th{{background:{TEXT};color:#fff;font-size:12px;font-weight:600;padding:8px 12px;text-align:left;white-space:nowrap}}
 td{{padding:8px 12px;border-bottom:1px solid {BORDER};vertical-align:top;font-size:13.5px}}
 .num{{text-align:right;font-family:{MONO};white-space:nowrap}}
-.pills{{display:flex;flex-wrap:wrap;gap:5px}}
-.pill{{display:inline-flex;align-items:center;gap:5px;padding:2px 10px;border-radius:999px;border:1px solid;font-family:{MONO};font-size:12.5px;white-space:nowrap}}
+.pills{{display:flex;flex-wrap:wrap;gap:4px 16px}}
+.pill{{display:inline-flex;align-items:baseline;gap:6px;font-family:{MONO};font-size:13.5px;white-space:nowrap}}
 .foot{{color:{SUB};font-size:11.5px;text-align:right;margin-top:10px}}
 </style></head><body>
 <h1>同業當日加減碼　{" / ".join(d[5:].replace("-", "/") for d in cur_dates) or "—"}</h1>
