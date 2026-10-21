@@ -1,0 +1,58 @@
+name: Daily Change Push (991A/981A/992A)
+
+# 平日 18:00 台北：00991A / 00981A / 00992A 當日個股加減碼 → Pushover 一張圖。
+# 只靠 cron-job.org 直打 workflow_dispatch（準時）；刻意不放 GH schedule，避免重複觸發。
+# 腳本冪等：data/daily_change_push/_state.json 記已推日期，同日重跑會跳過（force=true 例外）。
+on:
+  workflow_dispatch:
+    inputs:
+      force:
+        description: '強制重推（略過同日冪等鎖）'
+        required: false
+        default: 'false'
+
+permissions:
+  contents: write
+
+concurrency:
+  group: daily-change-push
+  cancel-in-progress: false
+
+jobs:
+  push:
+    runs-on: ubuntu-latest
+    # 資料庫約 17:40 入庫；沒到齊時每 3 分鐘重查到 19:30，最長約 90 分鐘
+    timeout-minutes: 110
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v7
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          pip install playwright requests pytz
+          playwright install chromium --with-deps
+
+      - name: Run daily change push
+        env:
+          PUSHOVER_TOKEN: ${{ secrets.PUSHOVER_TOKEN }}
+          PUSHOVER_USER:  ${{ secrets.PUSHOVER_USER }}
+          FORCE_RESEND:   ${{ github.event.inputs.force }}
+        run: python scripts/daily_change_push.py
+
+      - name: Commit state
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          if [ -n "$(git status --porcelain data/daily_change_push)" ]; then
+            git add data/daily_change_push
+            git commit -m "data: daily change push $(TZ=Asia/Taipei date +%Y-%m-%d)"
+            git pull --rebase origin master
+            git push
+          else
+            echo "No changes."
+          fi

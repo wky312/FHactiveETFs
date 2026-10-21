@@ -59,6 +59,7 @@
 |----------|----------|------|------|
 | 14:00（UTC 06:00） | 約 16:00–18:00（GH cron 延遲 2–4h） | `highlight_scan.yml` | LINE 亮點推播＋`data/highlights/*.json` |
 | 17:15（cron-job.org 觸發，準時） | 17:15 | `daily_summary.yml` | Pushover 摘要＋`peer_redemption` 入庫 |
+| 18:00（cron-job.org 觸發，準時） | 18:00（資料沒到齊時每 3 分鐘重查到 19:30） | `daily_change_push.yml` | Pushover：00991A/00981A/00992A 當日加減碼（同 `?tab=dailychange`，打正式站 `/api/daily-change`）；冪等狀態 `data/daily_change_push/_state.json` |
 | 17:30（UTC 09:30，GH cron） | 約 19:50–21:50 | `update_holdings.yml` | `data/holdings/*.json` commit |
 | 06:00（UTC 22:00，**Vercel Cron**） | 同左（誤差 1 小時內） | `/api/market-calendar?refresh=1` | 市場行事曆刷新（page_cache） |
 
