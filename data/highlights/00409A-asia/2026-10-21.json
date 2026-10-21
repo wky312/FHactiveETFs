@@ -1,6 +1,6 @@
 {
   "date": "2026-10-21",
-  "scanned_at": "2026-10-21T15:01:08+08:00",
+  "scanned_at": "2026-10-21T20:33:52+08:00",
   "config_snapshot": {
     "r1": {
       "min_daily_pct": 3.0,
@@ -98,42 +98,6 @@
       }
     },
     {
-      "id": "R3-2454-20261013-t8",
-      "rule": "R3",
-      "score": 17.02,
-      "selected": true,
-      "fact": "10/13 減碼 聯發科技，其後回跌 8.5%",
-      "angle": "操作驗證：減碼躲過回檔",
-      "draft": "經理人 10/13 提前減碼聯發科技，隨後該股回跌 8.5%，成功避開損失。",
-      "data": {
-        "stockid": "2454",
-        "event_date": "2026-10-13",
-        "direction": "trim",
-        "qty_change_pct": -100.0,
-        "weight_pct": 1.653,
-        "return_since_pct": -8.51,
-        "tier": 8
-      }
-    },
-    {
-      "id": "R3-6098 JP-20260917-t8",
-      "rule": "R3",
-      "score": 16.22,
-      "selected": true,
-      "fact": "9/17 加碼的 瑞可利控股有限公司 至今 +8.1%",
-      "angle": "操作驗證：加碼點位精準",
-      "draft": "經理人 9/17 加碼瑞可利控股有限公司，至今上漲 8.1%，展現主動管理的判斷力。",
-      "data": {
-        "stockid": "6098 JP",
-        "event_date": "2026-09-17",
-        "direction": "add",
-        "qty_change_pct": 105.0,
-        "weight_pct": 0.853,
-        "return_since_pct": 8.11,
-        "tier": 8
-      }
-    },
-    {
       "id": "R1-6787 JP-2026-10-21",
       "rule": "R1",
       "score": 5.75,
@@ -151,12 +115,10 @@
     }
   ],
   "push": {
-    "attempted": true,
-    "sent": true,
-    "reason": null,
-    "message_chars": 773,
-    "line_status": 200,
-    "candidate_count": 5,
-    "selected_count": 5
+    "attempted": false,
+    "sent": false,
+    "reason": "idempotent_rerun",
+    "candidate_count": 3,
+    "selected_count": 3
   }
 }
