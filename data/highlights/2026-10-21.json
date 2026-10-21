@@ -1,6 +1,6 @@
 {
   "date": "2026-10-21",
-  "scanned_at": "2026-10-21T14:01:20+08:00",
+  "scanned_at": "2026-10-21T19:21:50+08:00",
   "config_snapshot": {
     "r1": {
       "min_daily_pct": 3.0,
@@ -54,7 +54,7 @@
     }
   },
   "sources": {
-    "own_holdings": "stale",
+    "own_holdings": "ok",
     "attr_supabase": "ok",
     "twse_mis": "ok",
     "yahoo": "ok",
@@ -67,74 +67,72 @@
     {
       "id": "R1-3189-2026-10-21",
       "rule": "R1",
-      "score": 43.69,
+      "score": 45.61,
       "selected": true,
-      "fact": "景碩科技今日 +6.88%，00991A 持股 6.35%、為全市場 18 檔主動 ETF中持有最重",
+      "fact": "景碩科技今日 +6.88%，00991A 持股 6.63%、為全市場 17 檔主動 ETF中持有最重",
       "angle": "重倉命中：主動選股的含金量",
-      "draft": "景碩科技大漲 6.88%，00991A 以 6.35% 持股居全市場主動 ETF之冠，經理人重押命中。",
+      "draft": "景碩科技大漲 6.88%，00991A 以 6.63% 持股居全市場主動 ETF之冠，經理人重押命中。",
       "data": {
         "stockid": "3189",
         "pct_change": 6.88,
-        "weight_pct": 6.35,
+        "weight_pct": 6.63,
         "is_heaviest_among_universe": true,
-        "universe_size": 18
+        "universe_size": 17
       }
     },
     {
       "id": "R1-1303-2026-10-21",
       "rule": "R1",
-      "score": 35.6,
+      "score": 37.67,
       "selected": true,
-      "fact": "南亞塑膠今日 +8.28%，00991A 持股 4.3%、為全市場 18 檔主動 ETF中持有最重",
+      "fact": "南亞塑膠今日 +8.28%，00991A 持股 4.55%、為全市場 17 檔主動 ETF中持有最重",
       "angle": "重倉命中：主動選股的含金量",
-      "draft": "南亞塑膠大漲 8.28%，00991A 以 4.3% 持股居全市場主動 ETF之冠，經理人重押命中。",
+      "draft": "南亞塑膠大漲 8.28%，00991A 以 4.55% 持股居全市場主動 ETF之冠，經理人重押命中。",
       "data": {
         "stockid": "1303",
         "pct_change": 8.28,
-        "weight_pct": 4.3,
+        "weight_pct": 4.55,
         "is_heaviest_among_universe": true,
-        "universe_size": 18
+        "universe_size": 17
       }
     },
     {
       "id": "R1-3037-2026-10-21",
       "rule": "R1",
-      "score": 35.06,
+      "score": 35.7,
       "selected": true,
-      "fact": "欣興電子今日 +4.27%，00991A 持股 8.21%、為全市場 18 檔主動 ETF中持有最重",
+      "fact": "欣興電子今日 +4.27%，00991A 持股 8.36%、為全市場 17 檔主動 ETF中持有最重",
       "angle": "重倉命中：主動選股的含金量",
-      "draft": "欣興電子大漲 4.27%，00991A 以 8.21% 持股居全市場主動 ETF之冠，經理人重押命中。",
+      "draft": "欣興電子大漲 4.27%，00991A 以 8.36% 持股居全市場主動 ETF之冠，經理人重押命中。",
       "data": {
         "stockid": "3037",
         "pct_change": 4.27,
-        "weight_pct": 8.21,
+        "weight_pct": 8.36,
         "is_heaviest_among_universe": true,
-        "universe_size": 18
+        "universe_size": 17
       }
     },
     {
       "id": "R1-2408-2026-10-21",
       "rule": "R1",
-      "score": 24.7,
+      "score": 24.94,
       "selected": true,
-      "fact": "南亞科技今日 +3.44%，00991A 持股 7.18%、為全市場 18 檔主動 ETF中持有最重",
+      "fact": "南亞科技今日 +3.44%，00991A 持股 7.25%、為全市場 17 檔主動 ETF中持有最重",
       "angle": "重倉命中：主動選股的含金量",
-      "draft": "南亞科技大漲 3.44%，00991A 以 7.18% 持股居全市場主動 ETF之冠，經理人重押命中。",
+      "draft": "南亞科技大漲 3.44%，00991A 以 7.25% 持股居全市場主動 ETF之冠，經理人重押命中。",
       "data": {
         "stockid": "2408",
         "pct_change": 3.44,
-        "weight_pct": 7.18,
+        "weight_pct": 7.25,
         "is_heaviest_among_universe": true,
-        "universe_size": 18
+        "universe_size": 17
       }
     }
   ],
   "push": {
-    "attempted": true,
-    "sent": true,
-    "reason": null,
-    "message_chars": 566,
-    "line_status": 200,
+    "attempted": false,
+    "sent": false,
+    "reason": "idempotent_rerun",
     "candidate_count": 4,
     "selected_count": 4
   }
