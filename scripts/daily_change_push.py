@@ -238,7 +238,6 @@ async def main():
         # 圖太大等狀況：退成純文字，至少讓使用者知道今天有跑
         print(f'  image push failed: {e} → fallback text')
         send_pushover_text(title, msg + '\n（圖片推送失敗，請看網站 ?tab=dailychange）')
-    print(f'  ✓ Pushover sent: {title}')
     mark_pushed(today_iso)
 
 
