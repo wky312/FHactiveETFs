@@ -1,0 +1,173 @@
+{
+  "date": "2026-10-21",
+  "scanned_at": "2026-10-22T06:01:14+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": null
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "overseas"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "stale",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R1-BE US-2026-10-21",
+      "rule": "R1",
+      "score": 30.94,
+      "selected": true,
+      "fact": "布魯姆能源公司昨日 +7.13%，00409A 持股 4.34%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 布魯姆能源公司（BE）上漲約 7.13%。\n00409A 自 8/26 首次買進，並於 8/28、9/4、9/8、9/17 加碼；截至 10/20 持有 75 張、占淨值 4.344%，報酬約 +1.9%。",
+      "data": {
+        "stockid": "BE US",
+        "pct_change": 7.13,
+        "weight_pct": 4.34,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-SPCX US-2026-10-21",
+      "rule": "R1",
+      "score": 29.68,
+      "selected": true,
+      "fact": "太空探索科技公司昨日 +7.79%，00409A 持股 3.81%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 太空探索科技公司（SPCX）上漲約 7.79%。\n00409A 自 8/27 首次買進，並於 9/4、9/11、10/19、10/20 加碼；截至 10/20 持有 99 張、占淨值 3.806%，報酬約 +10.2%。",
+      "data": {
+        "stockid": "SPCX US",
+        "pct_change": 7.79,
+        "weight_pct": 3.81,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-PLTR US-2026-10-21",
+      "rule": "R1",
+      "score": 27.44,
+      "selected": true,
+      "fact": "帕蘭提爾科技公司昨日 +4.74%，00409A 持股 5.79%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 帕蘭提爾科技公司（PLTR）上漲約 4.74%。\n00409A 自 8/20 首次買進，並於 8/28、8/31、9/1、9/4 加碼；截至 10/20 持有 115.5 張、占淨值 5.786%，報酬約 +12.0%。",
+      "data": {
+        "stockid": "PLTR US",
+        "pct_change": 4.74,
+        "weight_pct": 5.79,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-CRWD US-2026-10-21",
+      "rule": "R1",
+      "score": 17.09,
+      "selected": true,
+      "fact": "Crowdstrike控股公司昨日 +5.26%，00409A 持股 3.25%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 Crowdstrike控股公司（CRWD）上漲約 5.26%。\n00409A 自 8/31 首次買進，並於 9/1、9/14 加碼；截至 10/20 持有 55 張、占淨值 3.253%，報酬約 +6.0%。",
+      "data": {
+        "stockid": "CRWD US",
+        "pct_change": 5.26,
+        "weight_pct": 3.25,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-LITE US-2026-10-21",
+      "rule": "R1",
+      "score": 15.19,
+      "selected": true,
+      "fact": "魯門特姆控股公司昨日 +3.43%，00409A 持股 4.43%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 魯門特姆控股公司（LITE）上漲約 3.43%。\n00409A 自 8/21 首次買進，並於 8/31、9/1、9/10、9/18 加碼；截至 10/20 持有 20.7 張、占淨值 4.429%，報酬約 -6.6%。",
+      "data": {
+        "stockid": "LITE US",
+        "pct_change": 3.43,
+        "weight_pct": 4.43,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-AMD US-2026-10-21",
+      "rule": "R1",
+      "score": 8.64,
+      "selected": false,
+      "fact": "超微半導體公司昨日 +3.36%，00409A 持股 2.57%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 超微半導體公司（AMD）上漲約 3.36%。\n00409A 自 9/16 首次買進，並於 9/18、9/21、10/19 加碼；截至 10/20 持有 18.5 張、占淨值 2.573%，報酬約 +0.7%。",
+      "data": {
+        "stockid": "AMD US",
+        "pct_change": 3.36,
+        "weight_pct": 2.57,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 914,
+    "line_status": 200,
+    "candidate_count": 6,
+    "selected_count": 5
+  }
+}
