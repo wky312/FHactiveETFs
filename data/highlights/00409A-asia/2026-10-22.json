@@ -1,0 +1,149 @@
+{
+  "date": "2026-10-22",
+  "scanned_at": "2026-10-22T20:37:31+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": null
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "overseas"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "stale",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R3-000660 KS-20260929-t30",
+      "rule": "R3",
+      "score": 61.42,
+      "selected": true,
+      "fact": "9/29 減碼 愛思開海力士公司，其後回跌 30.7%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 9/29 提前減碼愛思開海力士公司，隨後該股回跌 30.7%，成功避開損失。",
+      "data": {
+        "stockid": "000660 KS",
+        "event_date": "2026-09-29",
+        "direction": "trim",
+        "qty_change_pct": -18.5,
+        "weight_pct": 4.498,
+        "return_since_pct": -30.71,
+        "tier": 30
+      }
+    },
+    {
+      "id": "R3-2454-20261007-t15",
+      "rule": "R3",
+      "score": 34.13,
+      "selected": true,
+      "fact": "10/7 減碼 聯發科技，其後回跌 17.1%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/7 提前減碼聯發科技，隨後該股回跌 17.1%，成功避開損失。",
+      "data": {
+        "stockid": "2454",
+        "event_date": "2026-10-07",
+        "direction": "trim",
+        "qty_change_pct": -15.5,
+        "weight_pct": 1.942,
+        "return_since_pct": -17.06,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-6981 JP-20261013-t15",
+      "rule": "R3",
+      "score": 30.34,
+      "selected": true,
+      "fact": "10/13 減碼 村田製作所有限公司，其後回跌 15.2%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/13 提前減碼村田製作所有限公司，隨後該股回跌 15.2%，成功避開損失。",
+      "data": {
+        "stockid": "6981 JP",
+        "event_date": "2026-10-13",
+        "direction": "trim",
+        "qty_change_pct": -46.2,
+        "weight_pct": 1.522,
+        "return_since_pct": -15.17,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-3653-20261007-t8",
+      "rule": "R3",
+      "score": 21.6,
+      "selected": true,
+      "fact": "10/7 減碼 健策精密，其後回跌 10.8%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/7 提前減碼健策精密，隨後該股回跌 10.8%，成功避開損失。",
+      "data": {
+        "stockid": "3653",
+        "event_date": "2026-10-07",
+        "direction": "trim",
+        "qty_change_pct": -15.9,
+        "weight_pct": 3.325,
+        "return_since_pct": -10.8,
+        "tier": 8
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 422,
+    "line_status": 200,
+    "candidate_count": 4,
+    "selected_count": 4
+  }
+}
