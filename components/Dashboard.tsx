@@ -29,6 +29,7 @@ import BeneficiaryTab from './BeneficiaryTab';
 import MarketCapRankingTab from './MarketCapRankingTab';
 import NewHighTab from './NewHighTab';
 import Top300YtdTab from './Top300YtdTab';
+import Top350EtfTab from './Top350EtfTab';
 import BreakIssueTab from './BreakIssueTab';
 import MarketCalendarTab from './MarketCalendarTab';
 import { captureAndShare } from '@/lib/captureImage';
@@ -45,7 +46,7 @@ const BORDER = '#E8E3DF';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'dailychange' | 'peerperf' | 'cumret' | 'stockattr' | 'impact' | 'top10' | 'risk' | 'turnover' | 'consensus' | 'sector' | 'sectorheatmap' | 'unitwatch' | 'beneficiary' | 'mktcap150' | 'newhigh150' | 'top300ytd' | 'breakissue' | 'calendar';
+type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'dailychange' | 'peerperf' | 'cumret' | 'stockattr' | 'impact' | 'top10' | 'risk' | 'turnover' | 'consensus' | 'sector' | 'sectorheatmap' | 'unitwatch' | 'beneficiary' | 'mktcap150' | 'newhigh150' | 'top300ytd' | 'top350etf' | 'breakissue' | 'calendar';
 
 /* 舊分頁 id → 合併後的新 id（讓分享出去的舊連結不會直接壞掉，掉回首頁）。
    對應的子範圍（台股/美股、國內/海外）由各自的合併元件自己讀 URL 上的舊 tab 值還原，見
@@ -94,6 +95,7 @@ const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
     { id: 'mktcap150', label: '市值前150大漲跌排行' },
     { id: 'newhigh150', label: '創新高強勢股' },
     { id: 'top300ytd', label: '前300大YTD還原權息追蹤' },
+    { id: 'top350etf', label: '前350大 × 主動ETF持有' },
   ] },
   { label: '市場行事曆', items: [
     { id: 'calendar', label: '重要行事曆' },
@@ -759,6 +761,12 @@ export default function Dashboard() {
         {activeTab === 'top300ytd' && (
           <Card title="前300大YTD還原權息追蹤">
             <Top300YtdTab />
+          </Card>
+        )}
+
+        {activeTab === 'top350etf' && (
+          <Card title="市值前350大 × 主動ETF持有">
+            <Top350EtfTab />
           </Card>
         )}
 
