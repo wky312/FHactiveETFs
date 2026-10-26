@@ -161,11 +161,43 @@ def _twse_holidays(year: int):
         return None
 
 
+_MIS_LAST_SESSION: dict = {}
+
+def _mis_last_session_date():
+    """MIS 加權指數 t00 自報的最近交易日（date），連不到回 None。同一次執行只查一次。"""
+    if 'd' in _MIS_LAST_SESSION:
+        return _MIS_LAST_SESSION['d']
+    val = None
+    try:
+        r = get_with_retry('https://mis.twse.com.tw/stock/api/getStockInfo.jsp?ex_ch=tse_t00.tw&json=1&delay=0',
+                           headers={'User-Agent': 'Mozilla/5.0'}, timeout=15)
+        raw = str((r.json().get('msgArray') or [{}])[0].get('d') or '')
+        if len(raw) == 8:
+            val = date(int(raw[:4]), int(raw[4:6]), int(raw[6:]))
+    except Exception as e:
+        print(f'  MIS session date fetch error: {e}')
+    _MIS_LAST_SESSION['d'] = val
+    return val
+
+
+def _closed_today_by_mis(d: date, now: datetime | None = None) -> bool:
+    """颱風假這類「臨時休市」不在 holidaySchedule（年初就公布），當天 FMTQIK 也還沒有資料，
+    只看行事曆會把它當成交易日（2026-10-23 颱風休市：推了帶「⚠️資料非最新」的假警示摘要）。
+    09:30 以後 MIS 自報的最近交易日仍早於今天 → 今天沒開盤。
+    只拿來判「休市」不拿來判「開市」：MIS 週末會送帶當天日期的模擬盤（見 lib/twseCalendar.ts）。"""
+    now = now or datetime.now(TZ)
+    if d != now.date() or (now.hour, now.minute) < (9, 30):
+        return False
+    last = _mis_last_session_date()
+    return last is not None and last < d
+
+
 def is_twse_trading_day(d: date):
     """True / False per TWSE; None if TWSE unreachable (caller must not hard-block on None).
 
     FMTQIK 是盤後資料：當天那列要收盤後一陣子才出現，14:00 查今天會「不在裡面」。
-    所以只有「已過去的日子」才拿 FMTQIK 判 False；今天（含）以後改用週末＋休市日表。"""
+    所以只有「已過去的日子」才拿 FMTQIK 判 False；今天（含）以後改用週末＋休市日表，
+    今天再加 MIS 補判臨時休市（颱風假）。"""
     days = _twse_trading_days(d.year, d.month)
     if days is not None and d in days:
         return True
@@ -174,7 +206,11 @@ def is_twse_trading_day(d: date):
     if d.weekday() >= 5:
         return False
     holidays = _twse_holidays(d.year)
-    return None if holidays is None else (d not in holidays)
+    if holidays is not None and d in holidays:
+        return False
+    if _closed_today_by_mis(d):
+        return False
+    return None if holidays is None else True
 
 
 def latest_expected_trading_day(anchor: date, max_back: int = 10) -> date | None:
@@ -2778,7 +2814,13 @@ async def main():
 
     sent_any = False
 
-    for etf in ETFS:
+    # 休市日（國定假日、颱風假）不推播：資料停在上個交易日，推出去只是重複上一則。
+    # 下面不推播的 DB 維護（單位數、海外申贖覆核、補洞）照跑。None＝TWSE 連不到 → 照推。
+    trading_today = is_twse_trading_day(today) is not False
+    if not trading_today:
+        print('  非交易日：跳過持股摘要／同業申贖推播，只做資料庫維護。')
+
+    for etf in (ETFS if trading_today else []):
         try:
             sent_any = bool(await process_etf(etf, today)) or sent_any
         except Exception as e:
@@ -2786,7 +2828,8 @@ async def main():
             import traceback; traceback.print_exc()
 
     try:
-        sent_any = bool(await process_peer_redemption(today)) or sent_any
+        if trading_today:
+            sent_any = bool(await process_peer_redemption(today)) or sent_any
     except Exception as e:
         print(f'  Peer redemption ERROR: {e}')
         import traceback; traceback.print_exc()
@@ -2815,7 +2858,8 @@ async def main():
 
     # 第三張表：海外主動式ETF 申購買回（見 OVERSEAS_PUSH_TICKERS）。直接用上一步的結果，不重打 API。
     try:
-        sent_any = bool(await process_overseas_peer_push(today, overseas_latest)) or sent_any
+        if trading_today:
+            sent_any = bool(await process_overseas_peer_push(today, overseas_latest)) or sent_any
     except Exception as e:
         print(f'  Overseas peer push ERROR: {e}')
         import traceback; traceback.print_exc()
@@ -2828,7 +2872,7 @@ async def main():
         print(f'  Peer gap repair ERROR: {e}')
         import traceback; traceback.print_exc()
 
-    if not sent_any:
+    if trading_today and not sent_any:
         # Every section produced nothing (e.g. all data sources unreachable). Don't let
         # this be a silent green build — alert, and exit non-zero so the run shows red.
         notify(

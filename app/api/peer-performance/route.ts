@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { fetchTpexIndexRows } from '@/lib/tpexIndex';
-import { isAcceptableMisDate } from '@/lib/twseCalendar';
+import { isAcceptableMisDate, prevTradingDayIso } from '@/lib/twseCalendar';
 import { PEER_GROUPS, type PeerItem } from '@/lib/peerGroups';
 
 // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -195,6 +195,10 @@ async function fetchTwseIndices(items: PeerItem[]): Promise<Map<string, IdxQuote
 const TPEX_INDEX_TICKERS = new Set(['^TWOII']);
 
 // Taiwan market closes at 13:30 UTC+8 = 05:30 UTC on weekdays
+function twToday(): string {
+  return new Date(Date.now() + 8 * 3600 * 1000).toISOString().slice(0, 10);
+}
+
 function taiwanMarketClosed(): boolean {
   const now = new Date();
   const tw  = new Date(now.getTime() + 8 * 3600 * 1000);
@@ -312,9 +316,8 @@ async function fetchOne(
       if (idxQuote) {
         if (!marketClosed) {
           if (idxQuote.prevClose != null) {
-            const prevDay = new Date();
-            do { prevDay.setDate(prevDay.getDate() - 1); } while (prevDay.getDay() === 0 || prevDay.getDay() === 6);
-            if (prevDay.getTime() > lastChartDate.getTime()) {
+            const prevDay = new Date(`${await prevTradingDayIso(twToday())}T05:30:00Z`);
+            if (prevDay.toISOString().slice(0, 10) > lastChartDate.toISOString().slice(0, 10)) {
               rows.push({ date: prevDay, adjClose: idxQuote.prevClose, close: idxQuote.prevClose });
             }
           }
@@ -330,9 +333,9 @@ async function fetchOne(
       // 昨收優先用 MIS 的 y（Yahoo 的 regularMarketPreviousClose 偶爾是錯的，會把所有區間報酬帶歪）
       const prevClose = misPrevClose ?? quote?.regularMarketPreviousClose;
       if (prevClose != null) {
-        const prevDay = new Date();
-        do { prevDay.setDate(prevDay.getDate() - 1); } while (prevDay.getDay() === 0 || prevDay.getDay() === 6);
-        // 只比「日期」：prevDay 帶著當下時分，若比 getTime 會恆大於 01:00Z 的 K 棒，
+        // 上一交易日以 TWSE 行事曆為準：只跳週末的話，連假／颱風假後第一天會把昨收標在休市日上
+        const prevDay = new Date(`${await prevTradingDayIso(twToday())}T05:30:00Z`);
+        // 只比「日期」：prevDay 是 05:30Z，若比 getTime 會恆大於 01:00Z 的 K 棒，
         // 導致 K 棒已含上一交易日時仍被覆蓋成 quote 昨收。
         if (prevDay.toISOString().slice(0, 10) > lastChartDate.toISOString().slice(0, 10)) {
           rows.push({ date: prevDay, adjClose: prevClose, close: prevClose });

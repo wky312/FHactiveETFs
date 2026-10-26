@@ -61,3 +61,22 @@ export async function isAcceptableMisDate(iso: string): Promise<boolean> {
   const { iso: today, weekday } = taipeiToday();
   return iso === today && weekday >= 1 && weekday <= 5;
 }
+
+/** iso（YYYY-MM-DD）之前最近一個 TWSE 交易日。以 FMTQIK 為準，所以國定假日、颱風假都會跳過
+    （只跳週末的話，2026-10-27 盤中的「上一交易日」會算成 10-26 補假，實際是 10-22）。
+    FMTQIK 連不到就退回「前一個平日」，維持舊行為。 */
+export async function prevTradingDayIso(iso: string): Promise<string> {
+  const d = new Date(`${iso}T00:00:00Z`);
+  let weekdayFallback: string | null = null;
+  for (let i = 0; i < 20; i++) {
+    d.setUTCDate(d.getUTCDate() - 1);
+    const cur = d.toISOString().slice(0, 10);
+    const dow = d.getUTCDay();
+    if (dow === 0 || dow === 6) continue;
+    weekdayFallback ??= cur;
+    const days = await monthTradingDays(cur);
+    if (days === null) return weekdayFallback;
+    if (days.has(cur)) return cur;
+  }
+  return weekdayFallback ?? iso;
+}

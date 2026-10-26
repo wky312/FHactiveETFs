@@ -129,6 +129,7 @@ function defaultDates(lag = 0): { base: string; cmp: string } {
   return { base: localStr(base), cmp: localStr(prevTradingDay(base)) };
 }
 function toApiDate(s: string) { return s.replace(/-/g, '/'); }
+function fromApiDate(s: string) { return s.replace(/\//g, '-'); }
 
 /* ── Shared UI ── */
 function DateInput({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
@@ -324,33 +325,63 @@ export default function Dashboard() {
     return json as LoadedData;
   }, []);
 
+  /* 預設日期只跳週末，不認國定假日與颱風假（2026-10-23 颱風休市、10-26 光復節補假）——
+     落在休市日會回「持股尚未公布」，摘要／比較整頁載不出來。進站與換基金時用這個往回找
+     最近一個有持股的日子；使用者手動選的日期維持原樣，查不到就照實報錯。 */
+  const fetchOnOrBefore = useCallback(async (dateStr: string, fundId: string, force = false): Promise<LoadedData> => {
+    let d = new Date(`${dateStr}T00:00:00`);
+    let lastErr: unknown;
+    for (let i = 0; i < 8; i++) {
+      try { return await fetchData(localStr(d), fundId, force); }
+      catch (e) {
+        lastErr = e;
+        if (!(e instanceof Error && e.message.includes('尚未公布'))) throw e;
+      }
+      d = prevTradingDay(d);
+    }
+    throw lastErr;
+  }, [fetchData]);
+
   /* 載入函式可指定 etf：切換基金的當下 selectedEtf 這個 state 還沒更新，要直接帶新的那檔進來。
      每次載入遞增序號、回來時序號不符就丟掉——連點不同基金時，慢回來的舊請求不會蓋掉新的。 */
   const holdSeq = useRef(0), cmpSeq = useRef(0), perfSeq = useRef(0);
 
-  const loadHoldings = useCallback(async (force = false, etf: EtfConfig = selectedEtf, date: string = holdDate) => {
+  const loadHoldings = useCallback(async (force = false, etf: EtfConfig = selectedEtf, date: string = holdDate,
+                                         snap = false) => {
     const seq = ++holdSeq.current;
     setHoldLoading(true); setHoldError('');
     try {
-      const d = await fetchData(date, etf.fundId, force);
-      if (seq === holdSeq.current) setHoldData(d);
+      const d = snap ? await fetchOnOrBefore(date, etf.fundId, force) : await fetchData(date, etf.fundId, force);
+      if (seq === holdSeq.current) { setHoldData(d); if (snap) setHoldDate(fromApiDate(d.date)); }
     } catch (e) { if (seq === holdSeq.current) setHoldError(e instanceof Error ? e.message : '載入失敗'); }
     finally     { if (seq === holdSeq.current) setHoldLoading(false); }
-  }, [holdDate, selectedEtf, fetchData]);
+  }, [holdDate, selectedEtf, fetchData, fetchOnOrBefore]);
 
   const loadCompare = useCallback(async (force = false, etf: EtfConfig = selectedEtf,
-                                        base: string = baseDate, cmp: string = cmpDate) => {
+                                        base: string = baseDate, cmp: string = cmpDate, snap = false) => {
     const seq = ++cmpSeq.current;
     setCmpLoading(true); setCmpError('');
     try {
-      const [b, c] = await Promise.all([
-        fetchData(base, etf.fundId, force),
-        fetchData(cmp, etf.fundId, force),
-      ]);
-      if (seq === cmpSeq.current) { setBaseData(b); setCmpData(c); }
+      let b: LoadedData, c: LoadedData;
+      if (snap) {
+        // 比較日＝基準日實際落點的前一個有資料的日子（基準日往回退了，比較日也要跟著退）
+        b = await fetchOnOrBefore(base, etf.fundId, force);
+        const bDay = new Date(`${fromApiDate(b.date)}T00:00:00`);
+        const cmpFrom = localStr(prevTradingDay(bDay));
+        c = await fetchOnOrBefore(cmp < cmpFrom ? cmp : cmpFrom, etf.fundId, force);
+      } else {
+        [b, c] = await Promise.all([
+          fetchData(base, etf.fundId, force),
+          fetchData(cmp, etf.fundId, force),
+        ]);
+      }
+      if (seq === cmpSeq.current) {
+        setBaseData(b); setCmpData(c);
+        if (snap) { setBaseDate(fromApiDate(b.date)); setCmpDate(fromApiDate(c.date)); }
+      }
     } catch (e) { if (seq === cmpSeq.current) setCmpError(e instanceof Error ? e.message : '載入失敗'); }
     finally     { if (seq === cmpSeq.current) setCmpLoading(false); }
-  }, [baseDate, cmpDate, selectedEtf, fetchData]);
+  }, [baseDate, cmpDate, selectedEtf, fetchData, fetchOnOrBefore]);
 
   const loadPerformance = useCallback(async (etf: EtfConfig = selectedEtf) => {
     const seq = ++perfSeq.current;
@@ -367,8 +398,8 @@ export default function Dashboard() {
   /* 依分頁重新載入「那一頁要的資料」。基金選單搬進各分頁後，切換基金就該直接看到新基金的內容，
      不再清空後要使用者自己找「載入」按鈕。股價表現要打 Yahoo 15–30 秒，不自動跑，維持手動。 */
   const reloadFor = useCallback((tab: Tab, etf: EtfConfig, d: { base: string; cmp: string }) => {
-    if (tab === 'summary' || tab === 'compare') loadCompare(false, etf, d.base, d.cmp);
-    else if (tab === 'holdings' || tab === 'country') loadHoldings(false, etf, d.base);
+    if (tab === 'summary' || tab === 'compare') loadCompare(false, etf, d.base, d.cmp, true);
+    else if (tab === 'holdings' || tab === 'country') loadHoldings(false, etf, d.base, true);
   }, [loadCompare, loadHoldings]);
 
   /* 換基金時日期一律重設成那檔的預設值（國內/海外可查到的最新日不同）；回傳新日期給呼叫端直接用，
@@ -387,7 +418,7 @@ export default function Dashboard() {
     autoLoadedRef.current = true;
     const etf = initialEtfRef.current;
     const d = resetDatesFor(etf);
-    loadCompare(false, etf, d.base, d.cmp);
+    loadCompare(false, etf, d.base, d.cmp, true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 

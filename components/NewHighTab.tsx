@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import type { StockPerformance } from '@/lib/yahooFinance';
 
@@ -104,6 +104,7 @@ export default function NewHighTab() {
   const [sinceDate, setSinceDate]           = useState<string | null>(null);
   const [draftSinceDate, setDraftSinceDate] = useState(defaultSinceDate());
   const [dateTouched, setDateTouched]       = useState(false);
+  const stepBack = useRef(0);
 
   // 預設基準日＝加權指數(^TWII)今年至今高點日；查不到（或使用者已手動調整過）退回今年1/1
   useEffect(() => {
@@ -136,7 +137,17 @@ export default function NewHighTab() {
         if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
         if (!cancelled) setRows(json.results as StockPerformance[]);
       })
-      .catch(e => { if (!cancelled) setError(e instanceof Error ? e.message : '查詢失敗'); })
+      .catch(e => {
+        if (cancelled) return;
+        const msg = e instanceof Error ? e.message : '查詢失敗';
+        // 預設日只跳週末、不認國定假日／颱風假 → 撞到「尚未公布」就往前一個平日找（最多 8 次）
+        if (msg.includes('尚未公布') && stepBack.current < 8) {
+          stepBack.current += 1;
+          setDate(localStr(prevTradingDay(new Date(`${date}T00:00:00`))));
+          return;
+        }
+        setError(msg);
+      })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, [date, sinceDate]);
@@ -169,7 +180,7 @@ export default function NewHighTab() {
       <div style={{ display: 'flex', gap: 14, alignItems: 'center', marginBottom: 14, flexWrap: 'wrap' }}>
         <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontFamily: SANS, fontSize: '.78rem', color: SUB }}>
           持股資料日期
-          <input type="date" value={date} onChange={e => e.target.value && setDate(e.target.value)}
+          <input type="date" value={date} onChange={e => { if (e.target.value) { stepBack.current = 0; setDate(e.target.value); } }}
             style={{ padding: '4px 8px', border: `1px solid ${BORDER}`, borderRadius: 6, fontFamily: MONO, fontSize: '.82rem', color: TEXT }} />
         </label>
         <button onClick={() => exportExcel(filtered, date)} style={{

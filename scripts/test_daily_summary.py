@@ -3,7 +3,7 @@
 跑法：cd 00998a-web && python -m pytest scripts/test_daily_summary.py -q
 """
 
-from datetime import date
+from datetime import date, datetime
 
 import daily_summary as ds
 
@@ -642,3 +642,54 @@ def test_build_diff_rows_skips_cash_lines():
     cmp_ = [h('', '扣除應付買入證券款後現金餘額(USD)', 3), h('JPM US', 'JPMORGAN', 100)]
     rows = ds.build_diff_rows(base, cmp_)
     assert [r['stockid'] for r in rows] == ['JPM US']
+
+
+# ── 颱風假：臨時休市不在 holidaySchedule，今天要靠 MIS 補判 ──
+
+def _patch_calendar(monkeypatch, *, fmtqik=frozenset(), holidays=frozenset(), mis=None):
+    monkeypatch.setattr(ds, '_twse_trading_days', lambda y, m: set(fmtqik))
+    monkeypatch.setattr(ds, '_twse_holidays', lambda y: set(holidays))
+    monkeypatch.setattr(ds, '_mis_last_session_date', lambda: mis)
+
+
+def test_closed_today_by_mis_typhoon(monkeypatch):
+    """2026-10-23 颱風休市：14:00 時 MIS 最近交易日仍是 10/22 → 判休市。"""
+    _patch_calendar(monkeypatch, mis=date(2026, 10, 22))
+    now = datetime(2026, 10, 23, 14, 0, tzinfo=ds.TZ)
+    assert ds._closed_today_by_mis(date(2026, 10, 23), now) is True
+
+
+def test_closed_today_by_mis_before_open_is_unknown(monkeypatch):
+    """開盤前 MIS 本來就停在前一交易日，不能拿來判休市。"""
+    _patch_calendar(monkeypatch, mis=date(2026, 10, 22))
+    now = datetime(2026, 10, 23, 8, 30, tzinfo=ds.TZ)
+    assert ds._closed_today_by_mis(date(2026, 10, 23), now) is False
+
+
+def test_closed_today_by_mis_open_or_unreachable(monkeypatch):
+    now = datetime(2026, 10, 27, 14, 0, tzinfo=ds.TZ)
+    _patch_calendar(monkeypatch, mis=date(2026, 10, 27))
+    assert ds._closed_today_by_mis(date(2026, 10, 27), now) is False
+    _patch_calendar(monkeypatch, mis=None)
+    assert ds._closed_today_by_mis(date(2026, 10, 27), now) is False
+
+
+def test_closed_today_by_mis_only_for_today(monkeypatch):
+    _patch_calendar(monkeypatch, mis=date(2026, 10, 22))
+    now = datetime(2026, 10, 27, 14, 0, tzinfo=ds.TZ)
+    assert ds._closed_today_by_mis(date(2026, 10, 28), now) is False
+
+
+def test_is_twse_trading_day_holiday_schedule(monkeypatch):
+    """10/26 光復節補假列在 holidaySchedule → False（不必等 MIS）。"""
+    _patch_calendar(monkeypatch, holidays={date(2026, 10, 26)}, mis=None)
+    monkeypatch.setattr(ds, '_closed_today_by_mis', lambda d, now=None: False)
+    assert ds.is_twse_trading_day(date(2026, 10, 26)) is False
+
+
+def test_is_twse_trading_day_today_uses_mis(monkeypatch):
+    _patch_calendar(monkeypatch)
+    monkeypatch.setattr(ds, '_closed_today_by_mis', lambda d, now=None: True)
+    assert ds.is_twse_trading_day(date(2099, 10, 23)) is False
+    monkeypatch.setattr(ds, '_closed_today_by_mis', lambda d, now=None: False)
+    assert ds.is_twse_trading_day(date(2099, 10, 23)) is True
