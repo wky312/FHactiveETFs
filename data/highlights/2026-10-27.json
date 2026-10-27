@@ -1,0 +1,111 @@
+{
+  "date": "2026-10-27",
+  "scanned_at": "2026-10-27T19:45:56+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": "0050"
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "tw_active"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "ok",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R1-2408-2026-10-27",
+      "rule": "R1",
+      "score": 49.29,
+      "selected": true,
+      "fact": "南亞科技今日 +6.52%，00991A 持股 7.56%、為全市場 14 檔主動 ETF中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "南亞科技大漲 6.52%，00991A 以 7.56% 持股居全市場主動 ETF之冠，經理人重押命中。",
+      "data": {
+        "stockid": "2408",
+        "pct_change": 6.52,
+        "weight_pct": 7.56,
+        "is_heaviest_among_universe": true,
+        "universe_size": 14
+      }
+    },
+    {
+      "id": "R3-2303-20261006-t15",
+      "rule": "R3",
+      "score": 33.9,
+      "selected": true,
+      "fact": "10/6 減碼 聯華電子，其後回跌 16.9%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/6 提前減碼聯華電子，隨後該股回跌 16.9%，成功避開損失。",
+      "data": {
+        "stockid": "2303",
+        "event_date": "2026-10-06",
+        "direction": "trim",
+        "qty_change_pct": -99.9,
+        "weight_pct": 1.48,
+        "return_since_pct": -16.95,
+        "tier": 15
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 268,
+    "line_status": 200,
+    "candidate_count": 2,
+    "selected_count": 2
+  }
+}
