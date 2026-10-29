@@ -327,6 +327,10 @@ def mega(ticker: str, date: str | None = None) -> list[dict]:
     s = _session("https://www.megafunds.com.tw/")
     s.headers["Accept"] = "text/html,application/xhtml+xml"
     res = _get(s, f"https://www.megafunds.com.tw/MEGA/etf/etf_product.aspx?id={_MEGA_ID[ticker]}", timeout=30)
+    if res.status_code == 403:
+        # 兆豐官網對資料中心 IP（GitHub Actions / Vercel）回 403 → 改用 MoneyDJ 的公開 ETF 持股頁（股數與官網逐檔相同）。
+        # 不是繞過封鎖，而是另一個本來就公開、有明確資料日期的來源。
+        return _moneydj_holdings(ticker)
     res.raise_for_status()
     html = res.text
     md = re.search(r"資料日期[^0-9]*(\d{4}/\d{1,2}/\d{1,2})", html)
@@ -350,6 +354,35 @@ def mega(ticker: str, date: str | None = None) -> list[dict]:
     rows = [mk_row(ddate, c["sid"], c.get("name", ""), c.get("qshare", 0), c.get("prate", 0))
             for c in out if is_tw_stock(c.get("sid", ""))]
     return _filter_tw(rows)
+
+
+# ---------------------------------------------------------------------------
+# MoneyDJ ETF 持股明細（備援）：basic0007b.xdjhtm?etfid=<代號>.tw
+# 頁面有「資料日期：YYYY/MM/DD」與「個股(代號.TW) | 投資比例(%) | 持有股數」表，只有最新一期（無歷史）。
+# 2026-10-29 實測 00996A 51 檔股數與兆豐官網逐檔 100% 相同。
+# ---------------------------------------------------------------------------
+_MDJ_ROW_RE = re.compile(
+    r"etfid=(\d{4,6}[A-Z]?)\.TW&back=[^']*'>([^<]*)</a></td>\s*<td class=\"col06\">([\d.]+)</td>\s*<td class=\"col07\">([\d,]+)</td>")
+
+
+def _moneydj_holdings(ticker: str) -> list[dict]:
+    s = _session("https://www.moneydj.com/")
+    res = _get(s, f"https://www.moneydj.com/etf/x/basic/basic0007b.xdjhtm?etfid={ticker.lower()}.tw", timeout=30)
+    res.raise_for_status()
+    try:
+        html = res.content.decode("utf-8")
+    except UnicodeDecodeError:
+        html = res.content.decode("cp950", errors="ignore")
+    m = re.search(r"資料日期：(\d{4}/\d{1,2}/\d{1,2})", html)
+    if not m:
+        return []
+    ddate = norm_date(m.group(1))
+    out = []
+    for sid, name, weight, qty in _MDJ_ROW_RE.findall(html):
+        if not is_tw_stock(sid):
+            continue
+        out.append(mk_row(ddate, sid.upper(), re.sub(r"\(\d+\.TW\)$", "", name).strip(), qty, weight))
+    return _filter_tw(out)
 
 
 # ---------------------------------------------------------------------------
