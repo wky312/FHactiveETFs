@@ -1,7 +1,20 @@
 {
-  "regions": ["hnd1"],
-  "alias": ["fhactiveetf.vercel.app"],
+  "regions": [
+    "hnd1"
+  ],
+  "alias": [
+    "fhactiveetf.vercel.app"
+  ],
   "crons": [
-    { "path": "/api/market-calendar?refresh=1", "schedule": "0 22 * * *" }
-  ]
+    {
+      "path": "/api/market-calendar?refresh=1",
+      "schedule": "0 22 * * *"
+    }
+  ],
+  "functions": {
+    "api/live_holdings.py": {
+      "maxDuration": 60,
+      "includeFiles": "scripts/issuers/**"
+    }
+  }
 }

@@ -63,12 +63,13 @@ export default function DailyChangeTab() {
   const [now,       setNow]       = useState(() => Date.now());
   const [lastTry,   setLastTry]   = useState<number | null>(null);
 
-  const load = useCallback(async (opts: { date?: string; fresh?: boolean } = {}) => {
+  const load = useCallback(async (opts: { date?: string; fresh?: boolean; live?: boolean } = {}) => {
     setLoading(true); setError('');
     try {
       const qs = new URLSearchParams();
       if (opts.date) qs.set('date', opts.date);
       if (opts.fresh) qs.set('fresh', '1');
+      if (opts.live) qs.set('live', '1');
       const res  = await fetch(`/api/daily-change${qs.size ? `?${qs}` : ''}`, { cache: 'no-store' });
       const json = await res.json();
       if (!res.ok) throw new Error(json.error ?? `HTTP ${res.status}`);
@@ -90,7 +91,7 @@ export default function DailyChangeTab() {
 
   useEffect(() => { const t = setInterval(() => setNow(Date.now()), 30_000); return () => clearInterval(t); }, []);
 
-  /* 台北時間：今天日期、是否已過 17:30（各投信約此時公告當日持股、資料庫約此時入庫） */
+  /* 台北時間：今天日期、是否已過 18:00（各投信約 17:30 公告當日持股，資料庫約 17:40 入庫；18:00 起伺服器對尚未入庫的 ETF 直接問投信官網） */
   const tpe = useMemo(() => {
     const f = (o: Intl.DateTimeFormatOptions) => new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei', hourCycle: 'h23', ...o }).format(new Date(now));
     const ymd = f({ year: 'numeric', month: '2-digit', day: '2-digit' });
@@ -155,13 +156,13 @@ export default function DailyChangeTab() {
   const curDates = [...new Set(selFunds.map(f => f.curDate).filter(Boolean))] as string[];
   const noPrev = selFunds.filter(f => f.curDate && !f.prevDate);
 
-  /* 17:30 之後、查「最新」時，還沒入庫今日持股的 ETF → 每 3 分鐘自動重查（強制繞過快取），到 22:00 或全數更新為止 */
-  const pending = !queryDate && tpe.weekday && tpe.mins >= 17 * 60 + 30 && tpe.mins < 22 * 60 && selected.length > 0 && data
+  /* 18:00 之後、查「最新」時，今日持股還沒取得的 ETF（連官網即時也沒有）→ 每 3 分鐘自動重查，到 22:00 或全數更新為止 */
+  const pending = !queryDate && tpe.weekday && tpe.mins >= 18 * 60 && tpe.mins < 22 * 60 && selected.length > 0 && data
     ? selFunds.filter(f => (f.curDate ?? '') < tpe.ymd) : [];
   const polling = pending.length > 0;
   useEffect(() => {
     if (!polling) return;
-    const t = setInterval(() => load({ fresh: true }), 3 * 60_000);
+    const t = setInterval(() => load({ fresh: true }), 3 * 60_000);   // 18:00 後伺服器會自動對落後的 ETF 問官網
     return () => clearInterval(t);
   }, [polling, load]);
 
@@ -180,14 +181,15 @@ export default function DailyChangeTab() {
       <div style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap', marginBottom: 14 }}>
         {(data?.funds ?? DEFAULT_TICKERS.map(t => ({ ticker: t, name: '' }))).map(f => (
           <button key={f.ticker} onClick={() => toggleTicker(f.ticker)} style={chip(selected.includes(f.ticker))}
-            title={f.name}>{f.ticker}</button>
+            title={f.name}>{f.ticker}{'live' in f && f.live ? ' ●' : ''}</button>
         ))}
         <button onClick={() => setSelected(DEFAULT_TICKERS)} style={{ ...chip(false), fontFamily: SANS }}>預設三檔</button>
         {data && <button onClick={() => setSelected(data.funds.map(f => f.ticker))} style={{ ...chip(false), fontFamily: SANS }}>全部 {data.funds.length} 檔</button>}
-        <button onClick={() => load({ date: queryDate || undefined, fresh: true })} disabled={loading}
+        <button onClick={() => load({ date: queryDate || undefined, fresh: true, live: !queryDate })} disabled={loading}
+          title="繞過快取，直接向各投信官網查當下最新持股（約需 10～30 秒）"
           style={{ marginLeft: 'auto', padding: '6px 18px', background: loading ? '#999' : RED, color: '#fff', border: 'none', borderRadius: 6,
             cursor: loading ? 'not-allowed' : 'pointer', fontSize: '.84rem', fontWeight: 600, fontFamily: SANS }}>
-          {loading ? '載入中…' : '強制查最新'}
+          {loading ? '向投信官網查詢中…' : '強制查最新（問投信官網）'}
         </button>
       </div>
 
@@ -202,7 +204,17 @@ export default function DailyChangeTab() {
       {polling && (
         <div style={{ fontSize: '.8rem', color: '#b45309', background: '#FFF7ED', border: '1px solid #FED7AA', borderRadius: 6, padding: '8px 12px', marginBottom: 12, lineHeight: 1.6 }}>
           ⏳ 今日（{tpe.ymd}）持股尚未入庫：{pending.map(f => `${f.ticker}（${f.curDate ?? '無資料'}）`).join('、')}。
-          各投信約 17:30 公告、資料庫約 17:40 前後入庫，本頁每 3 分鐘自動重查{lastTry ? `（上次 ${new Date(lastTry).toLocaleTimeString('en-GB', { timeZone: 'Asia/Taipei', hour: '2-digit', minute: '2-digit' })}）` : ''}，更新後會直接換成今日資料。
+          各投信約 17:30 起公告（部分更晚）；18:00 起本頁會直接問投信官網，仍沒有的 ETF 表示投信尚未公布，本頁每 3 分鐘自動重查{lastTry ? `（上次 ${new Date(lastTry).toLocaleTimeString('en-GB', { timeZone: 'Asia/Taipei', hour: '2-digit', minute: '2-digit' })}）` : ''}，更新後會直接換成今日資料。
+        </div>
+      )}
+      {data && selFunds.some(f => f.live) && (
+        <div style={{ fontSize: '.78rem', color: '#1d4ed8', marginBottom: 8, lineHeight: 1.6 }}>
+          ● 即時取自投信官網（資料庫尚未入庫）：{selFunds.filter(f => f.live).map(f => `${f.ticker}（${f.curDate}）`).join('、')}
+        </div>
+      )}
+      {data && selFunds.some(f => f.liveError) && (
+        <div style={{ fontSize: '.78rem', color: '#b45309', marginBottom: 8, lineHeight: 1.6 }}>
+          ⚠ 官網即時查詢失敗，沿用資料庫：{selFunds.filter(f => f.liveError).map(f => `${f.ticker}（${f.liveError}）`).join('、')}
         </div>
       )}
       {queryDate && data && selFunds.some(f => !f.curDate) && (
@@ -227,15 +239,23 @@ export default function DailyChangeTab() {
               ⚠ 所選 ETF 的最新持股日不一致：{selFunds.map(f => `${f.ticker} ${f.curDate ?? '無資料'}`).join('、')}
             </div>
           )}
-          {new Set(selFunds.filter(f => f.prevDate).map(f => f.prevDate)).size > 1 && (
-            <div style={{ fontSize: '.78rem', color: '#b45309', marginBottom: 8 }}>
-              ⚠ 比較基準日（前一持股日）不一致，較早者代表跨多個交易日的累計變動（可能是資料庫缺漏該日持股）：
-              {selFunds.filter(f => f.prevDate).map(f => `${f.ticker} ${f.prevDate}→${f.curDate}`).join('、')}
-            </div>
-          )}
+          {(() => {
+            // 只列離群的檔：前一持股日不是多數檔共同的那一天（通常是資料庫缺漏中間幾天 → 變動為跨多日累計）
+            const withPrev = selFunds.filter(f => f.prevDate);
+            const freq = new Map<string, number>();
+            withPrev.forEach(f => freq.set(`${f.prevDate}|${f.curDate}`, (freq.get(`${f.prevDate}|${f.curDate}`) ?? 0) + 1));
+            const mode = [...freq.entries()].sort((a, b) => b[1] - a[1])[0]?.[0];
+            const odd = withPrev.filter(f => `${f.prevDate}|${f.curDate}` !== mode);
+            return odd.length > 0 && (
+              <div style={{ fontSize: '.78rem', color: '#b45309', marginBottom: 8, lineHeight: 1.6 }}>
+                ⚠ 比較基準日與多數檔不同，變動為跨多個交易日的累計（可能是資料庫缺漏中間幾天持股）：
+                {odd.map(f => `${f.ticker} ${f.prevDate}→${f.curDate}`).join('、')}
+              </div>
+            );
+          })()}
           {noPrev.length > 0 && (
             <div style={{ fontSize: '.78rem', color: '#b45309', marginBottom: 8 }}>
-              ⚠ {noPrev.map(f => f.ticker).join('、')} 沒有前一持股日可比較，未納入。
+              ⚠ {noPrev.map(f => f.ticker).join('、')} 沒有可比較的前一持股日（資料庫尚無前一日，或間隔超過 14 天），未納入。
             </div>
           )}
 

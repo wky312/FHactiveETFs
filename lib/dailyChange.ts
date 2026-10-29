@@ -15,6 +15,8 @@ export interface DailyChangeFund {
   name: string;
   curDate: string | null;
   prevDate: string | null;
+  live?: boolean;        // 這檔的最新持股是直接向投信官網即時取得（資料庫尚未入庫）
+  liveError?: string;    // 想即時查但官網失敗的原因
 }
 export interface DailyChangeEntry {
   ticker: string;
@@ -42,6 +44,64 @@ const MAX_LOOKBACK_DAYS = 400;
 const _cache = new Map<string, { ts: number; data: DailyChangeResult }>();
 const _inflight = new Map<string, Promise<DailyChangeResult>>();
 const FUND_CONCURRENCY = 4;
+const LIVE_AFTER_MINS = 18 * 60;     // 平日 18:00 起，資料庫還沒更新的 ETF 自動改問投信官網
+const LIVE_TIMEOUT_MS = 55_000;
+
+/* 台北現在時間 */
+function taipeiNow() {
+  const parts = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Taipei', hourCycle: 'h23', year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
+    .formatToParts(new Date());
+  const g = (t: string) => parts.find(p => p.type === t)!.value;
+  const ymd = `${g('year')}-${g('month')}-${g('day')}`;
+  const wd = new Date(ymd + 'T00:00:00Z').getUTCDay();
+  return { ymd, mins: Number(g('hour')) * 60 + Number(g('minute')), weekday: wd >= 1 && wd <= 5 };
+}
+
+type Snap = Map<string, { name: string; q: number }>;
+interface FundState { e: { ticker: string; name: string }; curDate: string | null; prevDate: string | null; curMap: Snap | null; prevMap: Snap | null; live?: boolean; liveError?: string }
+interface LiveResp { funds: Record<string, { date?: string; rows?: [string, string, number][]; error?: string }> }
+
+const sameSnap = (a: Snap, b: Snap) => a.size === b.size && [...a].every(([id, v]) => b.get(id)?.q === v.q);
+
+/* 向 /api/live_holdings（Python，重用官網抓取器）取當下最新持股，疊到資料庫結果上：
+   - 官網日期 > 資料庫最新日 → 官網當「最新」、資料庫最新日當「前一日」
+   - 官網日期 = 資料庫最新日 → 以官網為準（投信可能盤後修正）
+   - 官網內容與資料庫最新日完全相同且日期是今天 → 視為還沒有新資料（無明確持股日的來源早上會把昨晚的公告標成今天）
+   - 官網日期 < 資料庫最新日 → 忽略 */
+async function applyLive(states: FundState[], tickers: string[], origin: string | undefined) {
+  if (!tickers.length) return;
+  const base = process.env.LIVE_HOLDINGS_URL ?? (origin ? `${origin}/api/live_holdings` : '');
+  const fail = (msg: string) => { for (const f of states) if (tickers.includes(f.e.ticker)) f.liveError = msg; };
+  if (!base) return fail('未設定即時來源網址');
+  let resp: LiveResp;
+  try {
+    const r = await fetch(`${base}?tickers=${tickers.join(',')}`, { cache: 'no-store', signal: AbortSignal.timeout(LIVE_TIMEOUT_MS) });
+    if (!r.ok) throw new Error(`HTTP ${r.status}`);
+    resp = await r.json() as LiveResp;
+  } catch (e) {
+    return fail(`即時來源失敗：${e instanceof Error ? e.message : String(e)}`);
+  }
+  const todayYmd = taipeiNow().ymd;
+  for (const f of states) {
+    if (!tickers.includes(f.e.ticker)) continue;
+    const got = resp.funds?.[f.e.ticker];
+    if (!got || got.error || !got.date || !got.rows?.length) { f.liveError = got?.error ?? '官網無回應'; continue; }
+    const liveMap: Snap = new Map();
+    for (const [id, name, q] of got.rows) {
+      const sid = String(id).trim();
+      if (isCashLike(sid, String(name)) || liveMap.has(sid) || !Number.isFinite(Number(q))) continue;
+      liveMap.set(sid, { name: String(name).trim(), q: Number(q) });
+    }
+    if (!liveMap.size) continue;
+    const L = got.date, C = f.curDate;
+    if (C && L < C) continue;
+    // 內容與資料庫最新日相同：日期沒前進、或日期是「今天」（無明確持股日的來源會把昨晚公告標成今天）→ 視為尚未公布；
+    // 日期是更早的明確日期（如聯博 10/28 持股剛好與 10/27 一模一樣）則照樣前進，代表當日沒有調整。
+    if (C && f.curMap && sameSnap(liveMap, f.curMap) && (L <= C || L >= todayYmd)) continue;
+    if (!C || L > C) { f.prevDate = C; f.prevMap = f.curMap; }
+    f.curDate = L; f.curMap = liveMap; f.live = true;
+  }
+}
 
 async function loadSnapshot(ticker: string, date: string): Promise<Map<string, { name: string; q: number }>> {
   const rows = await fetchAll<HoldRow>((from, to) =>
@@ -61,7 +121,7 @@ async function loadSnapshot(ticker: string, date: string): Promise<Map<string, {
 
 /* opts.date（YYYY-MM-DD）：查指定持股日 vs 其前一持股日；該檔當天沒有持股就 curDate=null（前端標示「該日無資料」）。
    opts.fresh：繞過 10 分鐘快取（17:30 後使用者要立刻看到剛入庫的當日持股）。 */
-export async function computeDailyChange(opts: { date?: string; fresh?: boolean } = {}): Promise<DailyChangeResult> {
+export async function computeDailyChange(opts: { date?: string; fresh?: boolean; live?: boolean; origin?: string } = {}): Promise<DailyChangeResult> {
   if (!supabaseReady || !supabase) throw new Error('Supabase 未設定（缺 NEXT_PUBLIC_SUPABASE_URL / KEY）');
   if (opts.date) {
     const t = Date.parse(opts.date + 'T00:00:00Z');
@@ -69,7 +129,7 @@ export async function computeDailyChange(opts: { date?: string; fresh?: boolean 
     const age = (Date.now() - t) / 86400_000;
     if (age > MAX_LOOKBACK_DAYS || age < -1) throw new Error(`date 只能查最近 ${MAX_LOOKBACK_DAYS} 天內`);
   }
-  const key = opts.date ?? 'latest';
+  const key = opts.date ?? (opts.live ? 'latest|live' : 'latest');
   const hit = _cache.get(key);
   const ttl = opts.fresh ? FRESH_MIN_MS : TTL_MS;
   if (hit && Date.now() - hit.ts < ttl) return hit.data;
@@ -80,7 +140,7 @@ export async function computeDailyChange(opts: { date?: string; fresh?: boolean 
   return p;
 }
 
-async function doCompute(opts: { date?: string }, key: string): Promise<DailyChangeResult> {
+async function doCompute(opts: { date?: string; live?: boolean; origin?: string }, key: string): Promise<DailyChangeResult> {
   if (!supabase) throw new Error('Supabase 未設定');
 
   const { data: etfs } = await supabase
@@ -89,7 +149,7 @@ async function doCompute(opts: { date?: string }, key: string): Promise<DailyCha
   const etfList = (etfs ?? []) as { ticker: string; name: string }[];
   if (!etfList.length) throw new Error('查無 ETF 清單');
 
-  const perFund = await mapLimit(etfList, FUND_CONCURRENCY, async (e) => {
+  const perFund: FundState[] = await mapLimit(etfList, FUND_CONCURRENCY, async (e) => {
     let q = supabase!.from('holding').select('date').eq('ticker', e.ticker);
     if (opts.date) q = q.eq('date', opts.date);
     const { data: cur } = await q.order('date', { ascending: false }).limit(1).maybeSingle();
@@ -102,6 +162,20 @@ async function doCompute(opts: { date?: string }, key: string): Promise<DailyCha
     const prevMap = prevDate ? await loadSnapshot(e.ticker, prevDate) : null;
     return { e, curDate, prevDate, curMap, prevMap };
   });
+
+  // 即時層：強制查最新＝全部問官網；平日 18:00 起＝只補資料庫還沒更新到今天的 ETF
+  if (!opts.date) {
+    const tp = taipeiNow();
+    const liveTickers = opts.live
+      ? perFund.map(f => f.e.ticker)
+      : tp.weekday && tp.mins >= LIVE_AFTER_MINS ? perFund.filter(f => (f.curDate ?? '') < tp.ymd).map(f => f.e.ticker) : [];
+    await applyLive(perFund, liveTickers, opts.origin);
+  }
+
+  // 前一持股日離最新日超過 14 天（資料庫中間缺很多天）→ 變動會是一整個月的累計，金額會被灌大，視為無法比較
+  for (const f of perFund) {
+    if (f.curDate && f.prevDate && (Date.parse(f.curDate) - Date.parse(f.prevDate)) / 86400_000 > 14) { f.prevDate = null; f.prevMap = null; }
+  }
 
   // 逐檔算 Δ，彙整成 stockid → 各 ETF 變動
   const agg = new Map<string, { stockname: string; changes: DailyChangeEntry[] }>();
@@ -134,8 +208,8 @@ async function doCompute(opts: { date?: string }, key: string): Promise<DailyCha
     stockid, stockname: a.stockname, close: closeOf(stockid), changes: a.changes,
   }));
 
-  const funds: DailyChangeFund[] = perFund.map(({ e, curDate, prevDate }) => ({
-    ticker: e.ticker, name: e.name, curDate, prevDate,
+  const funds: DailyChangeFund[] = perFund.map(({ e, curDate, prevDate, live, liveError }) => ({
+    ticker: e.ticker, name: e.name, curDate, prevDate, ...(live ? { live } : {}), ...(liveError ? { liveError } : {}),
   }));
 
   const data: DailyChangeResult = { asOf, funds, stocks };
