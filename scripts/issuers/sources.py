@@ -637,7 +637,7 @@ def kgi(ticker: str, date: str | None = None) -> list[dict]:
     # queryDate 是**公告日**（T+1），要往後掃而不是往回：從今天起算會拿到上一期的籃子
     # （實測週六用 queryDate=2026-10-03 回 10/01 的，用 10/05 才回 10/02 的）。
     # 掃候選公告日、取「資料日最新」的那份；date 有給就只查那一天。
-    cands = [date] if date else [d.isoformat() for d in _next_weekdays(5)]
+    cands = [date] if date else [today_tpe()] + [d.isoformat() for d in _next_weekdays(5)]   # 今天本身也是公告日（內容＝前一交易日持股）
     best_date, best_rows = "", []
     for ann in cands:
         res = _post(s, "https://www.kgifund.com.tw/Fund/RedemptionVC",
