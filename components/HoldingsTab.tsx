@@ -4,6 +4,7 @@ import * as XLSX from 'xlsx';
 import { Holding } from '@/lib/types';
 import { useIsMobile } from '@/lib/useIsMobile';
 import type { StockPerformance } from '@/lib/yahooFinance';
+import { buildHoldingsSector } from '@/lib/holdingsSector';
 
 const RED    = '#C00000';
 const GREEN  = '#1a7f37';
@@ -315,6 +316,52 @@ function NewHighPanel({ date, fundId }: { date: string; fundId: string }) {
   );
 }
 
+// 持股清單下方的族群鋪陳：每個族群一條橫條，點開看組成個股。
+function SectorBreakdown({ holdings, etfTicker }: { holdings: Holding[]; etfTicker: string }) {
+  const r = useMemo(() => buildHoldingsSector(holdings, etfTicker), [holdings, etfTicker]);
+  const [open, setOpen] = useState<string | null>(null);
+  const rows = r.unclassified.weight > 0 ? [...r.slices, r.unclassified] : r.slices;
+  const max = Math.max(...rows.map(x => x.weight), 1);
+  return (
+    <div style={{ marginTop: 28 }}>
+      <div style={{ display: 'flex', alignItems: 'baseline', gap: 12, flexWrap: 'wrap', marginBottom: 10 }}>
+        <h3 style={{ margin: 0, fontFamily: SANS, fontSize: '1rem', color: TEXT }}>族群鋪陳</h3>
+        <span style={{ fontSize: '.76rem', color: SUB, fontFamily: SANS }}>
+          依「族群曝險」分頁的{r.market === 'tw' ? '國內' : '海外'}族群分類；每檔只歸入第一個含它的族群，佔比為佔淨值%，點列可展開個股
+        </span>
+      </div>
+      <div style={{ border: `1px solid ${BORDER}`, borderRadius: 8, overflow: 'hidden' }}>
+        {rows.map((x, i) => {
+          const isOpen = open === x.name;
+          const isUn = x === r.unclassified;
+          return (
+            <div key={x.name} style={{ borderBottom: i < rows.length - 1 ? `1px solid ${BORDER}` : 'none', background: i % 2 === 0 ? '#fff' : '#FAFAF9' }}>
+              <div onClick={() => setOpen(isOpen ? null : x.name)}
+                style={{ display: 'grid', gridTemplateColumns: 'minmax(120px, 280px) 1fr 72px', gap: 12, alignItems: 'center', padding: '8px 14px', cursor: 'pointer', fontFamily: SANS }}>
+                <span style={{ fontSize: '.85rem', color: isUn ? RED : TEXT }}>{isOpen ? '▾' : '▸'} {x.name}<span style={{ color: SUB, fontSize: '.74rem' }}>（{x.stocks.length}）</span></span>
+                <div style={{ height: 10, background: BORDER, borderRadius: 999, overflow: 'hidden' }}>
+                  <div style={{ width: `${(x.weight / max) * 100}%`, height: '100%', background: isUn ? RED : '#8A6A3C' }} />
+                </div>
+                <span style={{ textAlign: 'right', fontFamily: MONO, fontSize: '.82rem', fontWeight: 600, color: TEXT }}>{x.weight.toFixed(2)}%</span>
+              </div>
+              {isOpen && (
+                <div style={{ padding: '2px 14px 10px 34px', display: 'flex', flexWrap: 'wrap', gap: '4px 18px', fontSize: '.78rem', color: SUB }}>
+                  {x.stocks.map(s => (
+                    <span key={s.stockid}>{s.stockname} <span style={{ fontFamily: MONO, color: TEXT }}>{s.weight.toFixed(2)}%</span></span>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+      <div style={{ marginTop: 8, fontSize: '.74rem', color: SUB, fontFamily: SANS }}>
+        現金／期貨／其他資產 <span style={{ fontFamily: MONO }}>{r.other.toFixed(2)}%</span> 未列入上表。
+      </div>
+    </div>
+  );
+}
+
 export default function HoldingsTab({ holdings, date, etfTicker, fundId }: { holdings: Holding[]; date: string; etfTicker: string; fundId: string }) {
   const isMobile = useIsMobile();
   const [mode, setMode] = useState<'list' | 'newhigh'>('list');
@@ -454,6 +501,7 @@ export default function HoldingsTab({ holdings, date, etfTicker, fundId }: { hol
           </tbody>
         </table>
       </div>
+      <SectorBreakdown holdings={holdings} etfTicker={etfTicker} />
       </>
       )}
     </>

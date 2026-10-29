@@ -75,8 +75,8 @@ export const BUILTIN_GROUPS_OVERSEAS: SectorGroup[] = [
   { name: '晶圓代工與封測製造 (Foundry & OSAT)', codes: ['2330.TW', 'TSM', 'TSEM', '3711.TW', 'GFS', '2303.TW', 'AMKR', '2449.TW'], builtin: true },
   { name: '光通訊與矽光子 / CPO (Optical & CPO)', codes: ['LITE', 'COHR', '300308.SZ', '3308.HK', '4979.TWO', 'FN', 'CIEN', '6442.TW', '3363.TWO', '3081.TWO', 'AXTI'], builtin: true },
   { name: '載板與高階 PCB / 材料 (Substrates & PCB)', codes: ['3037.TW', '2383.TW', '301377.SZ', '8046.TW', '3189.TW', '4062.T', '6967.T', '2368.TW', '6274.TW', '600183.SS', '6787.T', '1303.TW'], builtin: true },
-  { name: '記憶體與高容量儲存 (Memory & Storage)', codes: ['MU', '285A.T', 'STX', 'WDC', '000660.KS', '005930.KS', 'PSTG', '8299.TWO', '2408.TW', 'SNDK', 'SKHY', 'SIMO'], builtin: true },
-  { name: '軟體、資安與 AI 雲端服務 (SaaS & Security)', codes: ['PANW', 'SNOW', 'PLTR', 'NET', 'TWLO', '4180.T', 'CRWD', 'NOW', 'DDOG', 'ZS', 'CRM', 'NTSK', 'FSLY', 'FIG', 'IOT', 'MDB', 'OKTA'], builtin: true },
+  { name: '記憶體與高容量儲存 (Memory & Storage)', codes: ['MU', '285A.T', 'STX', 'WDC', '000660.KS', '005930.KS', 'PSTG', '8299.TWO', '2408.TW', 'SNDK', 'SKHY', 'SIMO', 'P'], builtin: true },
+  { name: '軟體、資安與 AI 雲端服務 (SaaS & Security)', codes: ['PANW', 'SNOW', 'PLTR', 'NET', 'TWLO', '4180.T', 'CRWD', 'NOW', 'DDOG', 'ZS', 'CRM', 'NTSK', 'FSLY', 'FIG', 'IOT', 'MDB', 'OKTA', 'TEAM', 'RBRK', 'ZETA', 'SAP'], builtin: true },
   { name: '高速傳輸與網通介面 (Transmission & Networking)', codes: ['CRDO', 'MRVL', '5801.T', 'ANET', 'ALAB', 'CSCO', '2379.TW', 'SMTC', '2345.TW', '3665.TW', 'NOK'], builtin: true },
   { name: '被動元件與電子零組件 (Passive Components)', codes: ['009150.KS', '6981.T', '300408.SZ', '2327.TW', '6997.T', '6762.T', '6976.T', '2492.TW', '3026.TW', 'SITM'], builtin: true },
   { name: 'AI 伺服器電源與散熱 (Power & Cooling)', codes: ['2308.TW', '3017.TW', '3324.TW', '3653.TW', '2301.TW', 'SMCI', '8996.TW', '6805.TW'], builtin: true },
@@ -98,7 +98,7 @@ export const BUILTIN_GROUPS_OVERSEAS: SectorGroup[] = [
      這批完全不屬於「科技供應鏈」視角，前一輪 19 組故意不收（見上一輪 commit 的
      「需要時再開新組」），現在真的需要了。 */
   { name: '原物料、能源與貴金屬 (Commodities & Energy)', codes: ['GDX', 'COPX', 'WPM', 'PSX', 'AEM', 'EQT', 'KGC', 'GLEN.L'], builtin: true },
-  { name: '醫療科技與生技 (Healthcare & Biotech)', codes: ['LLY', 'MRK', 'TEM', 'NTRA', 'TWST', 'TXG', 'CRSP', 'BEAM', 'ILMN', 'WGS', 'NTLA', 'RXRX', 'VCYT', 'CERS', 'MRNA'], builtin: true },
+  { name: '醫療科技與生技 (Healthcare & Biotech)', codes: ['LLY', 'MRK', 'TEM', 'NTRA', 'TWST', 'TXG', 'CRSP', 'BEAM', 'ILMN', 'WGS', 'NTLA', 'RXRX', 'VCYT', 'CERS', 'MRNA', 'GH'], builtin: true },
   // 精密光學元件目前只有大立光一檔——刻意不硬塞進「光通訊與矽光子」（那組是通訊用零組件，
   // 大立光是手機相機鏡頭，製程與客戶完全不同），寧可先開一組只有 1 檔的類別。
   { name: '精密光學元件 (Precision Optics)', codes: ['3008.TW'], builtin: true },
@@ -112,12 +112,12 @@ export const BUILTIN_GROUPS_OVERSEAS: SectorGroup[] = [
         是照主要營收性質二選一，不是兩邊都放。 */
   // 商業銀行／universal bank。00998A 一檔就吃掉 27 檔，是目前最大的一組——它本來就是
   // 全球金融股票 ETF，這個數字反映的是基金本身的集中度，不是分類切太細。
-  { name: '銀行 (Banks)', codes: ['JPM', 'BAC', 'WFC', 'UBS', 'BNY', 'HSBA.L', 'BARC.L', 'LLOY.L', 'NWG.L', 'STAN.L', 'DBK.DE', 'BNP.PA', 'GLE.PA', 'INGA.AS', 'ABN.AS', 'CABK.MC', 'UCG.MI', 'BAMI.MI', 'BMPS.MI', 'ETE.AT', 'TPEIR.AT', 'BOCHGR.AT', '8306.T', '8308.T', '8309.T', '8331.T', '8377.T', '7167.T', 'C', '8411.T', '055550.KS', 'KBC.BR'], builtin: true },
-  { name: '保險 (Insurance)', codes: ['AV.L', 'ADM.L', 'LGEN.L', 'MNG.L', 'SDLF.L', 'AGN.AS', 'ASRNL.AS', 'G.MI', 'UNI.MI', 'CS.PA', 'EQH'], builtin: true },
+  { name: '銀行 (Banks)', codes: ['JPM', 'BAC', 'WFC', 'UBS', 'BNY', 'HSBA.L', 'BARC.L', 'LLOY.L', 'NWG.L', 'STAN.L', 'DBK.DE', 'BNP.PA', 'GLE.PA', 'INGA.AS', 'ABN.AS', 'CABK.MC', 'UCG.MI', 'BAMI.MI', 'BMPS.MI', 'ETE.AT', 'TPEIR.AT', 'BOCHGR.AT', '8306.T', '8308.T', '8309.T', '8331.T', '8377.T', '7167.T', 'C', '8411.T', '055550.KS', 'KBC.BR', 'BBVA.MC', 'EUROB.AT', '105560.KS', 'BKT.MC'], builtin: true },
+  { name: '保險 (Insurance)', codes: ['AV.L', 'ADM.L', 'LGEN.L', 'MNG.L', 'SDLF.L', 'AGN.AS', 'ASRNL.AS', 'G.MI', 'UNI.MI', 'CS.PA', 'EQH', '2882.TW', '2881.TW', '8725.T', '8766.T', 'TRV', '000810.KS', '8750.T', 'AGS.BR'], builtin: true },
   // 資產管理／另類投資／券商：GS 與 MRX 主要營收來自投行與經紀撮合，不放「銀行」。
-  { name: '資產管理、券商與另類投資 (Asset Managers & Brokers)', codes: ['BLK', 'BX', 'ARES', 'AMUN.PA', 'GS', 'MRX'], builtin: true },
+  { name: '資產管理、券商與另類投資 (Asset Managers & Brokers)', codes: ['BLK', 'BX', 'ARES', 'AMUN.PA', 'GS', 'MRX', '2885.TW', 'ENX.PA', 'DB1.DE', 'VCTR'], builtin: true },
   // AXON 的 GICS 分類就是 Aerospace & Defense（執法／公共安全裝備＋無人機），不是 SaaS。
-  { name: '航太、國防與無人載具 (Aerospace, Defense & UAV)', codes: ['HWM', 'KTOS', 'ACHR', 'AXON'], builtin: true },
+  { name: '航太、國防與無人載具 (Aerospace, Defense & UAV)', codes: ['HWM', 'KTOS', 'ACHR', 'AXON', 'ESLT'], builtin: true },
   { name: '數位媒體、串流與遊戲 (Media, Streaming & Gaming)', codes: ['NFLX', 'SPOT', 'TTWO', 'RBLX'], builtin: true },
   // 又一個只有 1 檔的組（比照大立光）：DE 是農機／精準農業自動化，塞進「電動車、自駕與
   // 出行平台」會混淆那組的出行敘事，塞「原物料能源」更不對（它是設備商不是生產商）。
@@ -308,5 +308,22 @@ export const STOCK_NAMES_OVERSEAS: Record<string, string> = {
   'MA': 'Mastercard',
   'COIN': 'Coinbase',
   'SQ': 'Block（舊代號，已改為 XYZ）',
+  'TEAM': 'Atlassian', 'RBRK': 'Rubrik', 'ZETA': 'Zeta Global', 'SAP': '思愛普', 'GH': 'Guardant Health',
+  'P': 'Everpure（原 Pure Storage）', 'ESLT': '埃爾比系統', '2885.TW': '元大金',
+  'BBVA.MC': '畢爾巴鄂比斯開銀行',
+  'EUROB.AT': '歐洲銀行',
+  '105560.KS': 'KB金融集團',
+  'BKT.MC': '西班牙洲際銀行',
+  '2882.TW': '國泰金',
+  '2881.TW': '富邦金',
+  '8725.T': 'MS&AD保險',
+  '8766.T': '東京海上',
+  'TRV': '旅行者保險',
+  '000810.KS': '三星火災',
+  '8750.T': '第一生命',
+  'AGS.BR': 'Ageas',
+  'ENX.PA': '泛歐交易所',
+  'DB1.DE': '德意志證交所',
+  'VCTR': 'Victory Capital',
   '6920.T': 'Lasertec', '6805.TW': '富世達', '6787.T': '名幸電子', '1303.TW': '南亞', 'MRNA': '莫德納',
 };
