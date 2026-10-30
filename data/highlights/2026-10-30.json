@@ -1,0 +1,131 @@
+{
+  "date": "2026-10-30",
+  "scanned_at": "2026-10-30T20:20:37+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": "0050"
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "tw_active"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "ok",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R3-2308-20261005-t30",
+      "rule": "R3",
+      "score": 66.83,
+      "selected": true,
+      "fact": "10/5 減碼 台達電子，其後回跌 33.4%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/5 提前減碼台達電子，隨後該股回跌 33.4%，成功避開損失。",
+      "data": {
+        "stockid": "2308",
+        "event_date": "2026-10-05",
+        "direction": "trim",
+        "qty_change_pct": -25.4,
+        "weight_pct": 2.038,
+        "return_since_pct": -33.42,
+        "tier": 30
+      }
+    },
+    {
+      "id": "R3-6223-20260930-t8",
+      "rule": "R3",
+      "score": 20.1,
+      "selected": true,
+      "fact": "9/30 減碼 旺矽科技，其後回跌 10.0%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 9/30 提前減碼旺矽科技，隨後該股回跌 10.0%，成功避開損失。",
+      "data": {
+        "stockid": "6223",
+        "event_date": "2026-09-30",
+        "direction": "trim",
+        "qty_change_pct": -99.3,
+        "weight_pct": 1.004,
+        "return_since_pct": -10.05,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-2345-20260930-t8",
+      "rule": "R3",
+      "score": 18.03,
+      "selected": true,
+      "fact": "9/30 減碼 智邦科技，其後回跌 9.0%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 9/30 提前減碼智邦科技，隨後該股回跌 9.0%，成功避開損失。",
+      "data": {
+        "stockid": "2345",
+        "event_date": "2026-09-30",
+        "direction": "trim",
+        "qty_change_pct": -53.5,
+        "weight_pct": 1.005,
+        "return_since_pct": -9.01,
+        "tier": 8
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 311,
+    "line_status": 200,
+    "candidate_count": 3,
+    "selected_count": 3
+  }
+}
