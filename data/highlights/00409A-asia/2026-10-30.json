@@ -1,0 +1,113 @@
+{
+  "date": "2026-10-30",
+  "scanned_at": "2026-10-30T21:42:53+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": null
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "overseas"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "stale",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R3-2360-20261001-t15",
+      "rule": "R3",
+      "score": 31.25,
+      "selected": true,
+      "fact": "10/1 減碼 致茂電子，其後回跌 15.6%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/1 提前減碼致茂電子，隨後該股回跌 15.6%，成功避開損失。",
+      "data": {
+        "stockid": "2360",
+        "event_date": "2026-10-01",
+        "direction": "trim",
+        "qty_change_pct": -99.1,
+        "weight_pct": 1.62,
+        "return_since_pct": -15.62,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-6787 JP-20261022-t8",
+      "rule": "R3",
+      "score": 19.05,
+      "selected": true,
+      "fact": "10/22 減碼 名幸電子股份有限公司，其後回跌 9.5%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/22 提前減碼名幸電子股份有限公司，隨後該股回跌 9.5%，成功避開損失。",
+      "data": {
+        "stockid": "6787 JP",
+        "event_date": "2026-10-22",
+        "direction": "trim",
+        "qty_change_pct": -92.0,
+        "weight_pct": 1.453,
+        "return_since_pct": -9.52,
+        "tier": 8
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 240,
+    "line_status": 200,
+    "candidate_count": 2,
+    "selected_count": 2
+  }
+}
