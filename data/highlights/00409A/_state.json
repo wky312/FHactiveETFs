@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-10-31T09:20:23+08:00",
+  "updated_at": "2026-11-03T11:14:54+08:00",
   "pushed_dates": [
     "2026-10-06",
     "2026-10-07",
@@ -19,7 +19,8 @@
     "2026-10-27",
     "2026-10-28",
     "2026-10-29",
-    "2026-10-30"
+    "2026-10-30",
+    "2026-11-02"
   ],
   "r3_events": {
     "8046|2026/09/09": {
@@ -80,7 +81,7 @@
     },
     "STX US|2026/10/05": {
       "direction": "trim",
-      "tier_pushed": 15
+      "tier_pushed": 30
     },
     "IREN US|2026/10/01": {
       "direction": "trim",
@@ -100,7 +101,7 @@
     },
     "INTC US|2026/10/05": {
       "direction": "trim",
-      "tier_pushed": 15
+      "tier_pushed": 30
     },
     "NTRA US|2026/09/18": {
       "direction": "add",
@@ -108,7 +109,7 @@
     },
     "SNDK US|2026/10/05": {
       "direction": "trim",
-      "tier_pushed": 15
+      "tier_pushed": 30
     },
     "INTC US|2026/10/06": {
       "direction": "trim",
@@ -160,7 +161,7 @@
     },
     "TSEM US|2026/10/15": {
       "direction": "trim",
-      "tier_pushed": 8
+      "tier_pushed": 15
     },
     "HOOD US|2026/10/01": {
       "direction": "trim",
@@ -172,7 +173,7 @@
     },
     "AEHR US|2026/10/15": {
       "direction": "trim",
-      "tier_pushed": 8
+      "tier_pushed": 15
     },
     "INTC US|2026/10/12": {
       "direction": "trim",

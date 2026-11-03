@@ -1,0 +1,364 @@
+{
+  "date": "2026-11-02",
+  "scanned_at": "2026-11-03T11:14:54+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": null
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "overseas"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "ok",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R3-INTC US-20261005-t30",
+      "rule": "R3",
+      "score": 96.77,
+      "selected": true,
+      "fact": "10/5 減碼 英特爾，其後回跌 48.4%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/5 提前減碼英特爾，隨後該股回跌 48.4%，成功避開損失。",
+      "data": {
+        "stockid": "INTC US",
+        "event_date": "2026-10-05",
+        "direction": "trim",
+        "qty_change_pct": -16.7,
+        "weight_pct": 2.983,
+        "return_since_pct": -48.39,
+        "tier": 30
+      }
+    },
+    {
+      "id": "R3-SNDK US-20261005-t30",
+      "rule": "R3",
+      "score": 73.83,
+      "selected": true,
+      "fact": "10/5 減碼 晟碟公司（德拉瓦州），其後回跌 36.9%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/5 提前減碼晟碟公司（德拉瓦州），隨後該股回跌 36.9%，成功避開損失。",
+      "data": {
+        "stockid": "SNDK US",
+        "event_date": "2026-10-05",
+        "direction": "trim",
+        "qty_change_pct": -18.2,
+        "weight_pct": 3.942,
+        "return_since_pct": -36.91,
+        "tier": 30
+      }
+    },
+    {
+      "id": "R3-STX US-20261005-t30",
+      "rule": "R3",
+      "score": 66.13,
+      "selected": true,
+      "fact": "10/5 減碼 希捷科技控股公開有限公司，其後回跌 33.1%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/5 提前減碼希捷科技控股公開有限公司，隨後該股回跌 33.1%，成功避開損失。",
+      "data": {
+        "stockid": "STX US",
+        "event_date": "2026-10-05",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 1.061,
+        "return_since_pct": -33.07,
+        "tier": 30
+      }
+    },
+    {
+      "id": "R3-TSEM US-20261015-t15",
+      "rule": "R3",
+      "score": 51.94,
+      "selected": true,
+      "fact": "10/15 減碼 塔爾半導體有限公司，其後回跌 26.0%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/15 提前減碼塔爾半導體有限公司，隨後該股回跌 26.0%，成功避開損失。",
+      "data": {
+        "stockid": "TSEM US",
+        "event_date": "2026-10-15",
+        "direction": "trim",
+        "qty_change_pct": -58.8,
+        "weight_pct": 0.869,
+        "return_since_pct": -25.97,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-AEHR US-20261015-t15",
+      "rule": "R3",
+      "score": 51.26,
+      "selected": true,
+      "fact": "10/15 減碼 愛赫測試系統，其後回跌 25.6%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/15 提前減碼愛赫測試系統，隨後該股回跌 25.6%，成功避開損失。",
+      "data": {
+        "stockid": "AEHR US",
+        "event_date": "2026-10-15",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 0.786,
+        "return_since_pct": -25.63,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-HOOD US-20261001-t15",
+      "rule": "R3",
+      "score": 49.14,
+      "selected": false,
+      "fact": "10/1 減碼 羅賓漢市場公司，其後回跌 24.6%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/1 提前減碼羅賓漢市場公司，隨後該股回跌 24.6%，成功避開損失。",
+      "data": {
+        "stockid": "HOOD US",
+        "event_date": "2026-10-01",
+        "direction": "trim",
+        "qty_change_pct": -24.6,
+        "weight_pct": 4.719,
+        "return_since_pct": -24.57,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-AXTI US-20261012-t15",
+      "rule": "R3",
+      "score": 44.47,
+      "selected": false,
+      "fact": "10/12 減碼 AXT公司，其後回跌 22.2%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/12 提前減碼AXT公司，隨後該股回跌 22.2%，成功避開損失。",
+      "data": {
+        "stockid": "AXTI US",
+        "event_date": "2026-10-12",
+        "direction": "trim",
+        "qty_change_pct": -68.0,
+        "weight_pct": 2.051,
+        "return_since_pct": -22.23,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-BMNR US-20261007-t15",
+      "rule": "R3",
+      "score": 41.52,
+      "selected": false,
+      "fact": "10/7 減碼 BitMine Immersion技術公司，其後回跌 20.8%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/7 提前減碼BitMine Immersion技術公司，隨後該股回跌 20.8%，成功避開損失。",
+      "data": {
+        "stockid": "BMNR US",
+        "event_date": "2026-10-07",
+        "direction": "trim",
+        "qty_change_pct": -54.3,
+        "weight_pct": 2.487,
+        "return_since_pct": -20.76,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-LRCX US-20261015-t15",
+      "rule": "R3",
+      "score": 35.97,
+      "selected": false,
+      "fact": "10/15 減碼 科林研發股份有限公司，其後回跌 18.0%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/15 提前減碼科林研發股份有限公司，隨後該股回跌 18.0%，成功避開損失。",
+      "data": {
+        "stockid": "LRCX US",
+        "event_date": "2026-10-15",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 0.877,
+        "return_since_pct": -17.98,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-BE US-20261015-t15",
+      "rule": "R3",
+      "score": 33.9,
+      "selected": false,
+      "fact": "10/15 減碼 布魯姆能源公司，其後回跌 16.9%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/15 提前減碼布魯姆能源公司，隨後該股回跌 16.9%，成功避開損失。",
+      "data": {
+        "stockid": "BE US",
+        "event_date": "2026-10-15",
+        "direction": "trim",
+        "qty_change_pct": -11.8,
+        "weight_pct": 4.973,
+        "return_since_pct": -16.95,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-LITE US-20261020-t15",
+      "rule": "R3",
+      "score": 33.58,
+      "selected": false,
+      "fact": "10/20 減碼 魯門特姆控股公司，其後回跌 16.8%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/20 提前減碼魯門特姆控股公司，隨後該股回跌 16.8%，成功避開損失。",
+      "data": {
+        "stockid": "LITE US",
+        "event_date": "2026-10-20",
+        "direction": "trim",
+        "qty_change_pct": -18.8,
+        "weight_pct": 5.494,
+        "return_since_pct": -16.79,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-LLY US-20261015-t8",
+      "rule": "R3",
+      "score": 25.47,
+      "selected": false,
+      "fact": "10/15 加碼的 禮來公司 至今 +12.7%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 10/15 加碼禮來公司，至今上漲 12.7%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "LLY US",
+        "event_date": "2026-10-15",
+        "direction": "add",
+        "qty_change_pct": 100.0,
+        "weight_pct": 0.633,
+        "return_since_pct": 12.73,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-MRVL US-20261030-t8",
+      "rule": "R3",
+      "score": 25.45,
+      "selected": false,
+      "fact": "10/30 減碼 Marvell Technology Inc，其後回跌 12.7%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/30 提前減碼Marvell Technology Inc，隨後該股回跌 12.7%，成功避開損失。",
+      "data": {
+        "stockid": "MRVL US",
+        "event_date": "2026-10-30",
+        "direction": "trim",
+        "qty_change_pct": -31.4,
+        "weight_pct": 2.663,
+        "return_since_pct": -12.72,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-META US-20261020-t8",
+      "rule": "R3",
+      "score": 25.21,
+      "selected": false,
+      "fact": "10/20 減碼 Meta平台公司，其後回跌 12.6%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/20 提前減碼Meta平台公司，隨後該股回跌 12.6%，成功避開損失。",
+      "data": {
+        "stockid": "META US",
+        "event_date": "2026-10-20",
+        "direction": "trim",
+        "qty_change_pct": -47.8,
+        "weight_pct": 2.094,
+        "return_since_pct": -12.61,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-FORM US-20261029-t8",
+      "rule": "R3",
+      "score": 20.85,
+      "selected": false,
+      "fact": "10/29 減碼 福達電子公司，其後回跌 10.4%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/29 提前減碼福達電子公司，隨後該股回跌 10.4%，成功避開損失。",
+      "data": {
+        "stockid": "FORM US",
+        "event_date": "2026-10-29",
+        "direction": "trim",
+        "qty_change_pct": -74.1,
+        "weight_pct": 0.745,
+        "return_since_pct": -10.42,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R2-DASH US-2026-11-02",
+      "rule": "R2",
+      "score": 2.69,
+      "selected": false,
+      "fact": "獨門持股 DoorDash公司昨日 +6.19%（00409A 權重 0.29%，其他海外主動 ETF 皆未持有）",
+      "angle": "獨門股發威：別人沒有的上漲",
+      "draft": "昨日 DoorDash公司（DASH）上漲約 6.19%。\n00409A 自 10/30 首次買進；截至 11/2 持有 6 張、占淨值 0.319%，報酬約 +5.6%。",
+      "data": {
+        "stockid": "DASH US",
+        "pct_change": 6.19,
+        "weight_pct": 0.29,
+        "exclusive": true,
+        "new_high": false,
+        "others_max_weight": null
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 531,
+    "line_status": 200,
+    "candidate_count": 16,
+    "selected_count": 5
+  }
+}
