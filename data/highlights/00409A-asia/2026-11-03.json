@@ -1,6 +1,6 @@
 {
   "date": "2026-11-03",
-  "scanned_at": "2026-11-03T00:41:08+08:00",
+  "scanned_at": "2026-11-03T22:45:22+08:00",
   "config_snapshot": {
     "r1": {
       "min_daily_pct": 3.0,
@@ -63,12 +63,118 @@
     "peer_redemption": "ok"
   },
   "skipped_rules": [],
-  "candidates": [],
+  "candidates": [
+    {
+      "id": "R3-2454-20261013-t15",
+      "rule": "R3",
+      "score": 37.57,
+      "selected": true,
+      "fact": "10/13 減碼 聯發科技，其後回跌 18.8%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/13 提前減碼聯發科技，隨後該股回跌 18.8%，成功避開損失。",
+      "data": {
+        "stockid": "2454",
+        "event_date": "2026-10-13",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 1.653,
+        "return_since_pct": -18.78,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-3026-20261027-t15",
+      "rule": "R3",
+      "score": 37.39,
+      "selected": true,
+      "fact": "10/27 減碼 禾伸堂企，其後回跌 18.7%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/27 提前減碼禾伸堂企，隨後該股回跌 18.7%，成功避開損失。",
+      "data": {
+        "stockid": "3026",
+        "event_date": "2026-10-27",
+        "direction": "trim",
+        "qty_change_pct": -15.2,
+        "weight_pct": 4.062,
+        "return_since_pct": -18.7,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-5274-20261008-t15",
+      "rule": "R3",
+      "score": 31.51,
+      "selected": true,
+      "fact": "10/8 減碼 信驊科技，其後回跌 15.8%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/8 提前減碼信驊科技，隨後該股回跌 15.8%，成功避開損失。",
+      "data": {
+        "stockid": "5274",
+        "event_date": "2026-10-08",
+        "direction": "trim",
+        "qty_change_pct": -37.9,
+        "weight_pct": 3.585,
+        "return_since_pct": -15.76,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-6505-20261022-t8",
+      "rule": "R3",
+      "score": 21.78,
+      "selected": true,
+      "fact": "10/22 減碼 台塑石化，其後回跌 10.9%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/22 提前減碼台塑石化，隨後該股回跌 10.9%，成功避開損失。",
+      "data": {
+        "stockid": "6505",
+        "event_date": "2026-10-22",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 1.23,
+        "return_since_pct": -10.89,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R5-streak10-2026-11-03",
+      "rule": "R5",
+      "score": 20.0,
+      "selected": true,
+      "fact": "00409A 連續 10 個交易日淨申購",
+      "angle": "資金用腳投票：買盤持續",
+      "draft": "00409A 連續 10 個交易日獲淨申購，資金持續進場。",
+      "data": {
+        "streak_days": 10,
+        "data_date": "2026-11-03"
+      }
+    },
+    {
+      "id": "R3-6805-20261008-t8",
+      "rule": "R3",
+      "score": 17.72,
+      "selected": false,
+      "fact": "10/8 減碼 富世達股，其後回跌 8.9%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/8 提前減碼富世達股，隨後該股回跌 8.9%，成功避開損失。",
+      "data": {
+        "stockid": "6805",
+        "event_date": "2026-10-08",
+        "direction": "trim",
+        "qty_change_pct": -34.8,
+        "weight_pct": 1.522,
+        "return_since_pct": -8.86,
+        "tier": 8
+      }
+    }
+  ],
   "push": {
-    "attempted": false,
-    "sent": false,
-    "reason": "no_candidates",
-    "candidate_count": 0,
-    "selected_count": 0
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 483,
+    "line_status": 200,
+    "candidate_count": 6,
+    "selected_count": 5
   }
 }
