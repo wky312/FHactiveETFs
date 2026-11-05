@@ -1,0 +1,232 @@
+{
+  "date": "2026-11-05",
+  "scanned_at": "2026-11-05T23:02:23+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": null
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "overseas"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "stale",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R1-6857 JP-2026-11-05",
+      "rule": "R1",
+      "score": NaN,
+      "selected": true,
+      "fact": "愛德萬測試今日 +nan%，00409A 持股 2.64%、為海外主動 ETF 觀測群 9 檔中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 愛德萬測試（6857）上漲約 nan%。\n00409A 最近於 10/29 重新建倉，並於 10/30、11/2 加碼；截至 11/3 持有 41.5 張、占淨值 2.637%，報酬約 +nan%。",
+      "data": {
+        "stockid": "6857 JP",
+        "pct_change": NaN,
+        "weight_pct": 2.64,
+        "is_heaviest_among_universe": true,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-4062 JP-2026-11-05",
+      "rule": "R1",
+      "score": NaN,
+      "selected": true,
+      "fact": "揖斐電有限公司今日 +nan%，00409A 持股 1.24%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 揖斐電有限公司（4062）上漲約 nan%。\n00409A 最近於 10/28 重新建倉，並於 10/29 加碼；截至 11/3 持有 87 張、占淨值 1.243%，報酬約 +nan%。",
+      "data": {
+        "stockid": "4062 JP",
+        "pct_change": NaN,
+        "weight_pct": 1.24,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R3-5274-20261019-t15",
+      "rule": "R3",
+      "score": 41.86,
+      "selected": true,
+      "fact": "10/19 減碼 信驊科技，其後回跌 20.9%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/19 提前減碼信驊科技，隨後該股回跌 20.9%，成功避開損失。",
+      "data": {
+        "stockid": "5274",
+        "event_date": "2026-10-19",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 1.32,
+        "return_since_pct": -20.93,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-6805-20261008-t15",
+      "rule": "R3",
+      "score": 41.77,
+      "selected": true,
+      "fact": "10/8 減碼 富世達股，其後回跌 20.9%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/8 提前減碼富世達股，隨後該股回跌 20.9%，成功避開損失。",
+      "data": {
+        "stockid": "6805",
+        "event_date": "2026-10-08",
+        "direction": "trim",
+        "qty_change_pct": -34.8,
+        "weight_pct": 1.522,
+        "return_since_pct": -20.89,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-6505-20261022-t15",
+      "rule": "R3",
+      "score": 34.93,
+      "selected": true,
+      "fact": "10/22 減碼 台塑石化，其後回跌 17.5%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/22 提前減碼台塑石化，隨後該股回跌 17.5%，成功避開損失。",
+      "data": {
+        "stockid": "6505",
+        "event_date": "2026-10-22",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 1.23,
+        "return_since_pct": -17.46,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-3026-20261102-t15",
+      "rule": "R3",
+      "score": 34.22,
+      "selected": false,
+      "fact": "11/2 減碼 禾伸堂企，其後回跌 17.1%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/2 提前減碼禾伸堂企，隨後該股回跌 17.1%，成功避開損失。",
+      "data": {
+        "stockid": "3026",
+        "event_date": "2026-11-02",
+        "direction": "trim",
+        "qty_change_pct": -30.4,
+        "weight_pct": 3.282,
+        "return_since_pct": -17.11,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R2-6857 JP-2026-11-05",
+      "rule": "R2",
+      "score": 13.2,
+      "selected": false,
+      "fact": "顯著超配持股 愛德萬測試創 60 日新高（00409A 權重 2.64%，其他海外主動 ETF 最高僅 1.08%）",
+      "angle": "顯著超配股發威：別人沒有的上漲",
+      "draft": "今日 愛德萬測試（6857）創 60 日新高。\n00409A 最近於 10/29 重新建倉，並於 10/30、11/2 加碼；截至 11/3 持有 41.5 張、占淨值 2.637%，報酬約 +nan%。",
+      "data": {
+        "stockid": "6857 JP",
+        "pct_change": NaN,
+        "weight_pct": 2.64,
+        "exclusive": false,
+        "new_high": false,
+        "others_max_weight": 1.082
+      }
+    },
+    {
+      "id": "R2-285A JP-2026-11-05",
+      "rule": "R2",
+      "score": 7.57,
+      "selected": false,
+      "fact": "獨門持股 鎧俠控股公司創 60 日新高（00409A 權重 1.01%，其他海外主動 ETF 皆未持有）",
+      "angle": "獨門股發威：別人沒有的上漲",
+      "draft": "今日 鎧俠控股公司（285A）創 60 日新高。\n00409A 最近於 10/29 重新建倉；截至 11/3 持有 50 張、占淨值 1.008%，報酬約 +nan%。",
+      "data": {
+        "stockid": "285A JP",
+        "pct_change": NaN,
+        "weight_pct": 1.01,
+        "exclusive": true,
+        "new_high": false,
+        "others_max_weight": null
+      }
+    },
+    {
+      "id": "R2-6976 JP-2026-11-05",
+      "rule": "R2",
+      "score": 2.17,
+      "selected": false,
+      "fact": "獨門持股 太陽誘電創 60 日新高（00409A 權重 0.29%，其他海外主動 ETF 皆未持有）",
+      "angle": "獨門股發威：別人沒有的上漲",
+      "draft": "今日 太陽誘電（6976）創 60 日新高。\n00409A 自 9/30 首次買進，並於 10/1、10/7、10/8 加碼；截至 11/3 持有 20 張、占淨值 0.295%，報酬約 +nan%。",
+      "data": {
+        "stockid": "6976 JP",
+        "pct_change": NaN,
+        "weight_pct": 0.29,
+        "exclusive": true,
+        "new_high": false,
+        "others_max_weight": null
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 657,
+    "line_status": 200,
+    "candidate_count": 9,
+    "selected_count": 5
+  }
+}
