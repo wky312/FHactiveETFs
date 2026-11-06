@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-05T23:02:23+08:00",
+  "updated_at": "2026-11-06T22:42:27+08:00",
   "pushed_dates": [
     "2026-10-07",
     "2026-10-08",
@@ -19,7 +19,8 @@
     "2026-10-30",
     "2026-11-03",
     "2026-11-04",
-    "2026-11-05"
+    "2026-11-05",
+    "2026-11-06"
   ],
   "r3_events": {
     "8046|2026/09/09": {
@@ -104,7 +105,7 @@
     },
     "000660 KS|2026/10/07": {
       "direction": "trim",
-      "tier_pushed": 15
+      "tier_pushed": 30
     },
     "2454|2026/10/06": {
       "direction": "trim",
@@ -124,11 +125,11 @@
     },
     "6981 JP|2026/10/13": {
       "direction": "trim",
-      "tier_pushed": 15
+      "tier_pushed": 30
     },
     "5274|2026/10/08": {
       "direction": "trim",
-      "tier_pushed": 15
+      "tier_pushed": 30
     },
     "2454|2026/10/13": {
       "direction": "trim",
@@ -160,11 +161,11 @@
     },
     "6787 JP|2026/10/22": {
       "direction": "trim",
-      "tier_pushed": 15
+      "tier_pushed": 30
     },
     "3026|2026/10/27": {
       "direction": "trim",
-      "tier_pushed": 15
+      "tier_pushed": 30
     },
     "6505|2026/10/22": {
       "direction": "trim",
