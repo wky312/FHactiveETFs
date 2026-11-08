@@ -25,6 +25,15 @@ import { SectorGroup } from './sectorGroups';
    ＋開 1 個新組「消費網路與平台」（EXPE Expedia、DASH DoorDash，前 22 組接不住的線上旅遊／外送平台）。
    現 22→23 組、174→182 檔。
 
+   2026-11-08：比對 00409A/00411A/00988A/00990A 最新持股（申報日 2026/11/05），補 8 檔進現有族群、不開新組：
+     AI 資料中心電力 ← NEE 新紀元能源（電力公用事業，同組已有 CEG/VST）
+     軟體資安與 AI 雲端 ← 3697.T SHIFT（軟體測試／QA 外包）
+     金融科技與數位支付 ← RKT Rocket（線上房貸平台）
+     原物料能源貴金屬 ← NEM 紐蒙特（金礦，同組 AEM/KGC）
+     醫療科技與生技 ← RPRX Royalty Pharma（藥品權利金）、THC Tenet（醫院營運）
+     航太國防 ← GE 奇異航太（航空發動機，同組 HWM）
+     數位媒體串流與遊戲 ← 9602.T 東寶（電影／動畫 IP）
+
    2026-09-14：比對 00409A(50檔)／00411A(34檔)／00990A(48檔)／00988A(42檔) 最新持股（申報日
    2026/09/10），補 11 檔進現有族群、**不開新組**（這批都接得住）。組數維持 23、182→193 檔。
    ⚠ 台股後綴一律查 TWSE ISIN 確認，不要用「4 碼就是 .TW」猜：**3529 力旺與 6510 精測是上櫃
@@ -69,20 +78,20 @@ import { SectorGroup } from './sectorGroups';
 
 export const BUILTIN_GROUPS_OVERSEAS: SectorGroup[] = [
   { name: '算力與 IC 設計 (CPU / GPU / ASIC / IP)', codes: ['AMD', '2454.TW', 'ARM', 'INTC', 'NVDA', 'QCOM', 'AVGO', '3661.TW', '3443.TW', 'CDNS', 'CBRS', '5274.TWO', '3529.TWO'], builtin: true },
-  { name: 'AI 資料中心電力、燃料電池與核能基建', codes: ['BE', 'PLUG', 'FCEL', 'VRT', 'ETN', 'GEV', 'CEG', 'VST', 'OKLO', 'SMR', '6508.T', '034020.KS', 'ENR.DE', 'SU.PA', 'XE', 'BWXT'], builtin: true },
+  { name: 'AI 資料中心電力、燃料電池與核能基建', codes: ['BE', 'PLUG', 'FCEL', 'VRT', 'ETN', 'GEV', 'CEG', 'VST', 'OKLO', 'SMR', '6508.T', '034020.KS', 'ENR.DE', 'SU.PA', 'XE', 'BWXT', 'NEE'], builtin: true },
   { name: '低軌衛星與太空科技 (LEO Satellite & Aerospace)', codes: ['ASTS', 'RKLB', 'IRDM', 'SATS', 'GSAT', 'PL', '3491.TWO', '6285.TW', 'SPCX'], builtin: true },
   { name: '半導體設備、測試與探針卡', codes: ['6223.TWO', '6871.T', 'TER', 'FORM', 'AIXA.DE', 'AEHR', '095340.KS', 'ASML', 'AMAT', 'LRCX', 'KLAC', '8035.T', '6857.T', '6515.TW', '6510.TWO', '2360.TW', '7769.TW', '300757.SZ', 'ASML.AS', '6920.T'], builtin: true },
   { name: '晶圓代工與封測製造 (Foundry & OSAT)', codes: ['2330.TW', 'TSM', 'TSEM', '3711.TW', 'GFS', '2303.TW', 'AMKR', '2449.TW'], builtin: true },
   { name: '光通訊與矽光子 / CPO (Optical & CPO)', codes: ['LITE', 'COHR', '300308.SZ', '3308.HK', '4979.TWO', 'FN', 'CIEN', '6442.TW', '3363.TWO', '3081.TWO', 'AXTI'], builtin: true },
   { name: '載板與高階 PCB / 材料 (Substrates & PCB)', codes: ['3037.TW', '2383.TW', '301377.SZ', '8046.TW', '3189.TW', '4062.T', '6967.T', '2368.TW', '6274.TW', '600183.SS', '6787.T', '1303.TW'], builtin: true },
   { name: '記憶體與高容量儲存 (Memory & Storage)', codes: ['MU', '285A.T', 'STX', 'WDC', '000660.KS', '005930.KS', 'PSTG', '8299.TWO', '2408.TW', 'SNDK', 'SKHY', 'SIMO', 'P'], builtin: true },
-  { name: '軟體、資安與 AI 雲端服務 (SaaS & Security)', codes: ['PANW', 'SNOW', 'PLTR', 'NET', 'TWLO', '4180.T', 'CRWD', 'NOW', 'DDOG', 'ZS', 'CRM', 'NTSK', 'FSLY', 'FIG', 'IOT', 'MDB', 'OKTA', 'TEAM', 'RBRK', 'ZETA', 'SAP'], builtin: true },
+  { name: '軟體、資安與 AI 雲端服務 (SaaS & Security)', codes: ['PANW', 'SNOW', 'PLTR', 'NET', 'TWLO', '4180.T', 'CRWD', 'NOW', 'DDOG', 'ZS', 'CRM', 'NTSK', 'FSLY', 'FIG', 'IOT', 'MDB', 'OKTA', 'TEAM', 'RBRK', 'ZETA', 'SAP', '3697.T'], builtin: true },
   { name: '高速傳輸與網通介面 (Transmission & Networking)', codes: ['CRDO', 'MRVL', '5801.T', 'ANET', 'ALAB', 'CSCO', '2379.TW', 'SMTC', '2345.TW', '3665.TW', 'NOK'], builtin: true },
   { name: '被動元件與電子零組件 (Passive Components)', codes: ['009150.KS', '6981.T', '300408.SZ', '2327.TW', '6997.T', '6762.T', '6976.T', '2492.TW', '3026.TW', 'SITM'], builtin: true },
   { name: 'AI 伺服器電源與散熱 (Power & Cooling)', codes: ['2308.TW', '3017.TW', '3324.TW', '3653.TW', '2301.TW', 'SMCI', '8996.TW', '6805.TW'], builtin: true },
   { name: '車用與功率半導體 (Power & Auto Chips)', codes: ['IFX.DE', 'MPWR', 'TXN', 'STM', 'ON', 'NXPI', 'ADI', 'MCHP'], builtin: true },
   { name: '超級雲端巨頭 (Hyperscalers)', codes: ['MSFT', 'GOOGL', 'GOOG', 'AMZN', 'META', 'AAPL'], builtin: true },
-  { name: '金融科技與數位支付 (FinTech & Payments)', codes: ['CRCL', 'V', 'MA', 'COIN', 'XYZ', 'HOOD', 'BMNR', '8473.T', 'CHYM', 'GPN', 'RELY', 'BLSH', 'SOFI'], builtin: true },
+  { name: '金融科技與數位支付 (FinTech & Payments)', codes: ['CRCL', 'V', 'MA', 'COIN', 'XYZ', 'HOOD', 'BMNR', '8473.T', 'CHYM', 'GPN', 'RELY', 'BLSH', 'SOFI', 'RKT'], builtin: true },
   /* 以下 4 組為 2026-08-26 新增：原始 CSV 是「零組件供應鏈」視角，接不住主動式ETF 實際
      押的幾條主線（算力租賃、伺服器整機、電動車/自駕、量子）。成分股取自 00411A 與
      00988A 的實際持股，再各補同業補齊族群輪廓。
@@ -97,8 +106,8 @@ export const BUILTIN_GROUPS_OVERSEAS: SectorGroup[] = [
   /* 以下 3 組為 2026-09-02 新增：比對 00409A（主動復華全球50）51 檔實際持股後，
      這批完全不屬於「科技供應鏈」視角，前一輪 19 組故意不收（見上一輪 commit 的
      「需要時再開新組」），現在真的需要了。 */
-  { name: '原物料、能源與貴金屬 (Commodities & Energy)', codes: ['GDX', 'COPX', 'WPM', 'PSX', 'AEM', 'EQT', 'KGC', 'GLEN.L'], builtin: true },
-  { name: '醫療科技與生技 (Healthcare & Biotech)', codes: ['LLY', 'MRK', 'TEM', 'NTRA', 'TWST', 'TXG', 'CRSP', 'BEAM', 'ILMN', 'WGS', 'NTLA', 'RXRX', 'VCYT', 'CERS', 'MRNA', 'GH'], builtin: true },
+  { name: '原物料、能源與貴金屬 (Commodities & Energy)', codes: ['GDX', 'COPX', 'WPM', 'PSX', 'AEM', 'EQT', 'KGC', 'GLEN.L', 'NEM'], builtin: true },
+  { name: '醫療科技與生技 (Healthcare & Biotech)', codes: ['LLY', 'MRK', 'TEM', 'NTRA', 'TWST', 'TXG', 'CRSP', 'BEAM', 'ILMN', 'WGS', 'NTLA', 'RXRX', 'VCYT', 'CERS', 'MRNA', 'GH', 'RPRX', 'THC'], builtin: true },
   // 精密光學元件目前只有大立光一檔——刻意不硬塞進「光通訊與矽光子」（那組是通訊用零組件，
   // 大立光是手機相機鏡頭，製程與客戶完全不同），寧可先開一組只有 1 檔的類別。
   { name: '精密光學元件 (Precision Optics)', codes: ['3008.TW'], builtin: true },
@@ -117,8 +126,8 @@ export const BUILTIN_GROUPS_OVERSEAS: SectorGroup[] = [
   // 資產管理／另類投資／券商：GS 與 MRX 主要營收來自投行與經紀撮合，不放「銀行」。
   { name: '資產管理、券商與另類投資 (Asset Managers & Brokers)', codes: ['BLK', 'BX', 'ARES', 'AMUN.PA', 'GS', 'MRX', '2885.TW', 'ENX.PA', 'DB1.DE', 'VCTR'], builtin: true },
   // AXON 的 GICS 分類就是 Aerospace & Defense（執法／公共安全裝備＋無人機），不是 SaaS。
-  { name: '航太、國防與無人載具 (Aerospace, Defense & UAV)', codes: ['HWM', 'KTOS', 'ACHR', 'AXON', 'ESLT'], builtin: true },
-  { name: '數位媒體、串流與遊戲 (Media, Streaming & Gaming)', codes: ['NFLX', 'SPOT', 'TTWO', 'RBLX'], builtin: true },
+  { name: '航太、國防與無人載具 (Aerospace, Defense & UAV)', codes: ['HWM', 'KTOS', 'ACHR', 'AXON', 'ESLT', 'GE'], builtin: true },
+  { name: '數位媒體、串流與遊戲 (Media, Streaming & Gaming)', codes: ['NFLX', 'SPOT', 'TTWO', 'RBLX', '9602.T'], builtin: true },
   // 又一個只有 1 檔的組（比照大立光）：DE 是農機／精準農業自動化，塞進「電動車、自駕與
   // 出行平台」會混淆那組的出行敘事，塞「原物料能源」更不對（它是設備商不是生產商）。
   { name: '農業機械與精準農業 (Ag Machinery)', codes: ['DE'], builtin: true },
@@ -160,6 +169,9 @@ export const STOCK_NAMES_OVERSEAS: Record<string, string> = {
   'TXG': '10x Genomics', 'CRSP': 'CRISPR Therapeutics', 'BEAM': 'Beam Therapeutics',
   'ILMN': '伊路米納', 'WGS': 'GeneDx', 'NTLA': 'Intellia', 'RXRX': 'Recursion',
   'VCYT': 'Veracyte', 'CERS': 'Cerus',
+  // 2026-11-08 新增（比對 00409A/00411A/00988A/00990A 最新持股，補 8 檔進現有族群）
+  'GE': '奇異航太', 'RPRX': 'Royalty Pharma', 'THC': 'Tenet醫療', '3697.T': 'SHIFT',
+  'NEE': '新紀元能源', 'NEM': '紐蒙特', 'RKT': 'Rocket Companies', '9602.T': '東寶',
   // 2026-09-14 新增（比對 00409A/00411A/00990A/00988A 最新持股，補 11 檔進現有族群）
   '6510.TWO': '中華精測', '2360.TW': '致茂', '7769.TW': '鴻勁', '300757.SZ': '羅博特科',
   '3529.TWO': '力旺', 'AXTI': 'AXT', 'FSLY': 'Fastly', '3665.TW': '貿聯-KY',
