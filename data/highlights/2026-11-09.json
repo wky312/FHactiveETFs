@@ -1,0 +1,221 @@
+{
+  "date": "2026-11-09",
+  "scanned_at": "2026-11-09T23:30:22+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": "0050"
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "tw_active"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "ok",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R1-2330-2026-11-09",
+      "rule": "R1",
+      "score": 74.08,
+      "selected": true,
+      "fact": "台灣積體今日 +4.68%，00991A 持股 15.83%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "台灣積體大漲 4.68%，00991A 以 15.83% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "2330",
+        "pct_change": 4.68,
+        "weight_pct": 15.83,
+        "is_heaviest_among_universe": false,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R1-2454-2026-11-09",
+      "rule": "R1",
+      "score": 72.03,
+      "selected": true,
+      "fact": "聯發科技今日 +9.88%，00991A 持股 7.29%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "聯發科技大漲 9.88%，00991A 以 7.29% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "2454",
+        "pct_change": 9.88,
+        "weight_pct": 7.29,
+        "is_heaviest_among_universe": false,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R1-3017-2026-11-09",
+      "rule": "R1",
+      "score": 67.43,
+      "selected": true,
+      "fact": "奇鋐科技今日 +9.96%，00991A 持股 6.77%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "奇鋐科技大漲 9.96%，00991A 以 6.77% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "3017",
+        "pct_change": 9.96,
+        "weight_pct": 6.77,
+        "is_heaviest_among_universe": false,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R1-2383-2026-11-09",
+      "rule": "R1",
+      "score": 60.63,
+      "selected": true,
+      "fact": "台光電子今日 +6.54%，00991A 持股 9.27%、為全市場 20 檔主動 ETF中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "台光電子大漲 6.54%，00991A 以 9.27% 持股居全市場主動 ETF之冠，經理人重押命中。",
+      "data": {
+        "stockid": "2383",
+        "pct_change": 6.54,
+        "weight_pct": 9.27,
+        "is_heaviest_among_universe": true,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R1-2408-2026-11-09",
+      "rule": "R1",
+      "score": 56.28,
+      "selected": true,
+      "fact": "南亞科技今日 +7.71%，00991A 持股 7.3%、為全市場 20 檔主動 ETF中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "南亞科技大漲 7.71%，00991A 以 7.3% 持股居全市場主動 ETF之冠，經理人重押命中。",
+      "data": {
+        "stockid": "2408",
+        "pct_change": 7.71,
+        "weight_pct": 7.3,
+        "is_heaviest_among_universe": true,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R1-1303-2026-11-09",
+      "rule": "R1",
+      "score": 50.03,
+      "selected": false,
+      "fact": "南亞塑膠今日 +9.81%，00991A 持股 5.1%、為全市場 20 檔主動 ETF中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "南亞塑膠大漲 9.81%，00991A 以 5.1% 持股居全市場主動 ETF之冠，經理人重押命中。",
+      "data": {
+        "stockid": "1303",
+        "pct_change": 9.81,
+        "weight_pct": 5.1,
+        "is_heaviest_among_universe": true,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R1-2059-2026-11-09",
+      "rule": "R1",
+      "score": 40.51,
+      "selected": false,
+      "fact": "川湖科技今日 +5.88%，00991A 持股 6.89%、為全市場 20 檔主動 ETF中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "川湖科技大漲 5.88%，00991A 以 6.89% 持股居全市場主動 ETF之冠，經理人重押命中。",
+      "data": {
+        "stockid": "2059",
+        "pct_change": 5.88,
+        "weight_pct": 6.89,
+        "is_heaviest_among_universe": true,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R1-8046-2026-11-09",
+      "rule": "R1",
+      "score": 37.59,
+      "selected": false,
+      "fact": "南亞電路今日 +6.63%，00991A 持股 5.67%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "南亞電路大漲 6.63%，00991A 以 5.67% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "8046",
+        "pct_change": 6.63,
+        "weight_pct": 5.67,
+        "is_heaviest_among_universe": false,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R1-3037-2026-11-09",
+      "rule": "R1",
+      "score": 28.74,
+      "selected": false,
+      "fact": "欣興電子今日 +4.13%，00991A 持股 6.96%、為全市場 20 檔主動 ETF中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "欣興電子大漲 4.13%，00991A 以 6.96% 持股居全市場主動 ETF之冠，經理人重押命中。",
+      "data": {
+        "stockid": "3037",
+        "pct_change": 4.13,
+        "weight_pct": 6.96,
+        "is_heaviest_among_universe": true,
+        "universe_size": 20
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 610,
+    "line_status": 200,
+    "candidate_count": 9,
+    "selected_count": 5
+  }
+}
