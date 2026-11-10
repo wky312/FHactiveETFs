@@ -1,5 +1,6 @@
 import { supabase, supabaseReady } from './supabase';
 import { fetchAll, mapLimit, isCashLike, closesByDate } from './consensus';
+import { fetchHoldings } from './fhtrust';
 
 /* 同業當日加減碼 — 全 19 檔主動式 ETF「最新持股日 vs 前一個持股日」的個股股數變動。
    ──────────────────────────────────────────────────────────────────
@@ -60,6 +61,42 @@ function taipeiNow() {
 type Snap = Map<string, { name: string; q: number }>;
 interface FundState { e: { ticker: string; name: string }; curDate: string | null; prevDate: string | null; curMap: Snap | null; prevMap: Snap | null; live?: boolean; liveError?: string }
 interface LiveResp { funds: Record<string, { date?: string; rows?: [string, string, number][]; error?: string }> }
+
+
+/* 共用 Supabase（active-etf-tracker）`etf` 表還沒收錄、但復華自家官網有持股的基金：直接問復華官網。
+   00418A（ETF27）2026/11/11 掛牌，tracker 還沒登記。若日後 tracker 補上同代號，以 DB 為準（下面會略過重複）。
+   往回最多找 EXTRA_LOOKBACK 個平日：第一個有持股的日期＝最新日、再往前一個有持股的＝前一日。
+   指定 opts.date 時只接受那一天當最新日。掛牌前官網回空殼（fetchHoldings 會 throw）→ 視為無資料。 */
+const FHTRUST_EXTRA_FUNDS = [{ ticker: '00418A', name: '主動復華台灣新星', fundId: 'ETF27' }];
+const EXTRA_LOOKBACK = 8;
+
+async function loadFhtrustFund(e: { ticker: string; name: string; fundId: string }, date?: string): Promise<FundState> {
+  const empty: FundState = { e, curDate: null, prevDate: null, curMap: null, prevMap: null };
+  const startYmd = date ?? taipeiNow().ymd;
+  const found: { date: string; map: Snap }[] = [];
+  let d = new Date(startYmd + 'T00:00:00Z');
+  for (let i = 0, tried = 0; tried < EXTRA_LOOKBACK && found.length < 2; i++, d = new Date(d.getTime() - 86400_000)) {
+    const wd = d.getUTCDay();
+    if (wd === 0 || wd === 6) continue;
+    tried++;
+    const ymd = d.toISOString().slice(0, 10);
+    if (date && found.length === 0 && ymd !== date) break;
+    try {
+      const res = await fetchHoldings(ymd.replaceAll('-', '/'), e.fundId, { force: true });
+      const map: Snap = new Map();
+      for (const h of res.holdings) {
+        const id = h.stockid.trim();
+        if (!id || h.ftype === '期貨' || isCashLike(id, h.stockname) || map.has(id) || !Number.isFinite(h.qshare)) continue;
+        map.set(id, { name: h.stockname.trim(), q: h.qshare });
+      }
+      const got = (res.date ?? ymd).replaceAll('/', '-');
+      if (map.size && got === ymd) found.push({ date: ymd, map });
+    } catch { /* 該日無持股（休市／尚未公布／尚未掛牌） */ }
+    void i;
+  }
+  if (!found.length) return empty;
+  return { e, curDate: found[0].date, prevDate: found[1]?.date ?? null, curMap: found[0].map, prevMap: found[1]?.map ?? null };
+}
 
 const sameSnap = (a: Snap, b: Snap) => a.size === b.size && [...a].every(([id, v]) => b.get(id)?.q === v.q);
 
@@ -149,7 +186,11 @@ async function doCompute(opts: { date?: string; live?: boolean; origin?: string 
   const etfList = (etfs ?? []) as { ticker: string; name: string }[];
   if (!etfList.length) throw new Error('查無 ETF 清單');
 
-  const perFund: FundState[] = await mapLimit(etfList, FUND_CONCURRENCY, async (e) => {
+  const extras = FHTRUST_EXTRA_FUNDS.filter(x => !etfList.some(e => e.ticker === x.ticker));
+  const extraTickers = new Set(extras.map(x => x.ticker));
+  const extraStates: FundState[] = await Promise.all(extras.map(x => loadFhtrustFund(x, opts.date)));
+
+  const dbStates: FundState[] = await mapLimit(etfList, FUND_CONCURRENCY, async (e) => {
     let q = supabase!.from('holding').select('date').eq('ticker', e.ticker);
     if (opts.date) q = q.eq('date', opts.date);
     const { data: cur } = await q.order('date', { ascending: false }).limit(1).maybeSingle();
@@ -162,13 +203,19 @@ async function doCompute(opts: { date?: string; live?: boolean; origin?: string 
     const prevMap = prevDate ? await loadSnapshot(e.ticker, prevDate) : null;
     return { e, curDate, prevDate, curMap, prevMap };
   });
+  // 排序：00418A 緊接在 00991A 之後（其餘維持 DB 的代號排序）
+  const perFund: FundState[] = [...dbStates];
+  for (const x of extraStates) {
+    const at = perFund.findIndex(f => f.e.ticker === '00991A');
+    perFund.splice(at >= 0 ? at + 1 : perFund.length, 0, x);
+  }
 
   // 即時層：強制查最新＝全部問官網；平日 18:00 起＝只補資料庫還沒更新到今天的 ETF
   if (!opts.date) {
     const tp = taipeiNow();
     const liveTickers = opts.live
-      ? perFund.map(f => f.e.ticker)
-      : tp.weekday && tp.mins >= LIVE_AFTER_MINS ? perFund.filter(f => (f.curDate ?? '') < tp.ymd).map(f => f.e.ticker) : [];
+      ? perFund.filter(f => !extraTickers.has(f.e.ticker)).map(f => f.e.ticker)
+      : tp.weekday && tp.mins >= LIVE_AFTER_MINS ? perFund.filter(f => !extraTickers.has(f.e.ticker) && (f.curDate ?? '') < tp.ymd).map(f => f.e.ticker) : [];
     await applyLive(perFund, liveTickers, opts.origin);
   }
 

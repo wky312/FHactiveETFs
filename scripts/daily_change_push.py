@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-每日 18:00：00991A / 00981A / 00992A 當日個股加減碼 → 一張圖推 Pushover。
+每日 18:00：00991A / 00418A / 00981A / 00992A 當日個股加減碼 → 一張圖推 Pushover。
 
 內容＝網站「同業當日加減碼」分頁（?tab=dailychange）預設三檔的那張表：直接打正式站的
 /api/daily-change（同一份 lib/dailyChange.ts 計算，口徑與網頁一致，現金類科目已排除），
@@ -28,7 +28,10 @@ from daily_summary import (  # noqa: E402
     TZ, is_twse_trading_day, screenshot_html, send_pushover, send_pushover_text,
 )
 
-TICKERS    = ['00991A', '00981A', '00992A']   # 同網頁 DailyChangeTab 的 DEFAULT_TICKERS（順序依使用者需求）
+TICKERS    = ['00991A', '00418A', '00981A', '00992A']   # 00418A 緊接 00991A；其餘同網頁 DailyChangeTab 的 DEFAULT_TICKERS
+# 新掛牌基金：還沒有持股、或掛牌首日沒有前一日可比時，不拖著整張圖等到 DEADLINE／不標 ⚠️（圖上仍會寫「無資料」）。
+# 但若它已有持股、只是停在更早的日期，仍算落後。
+NEW_LISTING = {'00418A'}
 SITE_URL   = os.environ.get('SITE_URL', 'https://fhactiveetf.vercel.app').rstrip('/')
 DEADLINE   = (19, 30)                        # 台北時間；過了就不再等，照現有資料送
 POLL_SEC   = 180
@@ -92,6 +95,8 @@ def lagging_funds(data: dict, tickers: list[str], today_iso: str) -> list[dict]:
     out = []
     for t in tickers:
         f = by.get(t) or {'ticker': t, 'curDate': None, 'prevDate': None}
+        if t in NEW_LISTING and (not f.get('curDate') or not f.get('prevDate')):
+            continue
         if (f.get('curDate') or '') < today_iso or not f.get('prevDate'):
             out.append(f)
     return out
