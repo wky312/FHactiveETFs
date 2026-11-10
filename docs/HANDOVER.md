@@ -53,6 +53,15 @@
 - ⚠️ **ForexFactory 會 429**：一小時最多抓一次（`ffFetchedAt`）；它只給本週，預期值自上線日起逐週累積。**ISM 沒有免費實際值來源**，用下一期的「前值」回填上一期（晚一個月）。FRED 實際值每次刷新最多回補 12 筆（每分鐘 120 次上限）。
 - ISM 公布日依「每月第一個營業日（避開元旦、勞動節）」推算，本週被 ForexFactory 列出才算確認；CPI 等只排到 BLS 已公布的日程（通常到年底）。
 
+**00418A 復華台灣新星（ETF27，2026-11-10 接入，11/11 掛牌）**：台股型、holdingsLag=0（同 00991A）。成立 2026/10/29，掛牌前復華持股 detail 是空的（`fetchHoldings` 會 throw），掛牌後各處自動接上。排序一律排在 00991A 後面。
+- **接入點**：網頁 `lib/etfList.ts`（基金按鈕）、`twActiveFunds`、`peerGroups`、`breakIssue`（listDate 2026-11-11）、`beneficiary`、`StockTrajectoryTab`、`PeerRedemptionTab`（僅「全部」那組）；`lib/fhtrust.ts` / `/api/performance` / `stockTrajectory` 的「純台股」判斷由 `=== 'ETF23'` 改成 ETF23 或 ETF27（又一處硬編，之後再加復華台股檔記得一起改）。排程 `update_holdings.py`（`FUND_IDS`、`FUND_FLOORS` 10/29）、`daily_summary.py` 的 `ETFS`（持股摘要）與 `PEER_ETFS`（`since=2026-11-11`）。
+- ⚠️ **Yahoo 代號假設上市 `00418A.TW`**，掛牌後若查不到價要改成 `.TWO`（00998A 就是上櫃）。
+- **同業申贖表的 NA**：`fetch_all_peer_data` 對「日期早於 `since`」的檔一律回 None，不採用來源資料。原因：00418A 掛牌前 PCF 就有 `netSub=0、aum≈91.96億` 的預估列，不擋會寫入假的「0.00 億」。表上無資料統一顯示 `NA`（原本是「—」，連同其他檔一起改）。連帶：00418A 以 `tw_active` 計入同業，亮點引擎「同業第一」的母體檔數多 1（動態 `len(day_rows)`，文案不用改）。
+- **同業當日加減碼（`lib/dailyChange.ts`）**：資料本來只來自共用 Supabase `etf` 表（active-etf-tracker），那邊沒有 00418A。新增 `FHTRUST_EXTRA_FUNDS`：DB 沒有的復華檔改直接問復華官網，往回最多 8 個平日找最近兩個有持股的日期（最新日＝第一個有持股的、前一日＝再往前一個）。tracker 日後若登記同代號以 DB 為準；這類基金不進 `/api/live_holdings`（那支 REGISTRY 沒有它）。
+- **`daily_change_push.py`**：`TICKERS` 加 00418A（順序 00991A、00418A、00981A、00992A）。`NEW_LISTING` 集合內的檔，沒有持股或沒有前一日可比時不算「落後」，避免空等到 19:30 與標 ⚠️（圖上仍寫「無資料」）；已有持股但停在更早日期仍算落後。網頁 `DailyChangeTab` 的預設勾選未動（仍 00981A/00991A/00992A）。
+
+**持股比較分頁的產業佔比比較（2026-11-10）**：`components/CompareTab.tsx` 的 `SectorCompare`，表格下方。兩個日期各跑一次 `buildHoldingsSector`（口徑同持股清單的族群鋪陳：每檔只歸第一個含它的族群），逐族群列前後佔比與增減（依 |增減| 排序、紅增綠減），點列展開個股佔比變化。
+
 ## 2. 每日排程時序（台北時間）
 
 | 名目時間 | 實際落地 | 任務 | 產出 |
