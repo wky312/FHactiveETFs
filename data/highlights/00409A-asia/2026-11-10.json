@@ -1,6 +1,6 @@
 {
   "date": "2026-11-10",
-  "scanned_at": "2026-11-10T00:58:29+08:00",
+  "scanned_at": "2026-11-10T23:18:34+08:00",
   "config_snapshot": {
     "r1": {
       "min_daily_pct": 3.0,
@@ -63,12 +63,248 @@
     "peer_redemption": "ok"
   },
   "skipped_rules": [],
-  "candidates": [],
+  "candidates": [
+    {
+      "id": "R3-5274-20261015-t15",
+      "rule": "R3",
+      "score": 50.3,
+      "selected": true,
+      "fact": "10/15 減碼 信驊科技，其後回跌 25.1%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/15 提前減碼信驊科技，隨後該股回跌 25.1%，成功避開損失。",
+      "data": {
+        "stockid": "5274",
+        "event_date": "2026-10-15",
+        "direction": "trim",
+        "qty_change_pct": -44.4,
+        "weight_pct": 2.394,
+        "return_since_pct": -25.15,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-3026-20261102-t15",
+      "rule": "R3",
+      "score": 39.87,
+      "selected": true,
+      "fact": "11/2 減碼 禾伸堂企，其後回跌 19.9%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/2 提前減碼禾伸堂企，隨後該股回跌 19.9%，成功避開損失。",
+      "data": {
+        "stockid": "3026",
+        "event_date": "2026-11-02",
+        "direction": "trim",
+        "qty_change_pct": -30.4,
+        "weight_pct": 3.282,
+        "return_since_pct": -19.94,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R1-3017-2026-11-10",
+      "rule": "R1",
+      "score": 37.88,
+      "selected": true,
+      "fact": "奇鋐科技今日 +9.84%，00409A 持股 3.85%、為海外主動 ETF 觀測群 9 檔中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 奇鋐科技（3017）上漲約 9.84%。\n00409A 自 8/26 首次買進，並於 8/27、8/28、9/3、9/7 加碼；截至 11/6 持有 173 張、占淨值 3.849%，報酬約 -14.7%。",
+      "data": {
+        "stockid": "3017",
+        "pct_change": 9.84,
+        "weight_pct": 3.85,
+        "is_heaviest_among_universe": true,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-8046-2026-11-10",
+      "rule": "R1",
+      "score": 30.88,
+      "selected": true,
+      "fact": "南亞電路今日 +7.72%，00409A 持股 4.0%、為海外主動 ETF 觀測群 9 檔中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 南亞電路（8046）上漲約 7.72%。\n00409A 自 8/27 首次買進，並於 9/9、9/10、10/1、10/5 加碼；截至 11/6 持有 475 張、占淨值 4.003%，報酬約 -16.4%。",
+      "data": {
+        "stockid": "8046",
+        "pct_change": 7.72,
+        "weight_pct": 4.0,
+        "is_heaviest_among_universe": true,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R2-8046-2026-11-10",
+      "rule": "R2",
+      "score": 30.88,
+      "selected": true,
+      "fact": "顯著超配持股 南亞電路今日 +7.72%（00409A 權重 4.0%，其他海外主動 ETF 最高僅 0.44%）",
+      "angle": "顯著超配股發威：別人沒有的上漲",
+      "draft": "今日 南亞電路（8046）上漲約 7.72%。\n00409A 自 8/27 首次買進，並於 9/9、9/10、10/1、10/5 加碼；截至 11/6 持有 475 張、占淨值 4.003%，報酬約 -16.4%。",
+      "data": {
+        "stockid": "8046",
+        "pct_change": 7.72,
+        "weight_pct": 4.0,
+        "exclusive": false,
+        "new_high": false,
+        "others_max_weight": 0.44
+      }
+    },
+    {
+      "id": "R1-2383-2026-11-10",
+      "rule": "R1",
+      "score": 27.77,
+      "selected": false,
+      "fact": "台光電子今日 +7.25%，00409A 持股 3.83%、為海外主動 ETF 觀測群 9 檔中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 台光電子（2383）上漲約 7.25%。\n00409A 自 8/25 首次買進，並於 10/7、10/8、10/29、11/4 加碼；截至 11/6 持有 104 張、占淨值 3.827%，報酬約 -21.3%。",
+      "data": {
+        "stockid": "2383",
+        "pct_change": 7.25,
+        "weight_pct": 3.83,
+        "is_heaviest_among_universe": true,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R3-6805-20261012-t8",
+      "rule": "R3",
+      "score": 24.67,
+      "selected": false,
+      "fact": "10/12 減碼 富世達股，其後回跌 12.3%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/12 提前減碼富世達股，隨後該股回跌 12.3%，成功避開損失。",
+      "data": {
+        "stockid": "6805",
+        "event_date": "2026-10-12",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 0.985,
+        "return_since_pct": -12.33,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R2-3189-2026-11-10",
+      "rule": "R2",
+      "score": 20.68,
+      "selected": false,
+      "fact": "獨門持股 景碩科技今日 +7.97%（00409A 權重 1.73%，其他海外主動 ETF 皆未持有）",
+      "angle": "獨門股發威：別人沒有的上漲",
+      "draft": "今日 景碩科技（3189）上漲約 7.97%。\n00409A 自 8/27 首次買進，並於 9/2、10/1、10/5 加碼；截至 11/6 持有 267 張、占淨值 1.726%，報酬約 -18.9%。",
+      "data": {
+        "stockid": "3189",
+        "pct_change": 7.97,
+        "weight_pct": 1.73,
+        "exclusive": true,
+        "new_high": false,
+        "others_max_weight": null
+      }
+    },
+    {
+      "id": "R1-1303-2026-11-10",
+      "rule": "R1",
+      "score": 16.62,
+      "selected": false,
+      "fact": "南亞塑膠今日 +9.89%，00409A 持股 1.68%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 南亞塑膠（1303）上漲約 9.89%。\n00409A 自 10/14 首次買進，並於 10/20、11/2 加碼；截至 11/6 持有 728 張、占淨值 1.679%，報酬約 -7.1%。",
+      "data": {
+        "stockid": "1303",
+        "pct_change": 9.89,
+        "weight_pct": 1.68,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-3189-2026-11-10",
+      "rule": "R1",
+      "score": 13.79,
+      "selected": false,
+      "fact": "景碩科技今日 +7.97%，00409A 持股 1.73%、為海外主動 ETF 觀測群 9 檔中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 景碩科技（3189）上漲約 7.97%。\n00409A 自 8/27 首次買進，並於 9/2、10/1、10/5 加碼；截至 11/6 持有 267 張、占淨值 1.726%，報酬約 -18.9%。",
+      "data": {
+        "stockid": "3189",
+        "pct_change": 7.97,
+        "weight_pct": 1.73,
+        "is_heaviest_among_universe": true,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-6857 JP-2026-11-10",
+      "rule": "R1",
+      "score": NaN,
+      "selected": false,
+      "fact": "愛德萬測試今日 +nan%，00409A 持股 1.61%、為海外主動 ETF 觀測群 9 檔中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 愛德萬測試（6857）上漲約 nan%。\n00409A 最近於 10/29 重新建倉，並於 10/30、11/2 加碼；截至 11/6 持有 28.7 張、占淨值 1.611%，報酬約 +nan%。",
+      "data": {
+        "stockid": "6857 JP",
+        "pct_change": NaN,
+        "weight_pct": 1.61,
+        "is_heaviest_among_universe": true,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R2-6857 JP-2026-11-10",
+      "rule": "R2",
+      "score": 12.08,
+      "selected": false,
+      "fact": "獨門持股 愛德萬測試創 60 日新高（00409A 權重 1.61%，其他海外主動 ETF 皆未持有）",
+      "angle": "獨門股發威：別人沒有的上漲",
+      "draft": "今日 愛德萬測試（6857）創 60 日新高。\n00409A 最近於 10/29 重新建倉，並於 10/30、11/2 加碼；截至 11/6 持有 28.7 張、占淨值 1.611%，報酬約 +nan%。",
+      "data": {
+        "stockid": "6857 JP",
+        "pct_change": NaN,
+        "weight_pct": 1.61,
+        "exclusive": true,
+        "new_high": false,
+        "others_max_weight": null
+      }
+    },
+    {
+      "id": "R1-3711-2026-11-10",
+      "rule": "R1",
+      "score": 9.56,
+      "selected": false,
+      "fact": "日月光投今日 +7.84%，00409A 持股 1.22%、為海外主動 ETF 觀測群 9 檔中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 日月光投（3711）上漲約 7.84%。\n00409A 自 10/28 首次買進，並於 11/2 加碼；截至 11/6 持有 240 張、占淨值 1.218%，報酬約 -10.4%。",
+      "data": {
+        "stockid": "3711",
+        "pct_change": 7.84,
+        "weight_pct": 1.22,
+        "is_heaviest_among_universe": true,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-3037-2026-11-10",
+      "rule": "R1",
+      "score": 9.47,
+      "selected": false,
+      "fact": "欣興電子今日 +9.38%，00409A 持股 1.01%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 欣興電子（3037）上漲約 9.38%。\n00409A 最近於 10/22 重新建倉；截至 11/6 持有 144 張、占淨值 1.008%，報酬約 -26.2%。",
+      "data": {
+        "stockid": "3037",
+        "pct_change": 9.38,
+        "weight_pct": 1.01,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    }
+  ],
   "push": {
-    "attempted": false,
-    "sent": false,
-    "reason": "no_candidates",
-    "candidate_count": 0,
-    "selected_count": 0
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 796,
+    "line_status": 200,
+    "candidate_count": 14,
+    "selected_count": 5
   }
 }
