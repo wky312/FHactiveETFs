@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       h => h.stockid.trim() && h.ftype !== '期貨' && h.ftype !== '現金' && h.ftype !== '其他資產'
     );
 
-    const isTwOnly = fundId === 'ETF23';
+    const isTwOnly = fundId === 'ETF23' || fundId === 'ETF27';
 
     // 批量查台股標的的 MIS 即時報價，交叉驗證 Yahoo 現價/昨收（見 lib/twseLive.ts）。
     // 0050 基準列也是台股代碼，一併查（見下方 TW_BENCHES）。

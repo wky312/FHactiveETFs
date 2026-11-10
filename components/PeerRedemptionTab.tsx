@@ -70,7 +70,7 @@ const REDEMPTION_GROUPS: RedemptionGroup[] = [
   },
   {
     id: 'tw_active_all',
-    label: '台股主動式ETF（全部23檔）',
+    label: '台股主動式ETF（全部23檔＋00418A）',
     dbGroup: 'tw_active',
     /* 全市場台股型主動式ETF —— 基準是 TWSE/TPEx 的 ISIN 清單（`C_public.jsp?strMode=2|4`
        篩 `^00\d{3}A$`），2026-10-02 稽核出全市場 22 檔台股型，其中 17 檔已接通申贖來源。
@@ -84,6 +84,7 @@ const REDEMPTION_GROUPS: RedemptionGroup[] = [
       { ticker: '00981A', name: '統一981', source: 'ezmoney',  key: '49YTW' },
       { ticker: '00403A', name: '統一403', source: 'ezmoney',  key: '63YTW' },
       { ticker: '00991A', name: '復華991', source: 'fhtrust',  key: 'ETF23' },
+      { ticker: '00418A', name: '復華418', source: 'fhtrust',  key: 'ETF27' },  // 2026/11/11 掛牌，掛牌前無資料
       { ticker: '00406A', name: '中信406', source: 'ctbc',     key: 'E0038' },
       { ticker: '00982A', name: '群益982', source: 'capital',  key: '399' },
       { ticker: '00992A', name: '群益992', source: 'capital',  key: '500' },

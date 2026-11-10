@@ -157,6 +157,7 @@ export default function StockTrajectoryTab({ selectedEtf }: Props) {
     { fundId: '00990A', ticker: '00990A', name: '元大AI新經濟' },
     { fundId: '00988A', ticker: '00988A', name: '統一全球創新（海外）' },
     { fundId: '00411A', ticker: '00411A', name: '統一前沿科技（海外）' },
+    { fundId: 'ETF27',  ticker: '00418A', name: '復華台灣新星' },
     { fundId: 'ETF24',  ticker: '00998A', name: '復華全球金融（海外）' },
     { fundId: 'ETF26',  ticker: '00409A', name: '復華全球未來50（海外）' },
   ];

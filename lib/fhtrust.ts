@@ -62,8 +62,8 @@ export async function fetchHoldings(
     ftype: String(item.ftype ?? ''),
   }));
 
-  // 00991A 為純台股 ETF，無法辨識 suffix 時一律帶入台灣
-  if (fundId === 'ETF23') {
+  // 00991A / 00418A 為純台股 ETF，無法辨識 suffix 時一律帶入台灣
+  if (fundId === 'ETF23' || fundId === 'ETF27') {
     holdings.forEach(h => { if (h.country === 'Unknown' || h.country === '') h.country = '台灣'; });
   }
 

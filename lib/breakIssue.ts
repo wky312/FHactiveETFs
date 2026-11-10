@@ -28,6 +28,7 @@ export const BREAK_ISSUE_FUNDS: BreakIssueFund[] = [
   { ticker: '00989A', name: '主動摩根美國科技',     issuer: '摩根',   yfTicker: '00989A.TW',  listDate: '2025-11-13', issuePrice: 15 },
   { ticker: '00990A', name: '主動元大AI新經濟',     issuer: '元大',   yfTicker: '00990A.TW',  listDate: '2025-12-02', issuePrice: 10 },
   { ticker: '00991A', name: '主動復華未來50',       issuer: '復華',   yfTicker: '00991A.TW',  listDate: '2025-12-09', issuePrice: 10 },
+  { ticker: '00418A', name: '主動復華台灣新星',     issuer: '復華',   yfTicker: '00418A.TW',  listDate: '2026-11-11', issuePrice: 10 },
   { ticker: '00992A', name: '主動群益科技創新',     issuer: '群益',   yfTicker: '00992A.TW',  listDate: '2025-12-17', issuePrice: 10 },
   { ticker: '00993A', name: '主動安聯台灣',         issuer: '安聯',   yfTicker: '00993A.TW',  listDate: '2026-01-22', issuePrice: 10 },
   { ticker: '00994A', name: '主動第一金台股',       issuer: '第一金', yfTicker: '00994A.TW',  listDate: '2025-12-30', issuePrice: 10 },

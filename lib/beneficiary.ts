@@ -34,6 +34,7 @@ export interface BeneficiaryTicker { ticker: string; name: string; group: 'tw' |
 /* 台股 21 檔來源＝共用 Supabase `etf` 表扣掉 0050；海外 10 檔＝lib/peerGroups.ts overseas 非 benchmark。 */
 export const BENEFICIARY_TICKERS: BeneficiaryTicker[] = [
   { ticker: '00991A', name: '主動復華未來50',   group: 'tw' },
+  { ticker: '00418A', name: '主動復華台灣新星', group: 'tw' },
   { ticker: '00980A', name: '主動野村臺灣優選', group: 'tw' },
   { ticker: '00981A', name: '主動統一台股增長', group: 'tw' },
   { ticker: '00982A', name: '主動群益台灣強棒', group: 'tw' },

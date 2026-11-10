@@ -21,6 +21,7 @@ import { OverseasFundConfig } from './overseasFunds';
    T 日持股（holdingsLag=0），比 CMoney 代理早也更準；其餘投信沒有可直接串的官方持股 API。 */
 export const TW_ACTIVE_FUNDS: OverseasFundConfig[] = [
   { ticker: '00991A', name: '主動復華未來50',   source: 'fhtrust', fundId: 'ETF23'  },
+  { ticker: '00418A', name: '主動復華台灣新星', source: 'fhtrust', fundId: 'ETF27'  },
   { ticker: '00981A', name: '主動統一台股增長', source: 'cmoney',  fundId: '00981A' },
   { ticker: '00992A', name: '主動群益科技創新', source: 'cmoney',  fundId: '00992A' },
   { ticker: '00403A', name: '主動統一升級50',   source: 'cmoney',  fundId: '00403A' },

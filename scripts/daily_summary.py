@@ -44,6 +44,10 @@ FHTRUST_PCF    = 'https://www.fhtrust.com.tw/api/ETFPcf'
 ETFS = [
     {'ticker': '00991A', 'name': '復華主動式ETF', 'fundId': 'ETF23', 'yfTicker': '00991A.TW',
      'holdingsLag': 0},
+    # 00418A 復華台灣新星：成立 2026/10/29、掛牌 2026/11/11（台股檔，同 00991A holdingsLag=0）。
+    # 掛牌前持股 detail 是空的 → process_etf 直接 skip，掛牌後自動接上。排在 00991A 後面。
+    {'ticker': '00418A', 'name': '復華台灣新星主動式ETF', 'fundId': 'ETF27', 'yfTicker': '00418A.TW',
+     'holdingsLag': 0},
     # 00409A 成立 2026/08/20、掛牌 2026/09/02。掛牌前復華每日持股 detail 是空的、PCF 全 null →
     # find_trading_day_with_data 回 (None, None)、process_etf 直接 skip（不推播、不影響 00991A 的
     # sent_any 判定）；資料一開始公布就會自己接上。
@@ -392,6 +396,8 @@ PEER_ETFS = [
     # 台股主動式ETF（規模百億以上＋擦邊三檔；key 皆為該投信 PCF API 的基金識別碼）
     {'ticker': '00991A', 'name': '復華991', 'source': 'fhtrust',  'key': 'ETF23',  'group': 'tw_active',
      'since': '2025-12-17'},
+    {'ticker': '00418A', 'name': '復華418', 'source': 'fhtrust',  'key': 'ETF27',  'group': 'tw_active',
+     'since': '2026-11-11'},   # 掛牌日；掛牌前抓不到 → 同業申贖表顯示 NA
     {'ticker': '00981A', 'name': '統一981', 'source': 'ezmoney',  'key': '49YTW',  'group': 'tw_active'},
     {'ticker': '00403A', 'name': '統一403', 'source': 'ezmoney',  'key': '63YTW',  'group': 'tw_active',
      'since': '2026-05-11'},
@@ -1784,6 +1790,11 @@ def fetch_all_peer_data(transaction_date: date, etfs: list | None = None) -> lis
         #   2026-10-03 加聯博/第一金/永豐/兆豐 時只加了 _SOURCE_FETCHERS，這條鏈沒加，於是
         #   每日排程與回補對這四家**靜靜回 None**（回補跑完印「Stored: 0」卻是綠燈，193 筆
         #   全 skip）。合併成一份就不可能再漏。新來源只要登記進 _SOURCE_FETCHERS 即可。
+        # 掛牌（since）之前一律不採用：00418A 掛牌前 PCF 就有 0 淨申贖＋發行規模的預估列，
+        # 寫進去會變成「0.00 億」的假資料；要的是 NA。
+        if etf.get('since') and str(transaction_date) < etf['since']:
+            results.append({**etf, 'data': None})
+            continue
         data = fetch_peer_day(etf, transaction_date, ezmoney_session=ezmoney_session)
         results.append({**etf, 'data': data})
     return results
@@ -1803,9 +1814,9 @@ def build_peer_html(peer_results: list, transaction_date: date) -> str:
             ns_str = f'{sign}{ns:.2f}'
             aum_str = f'{d["aum"]:.2f} 億' if d.get('aum') else '—'
         else:
-            ns_str = '—'
+            ns_str = 'NA'
             color  = '#BBBBBB'
-            aum_str = '—'
+            aum_str = 'NA'
         rows_html += f'''
         <tr style="border-bottom:1px solid #EEE9E4;">
           <td style="padding:8px 14px;font-size:13px;color:#1C1C1E;font-weight:600;">{etf["ticker"]}</td>
@@ -2348,7 +2359,7 @@ async def process_peer_redemption(today: date):
         # 熱門ETF（被動式）只入庫給網站分頁看，不進這封推播——它是「同業」觀測，
         # 混進 0050/0056 這種被動大型 ETF 會讓訊息長度翻倍又改變語意。
         message     = '淨申贖：' + '　'.join(
-            f'{e["ticker"]} {e["data"]["netSub"]:+.2f}億' if e['data'] and e['data']['netSub'] is not None else f'{e["ticker"]} —'
+            f'{e["ticker"]} {e["data"]["netSub"]:+.2f}億' if e['data'] and e['data']['netSub'] is not None else f'{e["ticker"]} NA'
             for e in peer_results if e.get('group') != 'hot'
         ) + stale_note,
         image_bytes = img,

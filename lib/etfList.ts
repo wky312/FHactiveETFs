@@ -11,6 +11,7 @@ export interface EtfConfig {
 
 export const ETF_LIST: EtfConfig[] = [
   { ticker: '00991A', name: '復華主動式ETF',             short: '主動復華未來50',   fundId: 'ETF23', yfTicker: '00991A.TW',  holdingsLag: 0 },
+  { ticker: '00418A', name: '復華台灣新星主動式ETF',     short: '主動復華台灣新星', fundId: 'ETF27', yfTicker: '00418A.TW',  holdingsLag: 0 },  // 成立 2026/10/29、掛牌 2026/11/11（台股型，同 00991A 國內檔）
   { ticker: '00998A', name: '復華全球金融股票主動式ETF', short: '主動復華全球金融', fundId: 'ETF24', yfTicker: '00998A.TWO', holdingsLag: 1 },  // 上櫃 → .TWO
   { ticker: '00409A', name: '復華全球未來50主動式ETF',   short: '主動復華全球50',   fundId: 'ETF26', yfTicker: '00409A.TW',  holdingsLag: 1 },
 ];

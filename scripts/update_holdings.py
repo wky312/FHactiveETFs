@@ -22,7 +22,7 @@ HEADERS = {'User-Agent': 'Mozilla/5.0'}
 # 對應 lib/etfList.ts（00991A→ETF23、00998A→ETF24、00409A→ETF26）
 # ETF26 成立 2026/08/20、掛牌 2026/09/02，掛牌前復華每日持股 detail 是空的 → fetch_day 回 None、
 # 自動跳過，等官網開始公布逐檔持股就會自己接上（idempotent，不用改程式）。
-FUND_IDS = ['ETF23', 'ETF24', 'ETF26']
+FUND_IDS = ['ETF23', 'ETF27', 'ETF24', 'ETF26']  # ETF27=00418A 復華台灣新星（2026/11/11 掛牌）
 
 # CMoney（pocket.tw 代理）來源：投信官網只給最新一天，CMoney 保留逐日歷史。
 # fundId → CMoney AssignID（對齊 lib/cmoneyHoldings.ts 的 CMONEY_FUNDS）
@@ -88,6 +88,7 @@ FLOOR = date(2025, 5, 1)
 
 # 個別基金的回補下限（成立日）。晚成立的基金若沿用 FLOOR，每天都要空掃幾百個交易日才知道沒資料。
 FUND_FLOORS = {
+    'ETF27': date(2026, 10, 29),  # 00418A 復華台灣新星，成立 2026/10/29、掛牌 2026/11/11
     'ETF26': date(2026, 8, 20),   # 00409A 復華全球未來50，成立 2026/08/20、掛牌 2026/09/02
     '00403A': date(2026, 5, 10),  # 主動統一升級50，掛牌 2026/05/12（統一官網最早回到 05/11）
 }

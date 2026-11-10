@@ -21,6 +21,7 @@ export const PEER_GROUPS: Record<string, { label: string; items: PeerItem[] }> =
       { ticker: '00985A', yfTicker: '00985A.TW', name: '主動野村台灣50' },
       { ticker: '00987A', yfTicker: '00987A.TW', name: '主動台新優勢成長' },
       { ticker: '00991A', yfTicker: '00991A.TW', name: '主動復華未來50' },
+      { ticker: '00418A', yfTicker: '00418A.TW', name: '主動復華台灣新星' },
       { ticker: '00992A', yfTicker: '00992A.TW', name: '主動群益科技創新' },
       { ticker: '00993A', yfTicker: '00993A.TW', name: '主動安聯台灣' },
       { ticker: '00994A', yfTicker: '00994A.TW', name: '主動第一金台股優' },
