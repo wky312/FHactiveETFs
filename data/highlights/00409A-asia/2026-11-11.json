@@ -1,0 +1,418 @@
+{
+  "date": "2026-11-11",
+  "scanned_at": "2026-11-11T22:48:30+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": null
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "overseas"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "stale",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R3-6981 JP-20261015-t15",
+      "rule": "R3",
+      "score": 38.29,
+      "selected": true,
+      "fact": "10/15 減碼 村田製作所有限公司，其後回跌 19.1%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/15 提前減碼村田製作所有限公司，隨後該股回跌 19.1%，成功避開損失。",
+      "data": {
+        "stockid": "6981 JP",
+        "event_date": "2026-10-15",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 0.811,
+        "return_since_pct": -19.14,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R1-3017-2026-11-11",
+      "rule": "R1",
+      "score": 36.11,
+      "selected": true,
+      "fact": "奇鋐科技今日 +8.96%，00409A 持股 4.03%、為海外主動 ETF 觀測群 9 檔中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 奇鋐科技（3017）上漲約 8.96%。\n00409A 自 8/26 首次買進，並於 8/27、8/28、9/3、9/7 加碼；截至 11/9 持有 173 張、占淨值 4.034%，報酬約 -7.1%。",
+      "data": {
+        "stockid": "3017",
+        "pct_change": 8.96,
+        "weight_pct": 4.03,
+        "is_heaviest_among_universe": true,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-8046-2026-11-11",
+      "rule": "R1",
+      "score": 30.36,
+      "selected": true,
+      "fact": "南亞電路今日 +7.46%，00409A 持股 4.07%、為海外主動 ETF 觀測群 9 檔中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 南亞電路（8046）上漲約 7.46%。\n00409A 自 8/27 首次買進，並於 9/9、9/10、10/1、10/5 加碼；截至 11/9 持有 475 張、占淨值 4.068%，報酬約 -10.2%。",
+      "data": {
+        "stockid": "8046",
+        "pct_change": 7.46,
+        "weight_pct": 4.07,
+        "is_heaviest_among_universe": true,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R2-8046-2026-11-11",
+      "rule": "R2",
+      "score": 30.36,
+      "selected": true,
+      "fact": "顯著超配持股 南亞電路今日 +7.46%（00409A 權重 4.07%，其他海外主動 ETF 最高僅 0.54%）",
+      "angle": "顯著超配股發威：別人沒有的上漲",
+      "draft": "今日 南亞電路（8046）上漲約 7.46%。\n00409A 自 8/27 首次買進，並於 9/9、9/10、10/1、10/5 加碼；截至 11/9 持有 475 張、占淨值 4.068%，報酬約 -10.2%。",
+      "data": {
+        "stockid": "8046",
+        "pct_change": 7.46,
+        "weight_pct": 4.07,
+        "exclusive": false,
+        "new_high": false,
+        "others_max_weight": 0.54
+      }
+    },
+    {
+      "id": "R3-6976 JP-20261022-t8",
+      "rule": "R3",
+      "score": 28.14,
+      "selected": true,
+      "fact": "10/22 減碼 太陽誘電，其後回跌 14.1%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/22 提前減碼太陽誘電，隨後該股回跌 14.1%，成功避開損失。",
+      "data": {
+        "stockid": "6976 JP",
+        "event_date": "2026-10-22",
+        "direction": "trim",
+        "qty_change_pct": -71.4,
+        "weight_pct": 1.033,
+        "return_since_pct": -14.07,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-8996-20261109-t8",
+      "rule": "R3",
+      "score": 28.12,
+      "selected": false,
+      "fact": "11/9 加碼的 高力熱處 至今 +14.1%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/9 加碼高力熱處，至今上漲 14.1%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "8996",
+        "event_date": "2026-11-09",
+        "direction": "add",
+        "qty_change_pct": 50.6,
+        "weight_pct": 1.398,
+        "return_since_pct": 14.06,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-4062 JP-20261104-t8",
+      "rule": "R3",
+      "score": 27.8,
+      "selected": false,
+      "fact": "11/4 減碼 揖斐電有限公司，其後回跌 13.9%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/4 提前減碼揖斐電有限公司，隨後該股回跌 13.9%，成功避開損失。",
+      "data": {
+        "stockid": "4062 JP",
+        "event_date": "2026-11-04",
+        "direction": "trim",
+        "qty_change_pct": -69.0,
+        "weight_pct": 1.243,
+        "return_since_pct": -13.9,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R2-3653-2026-11-11",
+      "rule": "R2",
+      "score": 26.25,
+      "selected": false,
+      "fact": "獨門持股 健策精密今日 +7.51%（00409A 權重 2.33%，其他海外主動 ETF 皆未持有）",
+      "angle": "獨門股發威：別人沒有的上漲",
+      "draft": "今日 健策精密（3653）上漲約 7.51%。\n00409A 自 8/31 首次買進，並於 9/11、9/14、9/17 加碼；截至 11/9 持有 45 張、占淨值 2.328%，報酬約 +7.9%。",
+      "data": {
+        "stockid": "3653",
+        "pct_change": 7.51,
+        "weight_pct": 2.33,
+        "exclusive": true,
+        "new_high": false,
+        "others_max_weight": null
+      }
+    },
+    {
+      "id": "R3-285A JP-20261104-t8",
+      "rule": "R3",
+      "score": 21.69,
+      "selected": false,
+      "fact": "11/4 減碼 鎧俠控股公司，其後回跌 10.8%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/4 提前減碼鎧俠控股公司，隨後該股回跌 10.8%，成功避開損失。",
+      "data": {
+        "stockid": "285A JP",
+        "event_date": "2026-11-04",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 1.008,
+        "return_since_pct": -10.84,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-2383-20261109-t8",
+      "rule": "R3",
+      "score": 21.13,
+      "selected": false,
+      "fact": "11/9 加碼的 台光電子 至今 +10.6%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/9 加碼台光電子，至今上漲 10.6%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "2383",
+        "event_date": "2026-11-09",
+        "direction": "add",
+        "qty_change_pct": 11.5,
+        "weight_pct": 4.334,
+        "return_since_pct": 10.57,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-3711-20261109-t8",
+      "rule": "R3",
+      "score": 19.96,
+      "selected": false,
+      "fact": "11/9 加碼的 日月光投 至今 +10.0%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/9 加碼日月光投，至今上漲 10.0%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "3711",
+        "event_date": "2026-11-09",
+        "direction": "add",
+        "qty_change_pct": 67.5,
+        "weight_pct": 2.07,
+        "return_since_pct": 9.98,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-6805-20261012-t8",
+      "rule": "R3",
+      "score": 19.38,
+      "selected": false,
+      "fact": "10/12 減碼 富世達股，其後回跌 9.7%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/12 提前減碼富世達股，隨後該股回跌 9.7%，成功避開損失。",
+      "data": {
+        "stockid": "6805",
+        "event_date": "2026-10-12",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 0.985,
+        "return_since_pct": -9.69,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R1-3653-2026-11-11",
+      "rule": "R1",
+      "score": 17.5,
+      "selected": false,
+      "fact": "健策精密今日 +7.51%，00409A 持股 2.33%、為海外主動 ETF 觀測群 9 檔中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 健策精密（3653）上漲約 7.51%。\n00409A 自 8/31 首次買進，並於 9/11、9/14、9/17 加碼；截至 11/9 持有 45 張、占淨值 2.328%，報酬約 +7.9%。",
+      "data": {
+        "stockid": "3653",
+        "pct_change": 7.51,
+        "weight_pct": 2.33,
+        "is_heaviest_among_universe": true,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R3-6857 JP-20261021-t8",
+      "rule": "R3",
+      "score": 17.42,
+      "selected": false,
+      "fact": "10/21 減碼 愛德萬測試，其後回跌 8.7%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/21 提前減碼愛德萬測試，隨後該股回跌 8.7%，成功避開損失。",
+      "data": {
+        "stockid": "6857 JP",
+        "event_date": "2026-10-21",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 0.78,
+        "return_since_pct": -8.71,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R1-1303-2026-11-11",
+      "rule": "R1",
+      "score": 14.61,
+      "selected": false,
+      "fact": "南亞塑膠今日 +8.3%，00409A 持股 1.76%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 南亞塑膠（1303）上漲約 8.3%。\n00409A 自 10/14 首次買進，並於 10/20、11/2 加碼；截至 11/9 持有 728 張、占淨值 1.758%，報酬約 +0.6%。",
+      "data": {
+        "stockid": "1303",
+        "pct_change": 8.3,
+        "weight_pct": 1.76,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R2-6857 JP-2026-11-11",
+      "rule": "R2",
+      "score": 13.69,
+      "selected": false,
+      "fact": "獨門持股 愛德萬測試今日 +5.89%（00409A 權重 1.55%，其他海外主動 ETF 皆未持有）",
+      "angle": "獨門股發威：別人沒有的上漲",
+      "draft": "今日 愛德萬測試（6857）上漲約 5.89%。\n00409A 最近於 10/29 重新建倉，並於 10/30、11/2 加碼；截至 11/9 持有 28.7 張、占淨值 1.553%，報酬約 -12.5%。",
+      "data": {
+        "stockid": "6857 JP",
+        "pct_change": 5.89,
+        "weight_pct": 1.55,
+        "exclusive": true,
+        "new_high": false,
+        "others_max_weight": null
+      }
+    },
+    {
+      "id": "R1-2383-2026-11-11",
+      "rule": "R1",
+      "score": 13.38,
+      "selected": false,
+      "fact": "台光電子今日 +3.09%，00409A 持股 4.33%、為海外主動 ETF 觀測群 9 檔中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 台光電子（2383）上漲約 3.09%。\n00409A 自 8/25 首次買進，並於 10/8、10/29、11/4、11/9 加碼；截至 11/9 持有 116 張、占淨值 4.334%，報酬約 -17.5%。",
+      "data": {
+        "stockid": "2383",
+        "pct_change": 3.09,
+        "weight_pct": 4.33,
+        "is_heaviest_among_universe": true,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-6857 JP-2026-11-11",
+      "rule": "R1",
+      "score": 9.13,
+      "selected": false,
+      "fact": "愛德萬測試今日 +5.89%，00409A 持股 1.55%、為海外主動 ETF 觀測群 9 檔中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 愛德萬測試（6857）上漲約 5.89%。\n00409A 最近於 10/29 重新建倉，並於 10/30、11/2 加碼；截至 11/9 持有 28.7 張、占淨值 1.553%，報酬約 -12.5%。",
+      "data": {
+        "stockid": "6857 JP",
+        "pct_change": 5.89,
+        "weight_pct": 1.55,
+        "is_heaviest_among_universe": true,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-8996-2026-11-11",
+      "rule": "R1",
+      "score": 5.47,
+      "selected": false,
+      "fact": "高力熱處今日 +3.91%，00409A 持股 1.4%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 高力熱處（8996）上漲約 3.91%。\n00409A 自 10/21 首次買進，並於 10/22、11/9 加碼；截至 11/9 持有 119 張、占淨值 1.398%，報酬約 -3.6%。",
+      "data": {
+        "stockid": "8996",
+        "pct_change": 3.91,
+        "weight_pct": 1.4,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-2885-2026-11-11",
+      "rule": "R1",
+      "score": 4.1,
+      "selected": false,
+      "fact": "元大金融今日 +3.04%，00409A 持股 1.35%、為海外主動 ETF 觀測群 9 檔中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 元大金融（2885）上漲約 3.04%。\n00409A 自 10/13 首次買進，並於 10/15、11/9 加碼；截至 11/9 持有 2127 張、占淨值 1.355%，報酬約 +1.0%。",
+      "data": {
+        "stockid": "2885",
+        "pct_change": 3.04,
+        "weight_pct": 1.35,
+        "is_heaviest_among_universe": true,
+        "universe_size": 9
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 809,
+    "line_status": 200,
+    "candidate_count": 20,
+    "selected_count": 5
+  }
+}
