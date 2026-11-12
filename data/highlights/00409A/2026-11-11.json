@@ -1,0 +1,478 @@
+{
+  "date": "2026-11-11",
+  "scanned_at": "2026-11-12T10:38:55+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": null
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "overseas"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "ok",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R1-BE US-2026-11-11",
+      "rule": "R1",
+      "score": 73.02,
+      "selected": true,
+      "fact": "布魯姆能源公司昨日 +12.97%，00409A 持股 5.63%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 布魯姆能源公司（BE）上漲約 12.97%。\n00409A 自 8/26 首次買進，並於 9/17、10/21、11/4、11/9 加碼；截至 11/11 持有 93 張、占淨值 5.626%，報酬約 -9.0%。",
+      "data": {
+        "stockid": "BE US",
+        "pct_change": 12.97,
+        "weight_pct": 5.63,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R3-AMD US-20261106-t15",
+      "rule": "R3",
+      "score": 46.26,
+      "selected": true,
+      "fact": "11/6 加碼的 超微半導體公司 至今 +23.1%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/6 加碼超微半導體公司，至今上漲 23.1%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "AMD US",
+        "event_date": "2026-11-06",
+        "direction": "add",
+        "qty_change_pct": 22.6,
+        "weight_pct": 2.7,
+        "return_since_pct": 23.13,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-AXTI US-20261106-t15",
+      "rule": "R3",
+      "score": 41.62,
+      "selected": true,
+      "fact": "11/6 加碼的 AXT公司 至今 +20.8%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/6 加碼AXT公司，至今上漲 20.8%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "AXTI US",
+        "event_date": "2026-11-06",
+        "direction": "add",
+        "qty_change_pct": 36.7,
+        "weight_pct": 1.009,
+        "return_since_pct": 20.81,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R1-MU US-2026-11-11",
+      "rule": "R1",
+      "score": 38.4,
+      "selected": true,
+      "fact": "美光科技公司昨日 +11.89%，00409A 持股 3.23%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 美光科技公司（MU）上漲約 11.89%。\n00409A 自 8/21 首次買進，並於 8/28、8/31、9/2、10/28 加碼；截至 11/11 持有 13.8 張、占淨值 3.233%，報酬約 -14.5%。",
+      "data": {
+        "stockid": "MU US",
+        "pct_change": 11.89,
+        "weight_pct": 3.23,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R3-NET US-20261106-t15",
+      "rule": "R3",
+      "score": 34.42,
+      "selected": true,
+      "fact": "11/6 加碼的 Cloudflare公司 至今 +17.2%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/6 加碼Cloudflare公司，至今上漲 17.2%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "NET US",
+        "event_date": "2026-11-06",
+        "direction": "add",
+        "qty_change_pct": 1000.0,
+        "weight_pct": 1.871,
+        "return_since_pct": 17.21,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-LRCX US-20261015-t8",
+      "rule": "R3",
+      "score": 29.97,
+      "selected": false,
+      "fact": "10/15 減碼 科林研發股份有限公司，其後回跌 15.0%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/15 提前減碼科林研發股份有限公司，隨後該股回跌 15.0%，成功避開損失。",
+      "data": {
+        "stockid": "LRCX US",
+        "event_date": "2026-10-15",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 0.877,
+        "return_since_pct": -14.99,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-LLY US-20261015-t8",
+      "rule": "R3",
+      "score": 29.67,
+      "selected": false,
+      "fact": "10/15 加碼的 禮來公司 至今 +14.8%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 10/15 加碼禮來公司，至今上漲 14.8%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "LLY US",
+        "event_date": "2026-10-15",
+        "direction": "add",
+        "qty_change_pct": 100.0,
+        "weight_pct": 0.633,
+        "return_since_pct": 14.84,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-DDOG US-20261102-t8",
+      "rule": "R3",
+      "score": 29.36,
+      "selected": false,
+      "fact": "11/2 減碼 數據狗公司，其後回跌 14.7%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/2 提前減碼數據狗公司，隨後該股回跌 14.7%，成功避開損失。",
+      "data": {
+        "stockid": "DDOG US",
+        "event_date": "2026-11-02",
+        "direction": "trim",
+        "qty_change_pct": -49.1,
+        "weight_pct": 1.688,
+        "return_since_pct": -14.68,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R1-AMD US-2026-11-11",
+      "rule": "R1",
+      "score": 28.77,
+      "selected": false,
+      "fact": "超微半導體公司昨日 +7.32%，00409A 持股 3.93%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 超微半導體公司（AMD）上漲約 7.32%。\n00409A 自 9/16 首次買進，並於 10/27、10/28、11/6、11/11 加碼；截至 11/11 持有 24.6 張、占淨值 3.928%，報酬約 +2.6%。",
+      "data": {
+        "stockid": "AMD US",
+        "pct_change": 7.32,
+        "weight_pct": 3.93,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R3-MRVL US-20261030-t8",
+      "rule": "R3",
+      "score": 28.11,
+      "selected": false,
+      "fact": "10/30 減碼 Marvell Technology Inc，其後回跌 14.1%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/30 提前減碼Marvell Technology Inc，隨後該股回跌 14.1%，成功避開損失。",
+      "data": {
+        "stockid": "MRVL US",
+        "event_date": "2026-10-30",
+        "direction": "trim",
+        "qty_change_pct": -31.4,
+        "weight_pct": 2.663,
+        "return_since_pct": -14.05,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R2-AXTI US-2026-11-11",
+      "rule": "R2",
+      "score": 28.07,
+      "selected": false,
+      "fact": "獨門持股 AXT公司昨日 +19.49%（00409A 權重 0.96%，其他海外主動 ETF 皆未持有）",
+      "angle": "獨門股發威：別人沒有的上漲",
+      "draft": "昨日 AXT公司（AXTI）上漲約 19.49%。\n00409A 最近於 11/4 重新建倉，並於 11/6 加碼；截至 11/11 持有 82 張、占淨值 1.112%，報酬約 +2.4%。",
+      "data": {
+        "stockid": "AXTI US",
+        "pct_change": 19.49,
+        "weight_pct": 0.96,
+        "exclusive": true,
+        "new_high": false,
+        "others_max_weight": null
+      }
+    },
+    {
+      "id": "R3-HOOD US-20261020-t8",
+      "rule": "R3",
+      "score": 27.76,
+      "selected": false,
+      "fact": "10/20 減碼 羅賓漢市場公司，其後回跌 13.9%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/20 提前減碼羅賓漢市場公司，隨後該股回跌 13.9%，成功避開損失。",
+      "data": {
+        "stockid": "HOOD US",
+        "event_date": "2026-10-20",
+        "direction": "trim",
+        "qty_change_pct": -27.3,
+        "weight_pct": 2.741,
+        "return_since_pct": -13.88,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-FORM US-20261109-t8",
+      "rule": "R3",
+      "score": 24.84,
+      "selected": false,
+      "fact": "11/9 加碼的 福達電子公司 至今 +12.4%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/9 加碼福達電子公司，至今上漲 12.4%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "FORM US",
+        "event_date": "2026-11-09",
+        "direction": "add",
+        "qty_change_pct": 300.0,
+        "weight_pct": 0.719,
+        "return_since_pct": 12.42,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-DELL US-20261030-t8",
+      "rule": "R3",
+      "score": 23.86,
+      "selected": false,
+      "fact": "10/30 減碼 戴爾科技公司，其後回跌 11.9%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/30 提前減碼戴爾科技公司，隨後該股回跌 11.9%，成功避開損失。",
+      "data": {
+        "stockid": "DELL US",
+        "event_date": "2026-10-30",
+        "direction": "trim",
+        "qty_change_pct": -53.3,
+        "weight_pct": 1.82,
+        "return_since_pct": -11.93,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-BE US-20261015-t8",
+      "rule": "R3",
+      "score": 22.71,
+      "selected": false,
+      "fact": "10/15 減碼 布魯姆能源公司，其後回跌 11.4%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/15 提前減碼布魯姆能源公司，隨後該股回跌 11.4%，成功避開損失。",
+      "data": {
+        "stockid": "BE US",
+        "event_date": "2026-10-15",
+        "direction": "trim",
+        "qty_change_pct": -11.8,
+        "weight_pct": 4.973,
+        "return_since_pct": -11.35,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-PSX US-20261021-t8",
+      "rule": "R3",
+      "score": 21.64,
+      "selected": false,
+      "fact": "10/21 減碼 菲利普66，其後回跌 10.8%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/21 提前減碼菲利普66，隨後該股回跌 10.8%，成功避開損失。",
+      "data": {
+        "stockid": "PSX US",
+        "event_date": "2026-10-21",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 0.937,
+        "return_since_pct": -10.82,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-ANET US-20261104-t8",
+      "rule": "R3",
+      "score": 20.39,
+      "selected": false,
+      "fact": "11/4 加碼的 Arista網路公司 至今 +10.2%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/4 加碼Arista網路公司，至今上漲 10.2%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "ANET US",
+        "event_date": "2026-11-04",
+        "direction": "add",
+        "qty_change_pct": 100.0,
+        "weight_pct": 0.761,
+        "return_since_pct": 10.2,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-TSM US-20261106-t8",
+      "rule": "R3",
+      "score": 20.19,
+      "selected": false,
+      "fact": "11/6 加碼的 台灣積體電路製造股份有限公司 至今 +10.1%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/6 加碼台灣積體電路製造股份有限公司，至今上漲 10.1%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "TSM US",
+        "event_date": "2026-11-06",
+        "direction": "add",
+        "qty_change_pct": 16.0,
+        "weight_pct": 3.445,
+        "return_since_pct": 10.1,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-META US-20261020-t8",
+      "rule": "R3",
+      "score": 18.86,
+      "selected": false,
+      "fact": "10/20 減碼 Meta平台公司，其後回跌 9.4%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/20 提前減碼Meta平台公司，隨後該股回跌 9.4%，成功避開損失。",
+      "data": {
+        "stockid": "META US",
+        "event_date": "2026-10-20",
+        "direction": "trim",
+        "qty_change_pct": -47.8,
+        "weight_pct": 2.094,
+        "return_since_pct": -9.43,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R1-TSM US-2026-11-11",
+      "rule": "R1",
+      "score": 14.71,
+      "selected": false,
+      "fact": "台灣積體電路製造股份有限公司昨日 +4.25%，00409A 持股 3.46%、為海外主動 ETF 觀測群 9 檔中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 台灣積體電路製造股份有限公司（TSM）上漲約 4.25%。\n00409A 自 8/28 首次買進，並於 11/6 加碼；截至 11/11 持有 29 張、占淨值 3.462%，報酬約 -0.5%。",
+      "data": {
+        "stockid": "TSM US",
+        "pct_change": 4.25,
+        "weight_pct": 3.46,
+        "is_heaviest_among_universe": true,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R2-FORM US-2026-11-11",
+      "rule": "R2",
+      "score": 12.8,
+      "selected": false,
+      "fact": "獨門持股 福達電子公司昨日 +11.85%（00409A 權重 0.72%，其他海外主動 ETF 皆未持有）",
+      "angle": "獨門股發威：別人沒有的上漲",
+      "draft": "昨日 福達電子公司（FORM）上漲約 11.85%。\n00409A 自 9/29 首次買進，並於 10/19、11/9 加碼；截至 11/11 持有 28 張、占淨值 0.775%，報酬約 -11.6%。",
+      "data": {
+        "stockid": "FORM US",
+        "pct_change": 11.85,
+        "weight_pct": 0.72,
+        "exclusive": true,
+        "new_high": false,
+        "others_max_weight": null
+      }
+    },
+    {
+      "id": "R2-TSEM US-2026-11-11",
+      "rule": "R2",
+      "score": 11.35,
+      "selected": false,
+      "fact": "獨門持股 塔爾半導體有限公司昨日 +7.64%（00409A 權重 0.99%，其他海外主動 ETF 皆未持有）",
+      "angle": "獨門股發威：別人沒有的上漲",
+      "draft": "昨日 塔爾半導體有限公司（TSEM）上漲約 7.64%。\n00409A 自 10/2 首次買進，並於 10/29、11/3、11/4、11/11 加碼；截至 11/11 持有 34.446 張、占淨值 1.58%，報酬約 -16.3%。",
+      "data": {
+        "stockid": "TSEM US",
+        "pct_change": 7.64,
+        "weight_pct": 0.99,
+        "exclusive": true,
+        "new_high": false,
+        "others_max_weight": null
+      }
+    },
+    {
+      "id": "R1-NET US-2026-11-11",
+      "rule": "R1",
+      "score": 7.37,
+      "selected": false,
+      "fact": "Cloudflare公司昨日 +3.01%，00409A 持股 2.45%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 Cloudflare公司（NET）上漲約 3.01%。\n00409A 自 8/28 首次買進，並於 10/19、10/22、11/6、11/10 加碼；截至 11/11 持有 26.892 張、占淨值 2.446%，報酬約 +4.4%。",
+      "data": {
+        "stockid": "NET US",
+        "pct_change": 3.01,
+        "weight_pct": 2.45,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 679,
+    "line_status": 200,
+    "candidate_count": 23,
+    "selected_count": 5
+  }
+}
