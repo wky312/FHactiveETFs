@@ -1,0 +1,144 @@
+{
+  "date": "2026-11-12",
+  "scanned_at": "2026-11-12T22:48:14+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": "0050"
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "tw_active"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "ok",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R3-6223-20261110-t8",
+      "rule": "R3",
+      "score": 28.47,
+      "selected": true,
+      "fact": "11/10 加碼的 旺矽科技 至今 +14.2%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/10 加碼旺矽科技，至今上漲 14.2%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "6223",
+        "event_date": "2026-11-10",
+        "direction": "add",
+        "qty_change_pct": 41.6,
+        "weight_pct": 0.704,
+        "return_since_pct": 14.23,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-3443-20261110-t8",
+      "rule": "R3",
+      "score": 19.25,
+      "selected": true,
+      "fact": "11/10 加碼的 創意電子 至今 +9.6%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/10 加碼創意電子，至今上漲 9.6%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "3443",
+        "event_date": "2026-11-10",
+        "direction": "add",
+        "qty_change_pct": 33.3,
+        "weight_pct": 0.682,
+        "return_since_pct": 9.62,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-2368-20261109-t8",
+      "rule": "R3",
+      "score": 18.12,
+      "selected": true,
+      "fact": "11/9 加碼的 金像電子 至今 +9.1%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/9 加碼金像電子，至今上漲 9.1%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "2368",
+        "event_date": "2026-11-09",
+        "direction": "add",
+        "qty_change_pct": 100.0,
+        "weight_pct": 0.513,
+        "return_since_pct": 9.06,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R5-streak5-2026-10-29",
+      "rule": "R5",
+      "score": 10.0,
+      "selected": true,
+      "fact": "00991A 連續 5 個交易日淨申購",
+      "angle": "資金用腳投票：買盤持續",
+      "draft": "00991A 連續 5 個交易日獲淨申購，資金持續進場。",
+      "data": {
+        "streak_days": 5,
+        "data_date": "2026-10-29"
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 386,
+    "line_status": 200,
+    "candidate_count": 4,
+    "selected_count": 4
+  }
+}
