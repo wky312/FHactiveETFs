@@ -1,0 +1,217 @@
+{
+  "date": "2026-11-13",
+  "scanned_at": "2026-11-13T22:59:08+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": null
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "overseas"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "stale",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R3-4062 JP-20261104-t15",
+      "rule": "R3",
+      "score": 48.53,
+      "selected": true,
+      "fact": "11/4 減碼 揖斐電有限公司，其後回跌 24.3%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/4 提前減碼揖斐電有限公司，隨後該股回跌 24.3%，成功避開損失。",
+      "data": {
+        "stockid": "4062 JP",
+        "event_date": "2026-11-04",
+        "direction": "trim",
+        "qty_change_pct": -69.0,
+        "weight_pct": 1.243,
+        "return_since_pct": -24.26,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R1-3017-2026-11-13",
+      "rule": "R1",
+      "score": 46.99,
+      "selected": true,
+      "fact": "奇鋐科技今日 +9.55%，00409A 持股 4.92%、為海外主動 ETF 觀測群 9 檔中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 奇鋐科技（3017）上漲約 9.55%。\n00409A 自 8/26 首次買進，並於 8/28、9/3、9/7、11/10 加碼；截至 11/11 持有 184 張、占淨值 4.916%，報酬約 -6.2%。",
+      "data": {
+        "stockid": "3017",
+        "pct_change": 9.55,
+        "weight_pct": 4.92,
+        "is_heaviest_among_universe": true,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R3-6976 JP-20261022-t15",
+      "rule": "R3",
+      "score": 36.9,
+      "selected": true,
+      "fact": "10/22 減碼 太陽誘電，其後回跌 18.4%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/22 提前減碼太陽誘電，隨後該股回跌 18.4%，成功避開損失。",
+      "data": {
+        "stockid": "6976 JP",
+        "event_date": "2026-10-22",
+        "direction": "trim",
+        "qty_change_pct": -71.4,
+        "weight_pct": 1.033,
+        "return_since_pct": -18.45,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-285A JP-20261104-t15",
+      "rule": "R3",
+      "score": 30.63,
+      "selected": true,
+      "fact": "11/4 減碼 鎧俠控股公司，其後回跌 15.3%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/4 提前減碼鎧俠控股公司，隨後該股回跌 15.3%，成功避開損失。",
+      "data": {
+        "stockid": "285A JP",
+        "event_date": "2026-11-04",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 1.008,
+        "return_since_pct": -15.31,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-6857 JP-20261021-t8",
+      "rule": "R3",
+      "score": 22.24,
+      "selected": true,
+      "fact": "10/21 減碼 愛德萬測試，其後回跌 11.1%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/21 提前減碼愛德萬測試，隨後該股回跌 11.1%，成功避開損失。",
+      "data": {
+        "stockid": "6857 JP",
+        "event_date": "2026-10-21",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 0.78,
+        "return_since_pct": -11.12,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-3189-20261111-t8",
+      "rule": "R3",
+      "score": 19.7,
+      "selected": false,
+      "fact": "11/11 減碼 景碩科技，其後回跌 9.9%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/11 提前減碼景碩科技，隨後該股回跌 9.9%，成功避開損失。",
+      "data": {
+        "stockid": "3189",
+        "event_date": "2026-11-11",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 1.808,
+        "return_since_pct": -9.85,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-3653-20261027-t8",
+      "rule": "R3",
+      "score": 17.58,
+      "selected": false,
+      "fact": "10/27 減碼 健策精密，其後回跌 8.8%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/27 提前減碼健策精密，隨後該股回跌 8.8%，成功避開損失。",
+      "data": {
+        "stockid": "3653",
+        "event_date": "2026-10-27",
+        "direction": "trim",
+        "qty_change_pct": -22.4,
+        "weight_pct": 2.87,
+        "return_since_pct": -8.79,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R1-1303-2026-11-13",
+      "rule": "R1",
+      "score": 7.5,
+      "selected": false,
+      "fact": "南亞塑膠今日 +3.75%，00409A 持股 2.0%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 南亞塑膠（1303）上漲約 3.75%。\n00409A 自 10/14 首次買進，並於 10/20、11/2 加碼；截至 11/11 持有 728 張、占淨值 2.003%，報酬約 -2.3%。",
+      "data": {
+        "stockid": "1303",
+        "pct_change": 3.75,
+        "weight_pct": 2.0,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 605,
+    "line_status": 200,
+    "candidate_count": 8,
+    "selected_count": 5
+  }
+}
