@@ -1,0 +1,264 @@
+{
+  "date": "2026-11-13",
+  "scanned_at": "2026-11-14T09:56:13+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": null
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "overseas"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "stale",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R1-SPCX US-2026-11-13",
+      "rule": "R1",
+      "score": NaN,
+      "selected": true,
+      "fact": "太空探索科技公司昨日 +nan%，00409A 持股 6.52%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 太空探索科技公司（SPCX）上漲約 nan%。\n00409A 自 8/27 首次買進，並於 10/21、11/2、11/9、11/12 加碼；截至 11/12 持有 157 張、占淨值 6.522%，報酬約 +nan%。",
+      "data": {
+        "stockid": "SPCX US",
+        "pct_change": NaN,
+        "weight_pct": 6.52,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-PLTR US-2026-11-13",
+      "rule": "R1",
+      "score": NaN,
+      "selected": true,
+      "fact": "帕蘭提爾科技公司昨日 +nan%，00409A 持股 5.88%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 帕蘭提爾科技公司（PLTR）上漲約 nan%。\n00409A 自 8/20 首次買進，並於 8/28、8/31、9/1、9/4 加碼；截至 11/12 持有 115.5 張、占淨值 5.883%，報酬約 +nan%。",
+      "data": {
+        "stockid": "PLTR US",
+        "pct_change": NaN,
+        "weight_pct": 5.88,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-BE US-2026-11-13",
+      "rule": "R1",
+      "score": NaN,
+      "selected": true,
+      "fact": "布魯姆能源公司昨日 +nan%，00409A 持股 5.58%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 布魯姆能源公司（BE）上漲約 nan%。\n00409A 自 8/26 首次買進，並於 9/17、10/21、11/4、11/9 加碼；截至 11/12 持有 93 張、占淨值 5.575%，報酬約 +nan%。",
+      "data": {
+        "stockid": "BE US",
+        "pct_change": NaN,
+        "weight_pct": 5.58,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-CRWD US-2026-11-13",
+      "rule": "R1",
+      "score": NaN,
+      "selected": true,
+      "fact": "Crowdstrike控股公司昨日 +nan%，00409A 持股 3.75%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 Crowdstrike控股公司（CRWD）上漲約 nan%。\n00409A 自 8/31 首次買進，並於 9/1、9/14 加碼；截至 11/12 持有 55 張、占淨值 3.753%，報酬約 +nan%。",
+      "data": {
+        "stockid": "CRWD US",
+        "pct_change": NaN,
+        "weight_pct": 3.75,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-NET US-2026-11-13",
+      "rule": "R1",
+      "score": NaN,
+      "selected": true,
+      "fact": "Cloudflare公司昨日 +nan%，00409A 持股 3.02%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 Cloudflare公司（NET）上漲約 nan%。\n00409A 自 8/28 首次買進，並於 10/22、11/6、11/10、11/12 加碼；截至 11/12 持有 31.892 張、占淨值 3.015%，報酬約 +nan%。",
+      "data": {
+        "stockid": "NET US",
+        "pct_change": NaN,
+        "weight_pct": 3.02,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R3-MRVL US-20261030-t15",
+      "rule": "R3",
+      "score": 40.37,
+      "selected": false,
+      "fact": "10/30 減碼 Marvell Technology Inc，其後回跌 20.2%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/30 提前減碼Marvell Technology Inc，隨後該股回跌 20.2%，成功避開損失。",
+      "data": {
+        "stockid": "MRVL US",
+        "event_date": "2026-10-30",
+        "direction": "trim",
+        "qty_change_pct": -31.4,
+        "weight_pct": 2.663,
+        "return_since_pct": -20.18,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-LRCX US-20261015-t15",
+      "rule": "R3",
+      "score": 37.15,
+      "selected": false,
+      "fact": "10/15 減碼 科林研發股份有限公司，其後回跌 18.6%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/15 提前減碼科林研發股份有限公司，隨後該股回跌 18.6%，成功避開損失。",
+      "data": {
+        "stockid": "LRCX US",
+        "event_date": "2026-10-15",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 0.877,
+        "return_since_pct": -18.58,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-LLY US-20261015-t15",
+      "rule": "R3",
+      "score": 30.94,
+      "selected": false,
+      "fact": "10/15 加碼的 禮來公司 至今 +15.5%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 10/15 加碼禮來公司，至今上漲 15.5%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "LLY US",
+        "event_date": "2026-10-15",
+        "direction": "add",
+        "qty_change_pct": 100.0,
+        "weight_pct": 0.633,
+        "return_since_pct": 15.47,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-FORM US-20261029-t8",
+      "rule": "R3",
+      "score": 20.38,
+      "selected": false,
+      "fact": "10/29 減碼 福達電子公司，其後回跌 10.2%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/29 提前減碼福達電子公司，隨後該股回跌 10.2%，成功避開損失。",
+      "data": {
+        "stockid": "FORM US",
+        "event_date": "2026-10-29",
+        "direction": "trim",
+        "qty_change_pct": -74.1,
+        "weight_pct": 0.745,
+        "return_since_pct": -10.19,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-NVDA US-20261109-t8",
+      "rule": "R3",
+      "score": 17.71,
+      "selected": false,
+      "fact": "11/9 減碼 輝達公司，其後回跌 8.9%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/9 提前減碼輝達公司，隨後該股回跌 8.9%，成功避開損失。",
+      "data": {
+        "stockid": "NVDA US",
+        "event_date": "2026-11-09",
+        "direction": "trim",
+        "qty_change_pct": -62.5,
+        "weight_pct": 4.725,
+        "return_since_pct": -8.85,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R2-MRNA US-2026-11-13",
+      "rule": "R2",
+      "score": 5.95,
+      "selected": false,
+      "fact": "顯著超配持股 莫德納公司創 60 日新高（00409A 權重 1.19%，其他海外主動 ETF 最高僅 0.57%）",
+      "angle": "顯著超配股發威：別人沒有的上漲",
+      "draft": "昨日 莫德納公司（MRNA）創 60 日新高。\n00409A 自 10/15 首次買進，並於 11/9、11/10 加碼；截至 11/12 持有 17.3 張、占淨值 1.188%，報酬約 +nan%。",
+      "data": {
+        "stockid": "MRNA US",
+        "pct_change": NaN,
+        "weight_pct": 1.19,
+        "exclusive": false,
+        "new_high": false,
+        "others_max_weight": 0.57
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 920,
+    "line_status": 200,
+    "candidate_count": 11,
+    "selected_count": 5
+  }
+}
