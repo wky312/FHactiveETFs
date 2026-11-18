@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-17T12:16:45+08:00",
+  "updated_at": "2026-11-18T11:16:35+08:00",
   "pushed_dates": [
     "2026-10-06",
     "2026-10-07",
@@ -30,7 +30,8 @@
     "2026-11-11",
     "2026-11-12",
     "2026-11-13",
-    "2026-11-16"
+    "2026-11-16",
+    "2026-11-17"
   ],
   "r3_events": {
     "AXTI US|2026/09/16": {
@@ -68,14 +69,6 @@
     "IREN US|2026/10/01": {
       "direction": "trim",
       "tier_pushed": 30
-    },
-    "WPM US|2026/09/15": {
-      "direction": "trim",
-      "tier_pushed": 8
-    },
-    "NET US|2026/09/15": {
-      "direction": "add",
-      "tier_pushed": 8
     },
     "INTC US|2026/10/05": {
       "direction": "trim",
@@ -192,6 +185,26 @@
     "DDOG US|2026/11/02": {
       "direction": "trim",
       "tier_pushed": 15
+    },
+    "HOOD US|2026/10/28": {
+      "direction": "trim",
+      "tier_pushed": 15
+    },
+    "DELL US|2026/11/03": {
+      "direction": "trim",
+      "tier_pushed": 15
+    },
+    "NOW US|2026/10/29": {
+      "direction": "trim",
+      "tier_pushed": 15
+    },
+    "FORM US|2026/10/29": {
+      "direction": "trim",
+      "tier_pushed": 8
+    },
+    "MRVL US|2026/11/03": {
+      "direction": "trim",
+      "tier_pushed": 8
     }
   },
   "r4_rank": {},
