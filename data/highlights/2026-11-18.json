@@ -1,0 +1,195 @@
+{
+  "date": "2026-11-18",
+  "scanned_at": "2026-11-18T23:17:55+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": "0050"
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "tw_active"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "ok",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R1-3017-2026-11-18",
+      "rule": "R1",
+      "score": 78.47,
+      "selected": true,
+      "fact": "奇鋐科技今日 +9.92%，00991A 持股 7.91%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "奇鋐科技大漲 9.92%，00991A 以 7.91% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "3017",
+        "pct_change": 9.92,
+        "weight_pct": 7.91,
+        "is_heaviest_among_universe": false,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R3-2327-20261111-t15",
+      "rule": "R3",
+      "score": 34.16,
+      "selected": true,
+      "fact": "11/11 減碼 國巨股份，其後回跌 17.1%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/11 提前減碼國巨股份，隨後該股回跌 17.1%，成功避開損失。",
+      "data": {
+        "stockid": "2327",
+        "event_date": "2026-11-11",
+        "direction": "trim",
+        "qty_change_pct": -23.5,
+        "weight_pct": 3.365,
+        "return_since_pct": -17.08,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R1-3189-2026-11-18",
+      "rule": "R1",
+      "score": 33.88,
+      "selected": true,
+      "fact": "景碩科技今日 +6.83%，00991A 持股 4.96%、為全市場 20 檔主動 ETF中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "景碩科技大漲 6.83%，00991A 以 4.96% 持股居全市場主動 ETF之冠，經理人重押命中。",
+      "data": {
+        "stockid": "3189",
+        "pct_change": 6.83,
+        "weight_pct": 4.96,
+        "is_heaviest_among_universe": true,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R3-2408-20261110-t15",
+      "rule": "R3",
+      "score": 30.29,
+      "selected": true,
+      "fact": "11/10 減碼 南亞科技，其後回跌 15.1%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/10 提前減碼南亞科技，隨後該股回跌 15.1%，成功避開損失。",
+      "data": {
+        "stockid": "2408",
+        "event_date": "2026-11-10",
+        "direction": "trim",
+        "qty_change_pct": -18.8,
+        "weight_pct": 7.302,
+        "return_since_pct": -15.14,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R1-3037-2026-11-18",
+      "rule": "R1",
+      "score": 25.99,
+      "selected": true,
+      "fact": "欣興電子今日 +3.92%，00991A 持股 6.63%、為全市場 20 檔主動 ETF中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "欣興電子大漲 3.92%，00991A 以 6.63% 持股居全市場主動 ETF之冠，經理人重押命中。",
+      "data": {
+        "stockid": "3037",
+        "pct_change": 3.92,
+        "weight_pct": 6.63,
+        "is_heaviest_among_universe": true,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R1-3711-2026-11-18",
+      "rule": "R1",
+      "score": 22.54,
+      "selected": false,
+      "fact": "日月光投今日 +5.38%，00991A 持股 4.19%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "日月光投大漲 5.38%，00991A 以 4.19% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "3711",
+        "pct_change": 5.38,
+        "weight_pct": 4.19,
+        "is_heaviest_among_universe": false,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R3-3665-20261117-t8",
+      "rule": "R3",
+      "score": 19.86,
+      "selected": false,
+      "fact": "11/17 加碼的 貿聯-KY 至今 +9.9%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/17 加碼貿聯-KY，至今上漲 9.9%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "3665",
+        "event_date": "2026-11-17",
+        "direction": "add",
+        "qty_change_pct": 19.0,
+        "weight_pct": 0.652,
+        "return_since_pct": 9.93,
+        "tier": 8
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 588,
+    "line_status": 200,
+    "candidate_count": 7,
+    "selected_count": 5
+  }
+}
