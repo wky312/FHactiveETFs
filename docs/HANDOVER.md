@@ -7,7 +7,7 @@
 1. **這個 repo 必須保持 private。** `data/highlights/` 存的是未經法遵的行銷草稿句，repo 轉 public＝內部素材外洩。
 2. **行銷素材類內容永遠不上網站。** fhactiveetf.vercel.app 會被其他同仁/外部人看到；亮點引擎的一切產出只走 LINE 個人推播＋repo JSON，**不得新增任何前端路由/分頁**去呈現它。
    - **例外（2026-08-10，使用者明確核准）**：持股清單頁（`?tab=holdings`）的「創新高強勢股」模式（`components/HoldingsTab.tsx` 內 `mode='newhigh'`＋`app/api/holdings-newhigh`）。理由：該模式只疊加**已經公開顯示在同一頁**的持股代碼/權重，加上**公開市場價格**算出的 YTD 還原權息報酬與是否創今年新高，**不含**經理人操作意圖、事件日期、草稿句等亮點引擎才有的敏感內容，性質不同於亮點引擎。目前僅 00991A 開放。日後若要再開放同類「上站」功能，比照此例外先跟使用者確認，不要預設套用天條。
-3. **部署只走 GitHub Actions（2026-11-20 起，多人協作）。** `.github/workflows/deploy.yml`：PR → 預覽網址（自動留言在 PR）、merge 進 master → 正式站。**禁止從本機 `vercel --prod`**（本機落後 master 會把別人的功能蓋掉）。master 受 ruleset `protect-master` 保護（禁止直推/force push/刪除），資料 bot 用 deploy key（secret `BOT_DEPLOY_KEY`）繞過。Vercel token 在 secret `VERCEL_TOKEN`。Preview 環境只有唯讀金鑰（無 `SUPABASE_SERVICE_KEY`），受益人數/單位數注意商品/同業申贖觀測在預覽站會空。流程說明見 `CONTRIBUTING.md`。
+3. **部署只走 GitHub Actions（2026-11-20 起，多人協作）。** `.github/workflows/deploy.yml`：PR → 預覽網址（自動留言在 PR）、merge 進 master → 正式站。**禁止從本機 `vercel --prod`**（本機落後 master 會把別人的功能蓋掉）。master 受 ruleset `protect-master` 保護（禁止直推/force push/刪除），資料 bot 用 deploy key 繞過（secret `BOT_DEPLOY_KEY` 放在 environment `bot`，只有 master 取得到；新增會 push 的排程 job 要加 `environment: bot`＋checkout `ssh-key`）。正式站部署限 master ref。Vercel token 在 secret `VERCEL_TOKEN`。Preview 環境只有唯讀金鑰（無 `SUPABASE_SERVICE_KEY`），受益人數/單位數注意商品/同業申贖觀測在預覽站會空。流程說明見 `CONTRIBUTING.md`。
 4. **`.env.local` 的值帶雙引號。** 用 `gh secret set` 搬值前要先去引號（`sed 's/^"//;s/"$//'`），否則 secret 值含引號、requests 會炸（2026-07-05 實際踩過）。
 5. **對外數字必須可辯護。** 亮點文案中「同業第一」只能指 `peer_redemption` 觀測群（tw_active 14 檔＝規模百億以上＋擦邊三檔，2026-07-28 由 6 檔擴編），「持有最重」是 ATTR 動態 universe（約 20 檔）——不同母體，模板已寫死正確措辭（檔數是 `len(day_rows)` 動態帶入），改文案時不要放大宣稱。
 

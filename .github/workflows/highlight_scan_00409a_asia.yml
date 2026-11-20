@@ -27,12 +27,14 @@ concurrency:
 jobs:
   scan:
     runs-on: ubuntu-latest
+    # BOT_DEPLOY_KEY 存在 environment「bot」，GitHub 伺服器端限定只有 master 能取用
+    environment: bot
     timeout-minutes: 20
 
     steps:
       - uses: actions/checkout@v7
         with:
-          # deploy key 可繞過 master 保護規則（ruleset protect-master），GITHUB_TOKEN 不行
+          # deploy key 可繞過 master 保護規則（ruleset protect-master），GITHUB_TOKEN 不行；key 只在 environment bot
           ssh-key: ${{ secrets.BOT_DEPLOY_KEY }}
 
       - name: Set up Python

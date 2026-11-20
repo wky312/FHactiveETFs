@@ -46,14 +46,19 @@ jobs:
         run: npm install -g vercel@66
 
       - name: Deploy production
-        if: github.event_name != 'pull_request'
-        run: vercel deploy --prod --yes --token="${{ secrets.VERCEL_TOKEN }}"
+        # 只有 master 能上正式站（擋掉在其他分支手動觸發 workflow_dispatch 繞過 PR）
+        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/master'
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
+        run: vercel deploy --prod --yes
 
       - name: Deploy preview
         if: github.event_name == 'pull_request'
         id: preview
+        env:
+          VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: |
-          url=$(vercel deploy --yes --token="${{ secrets.VERCEL_TOKEN }}")
+          url=$(vercel deploy --yes)
           echo "url=$url" >> "$GITHUB_OUTPUT"
 
       - name: Comment preview URL on PR
