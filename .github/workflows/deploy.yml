@@ -12,6 +12,7 @@ on:
     paths-ignore:
       - 'docs/**'
       - 'data/highlights/**'
+      - 'data/daily_change_push/**'   # 只給 LINE 推播用，網站沒讀
       - '**.md'
       - 'scripts/*.py'
   pull_request:
