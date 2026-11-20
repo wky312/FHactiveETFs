@@ -1,6 +1,6 @@
 {
   "date": "2026-11-20",
-  "scanned_at": "2026-11-20T00:10:38+08:00",
+  "scanned_at": "2026-11-20T23:50:17+08:00",
   "config_snapshot": {
     "r1": {
       "min_daily_pct": 3.0,
@@ -63,12 +63,258 @@
     "peer_redemption": "ok"
   },
   "skipped_rules": [],
-  "candidates": [],
+  "candidates": [
+    {
+      "id": "R1-6098 JP-2026-11-20",
+      "rule": "R1",
+      "score": NaN,
+      "selected": true,
+      "fact": "瑞可利控股有限公司今日 +nan%，00409A 持股 0.93%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 瑞可利控股有限公司（6098）上漲約 nan%。\n00409A 最近於 11/17 重新建倉；截至 11/19 持有 25 張、占淨值 0.927%，報酬約 +nan%。",
+      "data": {
+        "stockid": "6098 JP",
+        "pct_change": NaN,
+        "weight_pct": 0.93,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-9983 JP-2026-11-20",
+      "rule": "R1",
+      "score": NaN,
+      "selected": true,
+      "fact": "迅銷有限公司今日 +nan%，00409A 持股 0.87%、為海外主動 ETF 觀測群 9 檔中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 迅銷有限公司（9983）上漲約 nan%。\n00409A 自 11/17 首次買進；截至 11/19 持有 5 張、占淨值 0.868%，報酬約 +nan%。",
+      "data": {
+        "stockid": "9983 JP",
+        "pct_change": NaN,
+        "weight_pct": 0.87,
+        "is_heaviest_among_universe": true,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-8411 JP-2026-11-20",
+      "rule": "R1",
+      "score": NaN,
+      "selected": true,
+      "fact": "瑞穗金融集團今日 +nan%，00409A 持股 0.32%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 瑞穗金融集團（8411）上漲約 nan%。\n00409A 自 11/16 首次買進；截至 11/19 持有 20 張、占淨值 0.319%，報酬約 +nan%。",
+      "data": {
+        "stockid": "8411 JP",
+        "pct_change": NaN,
+        "weight_pct": 0.32,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-581A JP-2026-11-20",
+      "rule": "R1",
+      "score": NaN,
+      "selected": true,
+      "fact": "GO公司今日 +nan%，00409A 持股 0.28%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "今日 GO公司（581A）上漲約 nan%。\n00409A 自 11/17 首次買進；截至 11/19 持有 50 張、占淨值 0.276%，報酬約 +nan%。",
+      "data": {
+        "stockid": "581A JP",
+        "pct_change": NaN,
+        "weight_pct": 0.28,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R3-3026-20261102-t30",
+      "rule": "R3",
+      "score": 98.27,
+      "selected": true,
+      "fact": "11/2 減碼 禾伸堂企，其後回跌 49.1%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/2 提前減碼禾伸堂企，隨後該股回跌 49.1%，成功避開損失。",
+      "data": {
+        "stockid": "3026",
+        "event_date": "2026-11-02",
+        "direction": "trim",
+        "qty_change_pct": -30.4,
+        "weight_pct": 3.282,
+        "return_since_pct": -49.14,
+        "tier": 30
+      }
+    },
+    {
+      "id": "R3-3653-20261027-t30",
+      "rule": "R3",
+      "score": 73.55,
+      "selected": false,
+      "fact": "10/27 減碼 健策精密，其後回跌 36.8%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/27 提前減碼健策精密，隨後該股回跌 36.8%，成功避開損失。",
+      "data": {
+        "stockid": "3653",
+        "event_date": "2026-10-27",
+        "direction": "trim",
+        "qty_change_pct": -22.4,
+        "weight_pct": 2.87,
+        "return_since_pct": -36.77,
+        "tier": 30
+      }
+    },
+    {
+      "id": "R3-3189-20261111-t30",
+      "rule": "R3",
+      "score": 73.14,
+      "selected": false,
+      "fact": "11/11 減碼 景碩科技，其後回跌 36.6%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/11 提前減碼景碩科技，隨後該股回跌 36.6%，成功避開損失。",
+      "data": {
+        "stockid": "3189",
+        "event_date": "2026-11-11",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 1.808,
+        "return_since_pct": -36.57,
+        "tier": 30
+      }
+    },
+    {
+      "id": "R3-8046-20261116-t15",
+      "rule": "R3",
+      "score": 57.05,
+      "selected": false,
+      "fact": "11/16 減碼 南亞電路，其後回跌 28.5%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/16 提前減碼南亞電路，隨後該股回跌 28.5%，成功避開損失。",
+      "data": {
+        "stockid": "8046",
+        "event_date": "2026-11-16",
+        "direction": "trim",
+        "qty_change_pct": -39.2,
+        "weight_pct": 4.235,
+        "return_since_pct": -28.52,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-8996-20261117-t15",
+      "rule": "R3",
+      "score": 42.22,
+      "selected": false,
+      "fact": "11/17 減碼 高力熱處，其後回跌 21.1%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/17 提前減碼高力熱處，隨後該股回跌 21.1%，成功避開損失。",
+      "data": {
+        "stockid": "8996",
+        "event_date": "2026-11-17",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 2.047,
+        "return_since_pct": -21.11,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-2383-20261117-t15",
+      "rule": "R3",
+      "score": 41.24,
+      "selected": false,
+      "fact": "11/17 減碼 台光電子，其後回跌 20.6%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/17 提前減碼台光電子，隨後該股回跌 20.6%，成功避開損失。",
+      "data": {
+        "stockid": "2383",
+        "event_date": "2026-11-17",
+        "direction": "trim",
+        "qty_change_pct": -36.6,
+        "weight_pct": 4.509,
+        "return_since_pct": -20.62,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-3037-20261117-t15",
+      "rule": "R3",
+      "score": 31.4,
+      "selected": false,
+      "fact": "11/17 減碼 欣興電子，其後回跌 15.7%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/17 提前減碼欣興電子，隨後該股回跌 15.7%，成功避開損失。",
+      "data": {
+        "stockid": "3037",
+        "event_date": "2026-11-17",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 1.338,
+        "return_since_pct": -15.7,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-3017-20261117-t8",
+      "rule": "R3",
+      "score": 21.46,
+      "selected": false,
+      "fact": "11/17 減碼 奇鋐科技，其後回跌 10.7%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/17 提前減碼奇鋐科技，隨後該股回跌 10.7%，成功避開損失。",
+      "data": {
+        "stockid": "3017",
+        "event_date": "2026-11-17",
+        "direction": "trim",
+        "qty_change_pct": -35.9,
+        "weight_pct": 4.87,
+        "return_since_pct": -10.73,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-1303-20261119-t8",
+      "rule": "R3",
+      "score": 19.69,
+      "selected": false,
+      "fact": "11/19 減碼 南亞塑膠，其後回跌 9.8%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/19 提前減碼南亞塑膠，隨後該股回跌 9.8%，成功避開損失。",
+      "data": {
+        "stockid": "1303",
+        "event_date": "2026-11-19",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 1.81,
+        "return_since_pct": -9.85,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R2-9983 JP-2026-11-20",
+      "rule": "R2",
+      "score": 6.52,
+      "selected": false,
+      "fact": "獨門持股 迅銷有限公司創 60 日新高（00409A 權重 0.87%，其他海外主動 ETF 皆未持有）",
+      "angle": "獨門股發威：別人沒有的上漲",
+      "draft": "今日 迅銷有限公司（9983）創 60 日新高。\n00409A 自 11/17 首次買進；截至 11/19 持有 5 張、占淨值 0.868%，報酬約 +nan%。",
+      "data": {
+        "stockid": "9983 JP",
+        "pct_change": NaN,
+        "weight_pct": 0.87,
+        "exclusive": true,
+        "new_high": false,
+        "others_max_weight": null
+      }
+    }
+  ],
   "push": {
-    "attempted": false,
-    "sent": false,
-    "reason": "no_candidates",
-    "candidate_count": 0,
-    "selected_count": 0
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 731,
+    "line_status": 200,
+    "candidate_count": 14,
+    "selected_count": 5
   }
 }
