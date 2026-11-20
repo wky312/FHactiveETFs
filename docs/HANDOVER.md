@@ -7,7 +7,7 @@
 1. **這個 repo 必須保持 private。** `data/highlights/` 存的是未經法遵的行銷草稿句，repo 轉 public＝內部素材外洩。
 2. **行銷素材類內容永遠不上網站。** fhactiveetf.vercel.app 會被其他同仁/外部人看到；亮點引擎的一切產出只走 LINE 個人推播＋repo JSON，**不得新增任何前端路由/分頁**去呈現它。
    - **例外（2026-08-10，使用者明確核准）**：持股清單頁（`?tab=holdings`）的「創新高強勢股」模式（`components/HoldingsTab.tsx` 內 `mode='newhigh'`＋`app/api/holdings-newhigh`）。理由：該模式只疊加**已經公開顯示在同一頁**的持股代碼/權重，加上**公開市場價格**算出的 YTD 還原權息報酬與是否創今年新高，**不含**經理人操作意圖、事件日期、草稿句等亮點引擎才有的敏感內容，性質不同於亮點引擎。目前僅 00991A 開放。日後若要再開放同類「上站」功能，比照此例外先跟使用者確認，不要預設套用天條。
-3. **Vercel 沒有接 git 自動部署。** push 到 GitHub 不會改變網站；改了 `app/`、`components/`、`lib/` 要手動 `vercel --prod`（CLI 已登入，專案 `fhactiveetf`）。反過來說：只改 `scripts/`、`config/`、workflow、docs 時**不需要**部署。
+3. **部署只走 GitHub Actions（2026-11-20 起，多人協作）。** `.github/workflows/deploy.yml`：PR → 預覽網址（自動留言在 PR）、merge 進 master → 正式站。**禁止從本機 `vercel --prod`**（本機落後 master 會把別人的功能蓋掉）。master 受 ruleset `protect-master` 保護（禁止直推/force push/刪除），資料 bot 用 deploy key（secret `BOT_DEPLOY_KEY`）繞過。Vercel token 在 secret `VERCEL_TOKEN`。Preview 環境只有唯讀金鑰（無 `SUPABASE_SERVICE_KEY`），受益人數/單位數注意商品/同業申贖觀測在預覽站會空。流程說明見 `CONTRIBUTING.md`。
 4. **`.env.local` 的值帶雙引號。** 用 `gh secret set` 搬值前要先去引號（`sed 's/^"//;s/"$//'`），否則 secret 值含引號、requests 會炸（2026-07-05 實際踩過）。
 5. **對外數字必須可辯護。** 亮點文案中「同業第一」只能指 `peer_redemption` 觀測群（tw_active 14 檔＝規模百億以上＋擦邊三檔，2026-07-28 由 6 檔擴編），「持有最重」是 ATTR 動態 universe（約 20 檔）——不同母體，模板已寫死正確措辭（檔數是 `len(day_rows)` 動態帶入），改文案時不要放大宣稱。
 
@@ -15,7 +15,7 @@
 
 | 部分 | 內容 | 部署方式 |
 |------|------|----------|
-| 網站 | Next.js 16 dashboard（13+ 分頁，inline style 非 Tailwind，Plotly CDN） | 手動 `vercel --prod` |
+| 網站 | Next.js 16 dashboard（13+ 分頁，inline style 非 Tailwind，Plotly CDN） | GitHub Actions `deploy.yml`（merge 進 master 自動） |
 | 排程 scripts | `daily_summary.py`（17:15 摘要+申贖入庫）、`update_holdings.py`（持股存檔）、`highlight_scan.py`（亮點） | GitHub Actions，push 即生效 |
 | 資料 | `data/holdings/`（持股 git-as-database）、`data/highlights/`（亮點+狀態） | workflow 自動 commit |
 | SDD 文件 | `docs/00-concepts/`（概念探索）、`docs/03-features/`（spec/design/develop-plan） | — |
@@ -47,7 +47,7 @@
 
 **市場重要行事曆**（2026-09-22 新增，分頁 `?tab=calendar`，分組「市場行事曆」）：FOMC、美國數據、財報法說、選舉政治的時間軸＋手機訂閱 `webcal://fhactiveetf.vercel.app/api/market-calendar/ics`（`cat=`/`min=`/`alarm=` 可篩）。只放公開事件，**不得加入任何行銷切角**（天條 2）。
 - **程式**：`lib/marketCalendar/`（`build.ts` 組裝、`sources/*` 各來源、`history.ts` 歷史反應、`store.ts` 快取、`ics.ts`）、`app/api/market-calendar/{route,ics/route}.ts`、`components/MarketCalendarTab.tsx`。
-- **來源**：Fed 官網 HTML（FOMC，`*`＝SEP 點陣圖）、FRED（CPI/PPI/非農/PCE：歷史公布日用 `output_type=4` 首次公布日、未來排程用 `release/dates`；實際值取**公布當天的 ALFRED vintage** 才會跟新聞一致）、ForexFactory 週曆 JSON（市場預期）、Yahoo `calendarEvents`（NVDA/TSM 財報日）、`config/market-events.json`（選舉/外交/台灣央行/GTC＋歷史種子，**改完要 `vercel --prod`**）。財報觀察清單在 `lib/marketCalendar/config.ts` 的 `EARNINGS_WATCHLIST`。
+- **來源**：Fed 官網 HTML（FOMC，`*`＝SEP 點陣圖）、FRED（CPI/PPI/非農/PCE：歷史公布日用 `output_type=4` 首次公布日、未來排程用 `release/dates`；實際值取**公布當天的 ALFRED vintage** 才會跟新聞一致）、ForexFactory 週曆 JSON（市場預期）、Yahoo `calendarEvents`（NVDA/TSM 財報日）、`config/market-events.json`（選舉/外交/台灣央行/GTC＋歷史種子，**改完 merge 進 master 即自動部署**）。財報觀察清單在 `lib/marketCalendar/config.ts` 的 `EARNINGS_WATCHLIST`。
 - **快取**：本專案 Supabase `page_cache` 三個 key：`market_calendar_events_v1`（頁面讀）、`market_calendar_state_v1`（累積的預期值/實際值，**刪了會丟失歷史預期值，無法重建**）、`market_calendar_history_v1`（歷史反應，約每週或有新樣本滿 T+5 時重算）。超過 3 小時、或剛有事件公布，開頁時會用 `after()` 背景刷新。Vercel env 需 `FRED_API_KEY`、`CRON_SECRET`。
 - ⚠️ **FRED 數列有缺月**（2025/10 政府關門 CPI 未公布）→ 月增/年增一律**用日期對齊前期**，不可用陣列位置（曾因此把 CPI 年增算成 3.7%，官方 3.4%）。
 - ⚠️ **ForexFactory 會 429**：一小時最多抓一次（`ffFetchedAt`）；它只給本週，預期值自上線日起逐週累積。**ISM 沒有免費實際值來源**，用下一期的「前值」回填上一期（晚一個月）。FRED 實際值每次刷新最多回補 12 筆（每分鐘 120 次上限）。

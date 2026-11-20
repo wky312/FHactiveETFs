@@ -1,0 +1,69 @@
+# 網站部署（唯一的部署管道）
+# - 開 / 更新 Pull Request → 部署「預覽網址」並貼在 PR 留言，給大家先看
+# - merge 進 master       → 部署正式站 fhactiveetf.vercel.app
+# 所有部署都用 repo 擁有者的 VERCEL_TOKEN，所以協作者不需要 Vercel 帳號。
+# ⚠️ 不要再從本機跑 `vercel --prod`：本機版本若落後 master，會把別人的功能蓋掉。
+name: Deploy to Vercel
+
+on:
+  push:
+    branches: [master]
+    # 只動這些檔案時不必重新部署（亮點引擎資料只推 LINE、不上網站）
+    paths-ignore:
+      - 'docs/**'
+      - 'data/highlights/**'
+      - '**.md'
+      - 'scripts/*.py'
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: write
+
+env:
+  VERCEL_ORG_ID: team_HhrfH2w3tFKEPlwBq7URHUGR
+  VERCEL_PROJECT_ID: prj_FbeT4JtWjMxvGsiug0GgQrxzODXr
+
+jobs:
+  deploy:
+    # fork 來的 PR 拿不到 secrets，直接略過
+    if: github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 24
+
+      - name: Install Vercel CLI
+        run: npm install -g vercel@66
+
+      - name: Deploy production
+        if: github.event_name != 'pull_request'
+        run: vercel deploy --prod --yes --token="${{ secrets.VERCEL_TOKEN }}"
+
+      - name: Deploy preview
+        if: github.event_name == 'pull_request'
+        id: preview
+        run: |
+          url=$(vercel deploy --yes --token="${{ secrets.VERCEL_TOKEN }}")
+          echo "url=$url" >> "$GITHUB_OUTPUT"
+
+      - name: Comment preview URL on PR
+        if: github.event_name == 'pull_request'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          URL: ${{ steps.preview.outputs.url }}
+          PR: ${{ github.event.pull_request.number }}
+          SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          body=$(printf '🔍 **預覽網址**：%s\n\n（commit `%s`，每次推新的改動會自動更新這則留言）\n\n⚠️ 預覽站沒有寫入權限的資料庫金鑰，「受益人數」「單位數注意商品」「同業申贖觀測」這幾個分頁在預覽站可能是空的，屬正常。' "$URL" "${SHA:0:7}")
+          gh pr comment "$PR" -R "$GITHUB_REPOSITORY" --edit-last -b "$body" 2>/dev/null \
+            || gh pr comment "$PR" -R "$GITHUB_REPOSITORY" -b "$body"

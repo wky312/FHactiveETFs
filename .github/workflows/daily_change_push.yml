@@ -26,6 +26,9 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+        with:
+          # deploy key 可繞過 master 保護規則（ruleset protect-master），GITHUB_TOKEN 不行
+          ssh-key: ${{ secrets.BOT_DEPLOY_KEY }}
 
       - name: Set up Python 3.11
         uses: actions/setup-python@v7
