@@ -1,0 +1,419 @@
+{
+  "date": "2026-11-20",
+  "scanned_at": "2026-11-21T10:57:22+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": null
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "overseas"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "stale",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R3-MRVL US-20261030-t30",
+      "rule": "R3",
+      "score": 75.48,
+      "selected": true,
+      "fact": "10/30 減碼 Marvell Technology Inc，其後回跌 37.7%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/30 提前減碼Marvell Technology Inc，隨後該股回跌 37.7%，成功避開損失。",
+      "data": {
+        "stockid": "MRVL US",
+        "event_date": "2026-10-30",
+        "direction": "trim",
+        "qty_change_pct": -31.4,
+        "weight_pct": 2.663,
+        "return_since_pct": -37.74,
+        "tier": 30
+      }
+    },
+    {
+      "id": "R3-DELL US-20261030-t30",
+      "rule": "R3",
+      "score": 68.95,
+      "selected": true,
+      "fact": "10/30 減碼 戴爾科技公司，其後回跌 34.5%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/30 提前減碼戴爾科技公司，隨後該股回跌 34.5%，成功避開損失。",
+      "data": {
+        "stockid": "DELL US",
+        "event_date": "2026-10-30",
+        "direction": "trim",
+        "qty_change_pct": -53.3,
+        "weight_pct": 1.82,
+        "return_since_pct": -34.48,
+        "tier": 30
+      }
+    },
+    {
+      "id": "R3-HOOD US-20261028-t30",
+      "rule": "R3",
+      "score": 64.01,
+      "selected": true,
+      "fact": "10/28 減碼 羅賓漢市場公司，其後回跌 32.0%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/28 提前減碼羅賓漢市場公司，隨後該股回跌 32.0%，成功避開損失。",
+      "data": {
+        "stockid": "HOOD US",
+        "event_date": "2026-10-28",
+        "direction": "trim",
+        "qty_change_pct": -87.5,
+        "weight_pct": 1.934,
+        "return_since_pct": -32.0,
+        "tier": 30
+      }
+    },
+    {
+      "id": "R3-NVDA US-20261111-t15",
+      "rule": "R3",
+      "score": 55.49,
+      "selected": true,
+      "fact": "11/11 減碼 輝達公司，其後回跌 27.7%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/11 提前減碼輝達公司，隨後該股回跌 27.7%，成功避開損失。",
+      "data": {
+        "stockid": "NVDA US",
+        "event_date": "2026-11-11",
+        "direction": "trim",
+        "qty_change_pct": -50.0,
+        "weight_pct": 1.514,
+        "return_since_pct": -27.74,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-AXTI US-20261113-t15",
+      "rule": "R3",
+      "score": 53.87,
+      "selected": true,
+      "fact": "11/13 減碼 AXT公司，其後回跌 26.9%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/13 提前減碼AXT公司，隨後該股回跌 26.9%，成功避開損失。",
+      "data": {
+        "stockid": "AXTI US",
+        "event_date": "2026-11-13",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 1.06,
+        "return_since_pct": -26.94,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-ALAB US-20261102-t15",
+      "rule": "R3",
+      "score": 42.95,
+      "selected": false,
+      "fact": "11/2 減碼 Astera實驗室公司，其後回跌 21.5%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/2 提前減碼Astera實驗室公司，隨後該股回跌 21.5%，成功避開損失。",
+      "data": {
+        "stockid": "ALAB US",
+        "event_date": "2026-11-02",
+        "direction": "trim",
+        "qty_change_pct": -22.2,
+        "weight_pct": 2.206,
+        "return_since_pct": -21.47,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-BE US-20261117-t15",
+      "rule": "R3",
+      "score": 35.82,
+      "selected": false,
+      "fact": "11/17 減碼 布魯姆能源公司，其後回跌 17.9%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/17 提前減碼布魯姆能源公司，隨後該股回跌 17.9%，成功避開損失。",
+      "data": {
+        "stockid": "BE US",
+        "event_date": "2026-11-17",
+        "direction": "trim",
+        "qty_change_pct": -23.7,
+        "weight_pct": 5.254,
+        "return_since_pct": -17.91,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-WPM US-20261112-t15",
+      "rule": "R3",
+      "score": 32.95,
+      "selected": false,
+      "fact": "11/12 減碼 惠頓貴金屬公司，其後回跌 16.5%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/12 提前減碼惠頓貴金屬公司，隨後該股回跌 16.5%，成功避開損失。",
+      "data": {
+        "stockid": "WPM US",
+        "event_date": "2026-11-12",
+        "direction": "trim",
+        "qty_change_pct": -56.5,
+        "weight_pct": 0.901,
+        "return_since_pct": -16.47,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-TWLO US-20261030-t15",
+      "rule": "R3",
+      "score": 32.12,
+      "selected": false,
+      "fact": "10/30 減碼 Twilio公司，其後回跌 16.1%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/30 提前減碼Twilio公司，隨後該股回跌 16.1%，成功避開損失。",
+      "data": {
+        "stockid": "TWLO US",
+        "event_date": "2026-10-30",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 0.975,
+        "return_since_pct": -16.06,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-LITE US-20261116-t15",
+      "rule": "R3",
+      "score": 31.3,
+      "selected": false,
+      "fact": "11/16 減碼 魯門特姆控股公司，其後回跌 15.7%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/16 提前減碼魯門特姆控股公司，隨後該股回跌 15.7%，成功避開損失。",
+      "data": {
+        "stockid": "LITE US",
+        "event_date": "2026-11-16",
+        "direction": "trim",
+        "qty_change_pct": -85.7,
+        "weight_pct": 1.253,
+        "return_since_pct": -15.65,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-AEM US-20261112-t15",
+      "rule": "R3",
+      "score": 30.39,
+      "selected": false,
+      "fact": "11/12 減碼 阿格尼科鷹礦業有限公司，其後回跌 15.2%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/12 提前減碼阿格尼科鷹礦業有限公司，隨後該股回跌 15.2%，成功避開損失。",
+      "data": {
+        "stockid": "AEM US",
+        "event_date": "2026-11-12",
+        "direction": "trim",
+        "qty_change_pct": -62.5,
+        "weight_pct": 2.148,
+        "return_since_pct": -15.2,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-DASH US-20261110-t8",
+      "rule": "R3",
+      "score": 28.78,
+      "selected": false,
+      "fact": "11/10 減碼 DoorDash公司，其後回跌 14.4%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/10 提前減碼DoorDash公司，隨後該股回跌 14.4%，成功避開損失。",
+      "data": {
+        "stockid": "DASH US",
+        "event_date": "2026-11-10",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 0.763,
+        "return_since_pct": -14.39,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-AMD US-20261103-t8",
+      "rule": "R3",
+      "score": 24.6,
+      "selected": false,
+      "fact": "11/3 減碼 超微半導體公司，其後回跌 12.3%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/3 提前減碼超微半導體公司，隨後該股回跌 12.3%，成功避開損失。",
+      "data": {
+        "stockid": "AMD US",
+        "event_date": "2026-11-03",
+        "direction": "trim",
+        "qty_change_pct": -31.1,
+        "weight_pct": 2.939,
+        "return_since_pct": -12.3,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-PANW US-20261117-t8",
+      "rule": "R3",
+      "score": 22.01,
+      "selected": false,
+      "fact": "11/17 加碼的 Palo Alto Networks Inc 至今 +11.0%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/17 加碼Palo Alto Networks Inc，至今上漲 11.0%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "PANW US",
+        "event_date": "2026-11-17",
+        "direction": "add",
+        "qty_change_pct": 14.1,
+        "weight_pct": 2.46,
+        "return_since_pct": 11.0,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-DDOG US-20261105-t8",
+      "rule": "R3",
+      "score": 19.74,
+      "selected": false,
+      "fact": "11/5 減碼 數據狗公司，其後回跌 9.9%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/5 提前減碼數據狗公司，隨後該股回跌 9.9%，成功避開損失。",
+      "data": {
+        "stockid": "DDOG US",
+        "event_date": "2026-11-05",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 0.724,
+        "return_since_pct": -9.87,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-OKTA US-20261117-t8",
+      "rule": "R3",
+      "score": 19.39,
+      "selected": false,
+      "fact": "11/17 加碼的 Okta公司 至今 +9.7%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/17 加碼Okta公司，至今上漲 9.7%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "OKTA US",
+        "event_date": "2026-11-17",
+        "direction": "add",
+        "qty_change_pct": 25.0,
+        "weight_pct": 1.428,
+        "return_since_pct": 9.69,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-JPM US-20261111-t8",
+      "rule": "R3",
+      "score": 19.14,
+      "selected": false,
+      "fact": "11/11 減碼 摩根大通銀行，其後回跌 9.6%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/11 提前減碼摩根大通銀行，隨後該股回跌 9.6%，成功避開損失。",
+      "data": {
+        "stockid": "JPM US",
+        "event_date": "2026-11-11",
+        "direction": "trim",
+        "qty_change_pct": -85.7,
+        "weight_pct": 0.715,
+        "return_since_pct": -9.57,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-MU US-20261105-t8",
+      "rule": "R3",
+      "score": 18.85,
+      "selected": false,
+      "fact": "11/5 減碼 美光科技公司，其後回跌 9.4%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/5 提前減碼美光科技公司，隨後該股回跌 9.4%，成功避開損失。",
+      "data": {
+        "stockid": "MU US",
+        "event_date": "2026-11-05",
+        "direction": "trim",
+        "qty_change_pct": -17.9,
+        "weight_pct": 3.797,
+        "return_since_pct": -9.43,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-META US-20261028-t8",
+      "rule": "R3",
+      "score": 16.87,
+      "selected": false,
+      "fact": "10/28 減碼 Meta平台公司，其後回跌 8.4%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/28 提前減碼Meta平台公司，隨後該股回跌 8.4%，成功避開損失。",
+      "data": {
+        "stockid": "META US",
+        "event_date": "2026-10-28",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 0.952,
+        "return_since_pct": -8.43,
+        "tier": 8
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 545,
+    "line_status": 200,
+    "candidate_count": 19,
+    "selected_count": 5
+  }
+}
