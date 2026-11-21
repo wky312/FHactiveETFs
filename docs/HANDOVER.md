@@ -147,7 +147,7 @@ DRY_RUN=1 SCAN_DATE=2026-07-03 python scripts/highlight_scan.py
 ## 5. Roadmap 與已決策事項
 
 **v2 候選（優先序由使用者定）：**
-- **R6 受益人數規則**：TDCC 開放資料 `smart.tdcc.com.tw/opendata/getOD.ashx?id=1-5`（每週五更、免 token、只回最新一週）；歷史回補走 TDCC 查詢頁（**已 PoC 驗證**：無驗證碼、CSRF token 每回應更新、可回補 51 週；00991A 受益人半年 79k→279k，本身就是素材）。
+- **R6 受益人數規則**：TDCC 開放資料 `opendata.tdcc.com.tw/getOD.ashx?id=1-5`（舊的 smart.tdcc.com.tw 2026-11 起海外 IP 連不到，僅作備援）（每週五更、免 token、只回最新一週）；歷史回補走 TDCC 查詢頁（**已 PoC 驗證**：無驗證碼、CSRF token 每回應更新、可回補 51 週；00991A 受益人半年 79k→279k，本身就是素材）。
 - 擴 00998A／全產品線（`FUND_TICKER` 目前寫死 00991A，擴充時抽參數）。
 - Gemini 潤飾草稿句（選配按鈕思路）、餵入 etf-content-factory（該專案已有文案＋法遵產線）。
 

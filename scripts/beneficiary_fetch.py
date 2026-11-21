@@ -25,7 +25,12 @@ from typing import Iterable, Optional
 import requests
 
 TDCC_QUERY_URL = 'https://www.tdcc.com.tw/portal/zh/smWeb/qryStock'
-TDCC_OPENDATA_URL = 'https://smart.tdcc.com.tw/opendata/getOD.ashx?id=1-5'
+# 2026-11 起 smart.tdcc.com.tw 從 GitHub Actions（海外 IP）連不到（Errno 101 Network is unreachable），
+# opendata.tdcc.com.tw 是同一份開放資料、海外可連 → 放第一順位，smart 留作備援。
+TDCC_OPENDATA_URLS = (
+    'https://opendata.tdcc.com.tw/getOD.ashx?id=1-5',
+    'https://smart.tdcc.com.tw/opendata/getOD.ashx?id=1-5',
+)
 UA = ('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 '
       '(KHTML, like Gecko) Chrome/126.0 Safari/537.36')
 
@@ -166,10 +171,18 @@ def _lax(fn, *args, **kw):
 
 def fetch_opendata_week(tickers: Iterable[str] = TRACKED_TICKERS) -> list:
     """開放資料 CSV（最新一週、全市場）→ 追蹤清單的 rows。"""
-    resp = _lax(requests.get, TDCC_OPENDATA_URL, headers={'User-Agent': UA}, timeout=120)
-    resp.raise_for_status()
-    resp.encoding = 'utf-8'
-    return parse_opendata_csv(resp.text, tickers)
+    last_err: Optional[Exception] = None
+    for url in TDCC_OPENDATA_URLS:
+        try:
+            resp = _lax(requests.get, url, headers={'User-Agent': UA}, timeout=60)
+            resp.raise_for_status()
+        except requests.exceptions.RequestException as e:
+            print(f'WARN: {url} 失敗，換下一個來源：{e}')
+            last_err = e
+            continue
+        resp.encoding = 'utf-8'
+        return parse_opendata_csv(resp.text, tickers)
+    raise RuntimeError('所有 TDCC 開放資料來源都失敗') from last_err
 
 
 def _form_page(session: requests.Session) -> str:
