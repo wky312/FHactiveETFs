@@ -1,0 +1,131 @@
+{
+  "date": "2026-11-24",
+  "scanned_at": "2026-11-24T02:51:24+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": null
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "overseas"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "stale",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R3-4062 JP-20261104-t30",
+      "rule": "R3",
+      "score": 83.74,
+      "selected": true,
+      "fact": "11/4 減碼 揖斐電有限公司，其後回跌 41.9%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/4 提前減碼揖斐電有限公司，隨後該股回跌 41.9%，成功避開損失。",
+      "data": {
+        "stockid": "4062 JP",
+        "event_date": "2026-11-04",
+        "direction": "trim",
+        "qty_change_pct": -69.0,
+        "weight_pct": 1.243,
+        "return_since_pct": -41.87,
+        "tier": 30
+      }
+    },
+    {
+      "id": "R3-285A JP-20261104-t30",
+      "rule": "R3",
+      "score": 63.87,
+      "selected": true,
+      "fact": "11/4 減碼 鎧俠控股公司，其後回跌 31.9%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/4 提前減碼鎧俠控股公司，隨後該股回跌 31.9%，成功避開損失。",
+      "data": {
+        "stockid": "285A JP",
+        "event_date": "2026-11-04",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 1.008,
+        "return_since_pct": -31.93,
+        "tier": 30
+      }
+    },
+    {
+      "id": "R3-6857 JP-20261021-t15",
+      "rule": "R3",
+      "score": 59.15,
+      "selected": true,
+      "fact": "10/21 減碼 愛德萬測試，其後回跌 29.6%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/21 提前減碼愛德萬測試，隨後該股回跌 29.6%，成功避開損失。",
+      "data": {
+        "stockid": "6857 JP",
+        "event_date": "2026-10-21",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 0.78,
+        "return_since_pct": -29.57,
+        "tier": 15
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 329,
+    "line_status": 200,
+    "candidate_count": 3,
+    "selected_count": 3
+  }
+}
