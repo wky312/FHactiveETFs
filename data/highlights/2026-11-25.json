@@ -1,0 +1,237 @@
+{
+  "date": "2026-11-25",
+  "scanned_at": "2026-11-25T01:08:11+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": "0050"
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "tw_active"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "stale",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R1-2330-2026-11-25",
+      "rule": "R1",
+      "score": 175.63,
+      "selected": true,
+      "fact": "台灣積體今日 +9.85%，00991A 持股 17.83%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "台灣積體大漲 9.85%，00991A 以 17.83% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "2330",
+        "pct_change": 9.85,
+        "weight_pct": 17.83,
+        "is_heaviest_among_universe": false,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R1-2454-2026-11-25",
+      "rule": "R1",
+      "score": 90.97,
+      "selected": true,
+      "fact": "聯發科技今日 +9.91%，00991A 持股 9.18%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "聯發科技大漲 9.91%，00991A 以 9.18% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "2454",
+        "pct_change": 9.91,
+        "weight_pct": 9.18,
+        "is_heaviest_among_universe": false,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R1-2383-2026-11-25",
+      "rule": "R1",
+      "score": 87.05,
+      "selected": true,
+      "fact": "台光電子今日 +9.87%，00991A 持股 8.82%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "台光電子大漲 9.87%，00991A 以 8.82% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "2383",
+        "pct_change": 9.87,
+        "weight_pct": 8.82,
+        "is_heaviest_among_universe": false,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R1-3017-2026-11-25",
+      "rule": "R1",
+      "score": 78.13,
+      "selected": true,
+      "fact": "奇鋐科技今日 +9.94%，00991A 持股 7.86%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "奇鋐科技大漲 9.94%，00991A 以 7.86% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "3017",
+        "pct_change": 9.94,
+        "weight_pct": 7.86,
+        "is_heaviest_among_universe": false,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R1-1303-2026-11-25",
+      "rule": "R1",
+      "score": 63.06,
+      "selected": true,
+      "fact": "南亞塑膠今日 +9.93%，00991A 持股 6.35%、為全市場 20 檔主動 ETF中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "南亞塑膠大漲 9.93%，00991A 以 6.35% 持股居全市場主動 ETF之冠，經理人重押命中。",
+      "data": {
+        "stockid": "1303",
+        "pct_change": 9.93,
+        "weight_pct": 6.35,
+        "is_heaviest_among_universe": true,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R1-3037-2026-11-25",
+      "rule": "R1",
+      "score": 62.81,
+      "selected": false,
+      "fact": "欣興電子今日 +9.86%，00991A 持股 6.37%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "欣興電子大漲 9.86%，00991A 以 6.37% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "3037",
+        "pct_change": 9.86,
+        "weight_pct": 6.37,
+        "is_heaviest_among_universe": false,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R1-2059-2026-11-25",
+      "rule": "R1",
+      "score": 59.88,
+      "selected": false,
+      "fact": "川湖科技今日 +9.93%，00991A 持股 6.03%、為全市場 20 檔主動 ETF中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "川湖科技大漲 9.93%，00991A 以 6.03% 持股居全市場主動 ETF之冠，經理人重押命中。",
+      "data": {
+        "stockid": "2059",
+        "pct_change": 9.93,
+        "weight_pct": 6.03,
+        "is_heaviest_among_universe": true,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R1-8046-2026-11-25",
+      "rule": "R1",
+      "score": 50.1,
+      "selected": false,
+      "fact": "南亞電路今日 +10.0%，00991A 持股 5.01%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "南亞電路大漲 10.0%，00991A 以 5.01% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "8046",
+        "pct_change": 10.0,
+        "weight_pct": 5.01,
+        "is_heaviest_among_universe": false,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R1-3189-2026-11-25",
+      "rule": "R1",
+      "score": 45.37,
+      "selected": false,
+      "fact": "景碩科技今日 +9.95%，00991A 持股 4.56%、為全市場 20 檔主動 ETF中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "景碩科技大漲 9.95%，00991A 以 4.56% 持股居全市場主動 ETF之冠，經理人重押命中。",
+      "data": {
+        "stockid": "3189",
+        "pct_change": 9.95,
+        "weight_pct": 4.56,
+        "is_heaviest_among_universe": true,
+        "universe_size": 20
+      }
+    },
+    {
+      "id": "R1-3711-2026-11-25",
+      "rule": "R1",
+      "score": 41.83,
+      "selected": false,
+      "fact": "日月光投今日 +9.96%，00991A 持股 4.2%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "日月光投大漲 9.96%，00991A 以 4.2% 持股重倉布局，經理人重押命中。",
+      "data": {
+        "stockid": "3711",
+        "pct_change": 9.96,
+        "weight_pct": 4.2,
+        "is_heaviest_among_universe": false,
+        "universe_size": 20
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 583,
+    "line_status": 200,
+    "candidate_count": 10,
+    "selected_count": 5
+  }
+}
