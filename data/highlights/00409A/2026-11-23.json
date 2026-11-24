@@ -1,0 +1,350 @@
+{
+  "date": "2026-11-23",
+  "scanned_at": "2026-11-24T13:42:39+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": null
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "overseas"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "ok",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R1-PLTR US-2026-11-23",
+      "rule": "R1",
+      "score": 70.01,
+      "selected": true,
+      "fact": "帕蘭提爾科技公司昨日 +11.06%，00409A 持股 6.33%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 帕蘭提爾科技公司（PLTR）上漲約 11.06%。\n00409A 自 8/20 首次買進，並於 8/28、8/31、9/1、9/4 加碼；截至 11/23 持有 115.5 張、占淨值 6.332%，報酬約 -11.5%。",
+      "data": {
+        "stockid": "PLTR US",
+        "pct_change": 11.06,
+        "weight_pct": 6.33,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-COHR US-2026-11-23",
+      "rule": "R1",
+      "score": 46.12,
+      "selected": true,
+      "fact": "高意公司昨日 +15.27%，00409A 持股 3.02%、為海外主動 ETF 觀測群 9 檔中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 高意公司（COHR）上漲約 15.27%。\n00409A 最近於 11/11 重新建倉，並於 11/18、11/23 加碼；截至 11/23 持有 40.7 張、占淨值 3.022%，報酬約 -4.0%。",
+      "data": {
+        "stockid": "COHR US",
+        "pct_change": 15.27,
+        "weight_pct": 3.02,
+        "is_heaviest_among_universe": true,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R2-COHR US-2026-11-23",
+      "rule": "R2",
+      "score": 38.63,
+      "selected": true,
+      "fact": "顯著超配持股 高意公司昨日 +15.27%（00409A 權重 2.53%，其他海外主動 ETF 最高僅 1.13%）",
+      "angle": "顯著超配股發威：別人沒有的上漲",
+      "draft": "昨日 高意公司（COHR）上漲約 15.27%。\n00409A 最近於 11/11 重新建倉，並於 11/18、11/23 加碼；截至 11/23 持有 40.7 張、占淨值 3.022%，報酬約 -4.0%。",
+      "data": {
+        "stockid": "COHR US",
+        "pct_change": 15.27,
+        "weight_pct": 2.53,
+        "exclusive": false,
+        "new_high": false,
+        "others_max_weight": 1.13
+      }
+    },
+    {
+      "id": "R1-SPCX US-2026-11-23",
+      "rule": "R1",
+      "score": 36.71,
+      "selected": true,
+      "fact": "太空探索科技公司昨日 +4.35%，00409A 持股 8.44%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 太空探索科技公司（SPCX）上漲約 4.35%。\n00409A 自 8/27 首次買進，並於 11/9、11/12、11/13、11/16 加碼；截至 11/23 持有 184 張、占淨值 8.441%，報酬約 -7.3%。",
+      "data": {
+        "stockid": "SPCX US",
+        "pct_change": 4.35,
+        "weight_pct": 8.44,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R3-OKTA US-20261117-t15",
+      "rule": "R3",
+      "score": 36.37,
+      "selected": true,
+      "fact": "11/17 加碼的 Okta公司 至今 +18.2%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/17 加碼Okta公司，至今上漲 18.2%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "OKTA US",
+        "event_date": "2026-11-17",
+        "direction": "add",
+        "qty_change_pct": 25.0,
+        "weight_pct": 1.428,
+        "return_since_pct": 18.18,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-PANW US-20261117-t8",
+      "rule": "R3",
+      "score": 28.54,
+      "selected": false,
+      "fact": "11/17 加碼的 Palo Alto Networks Inc 至今 +14.3%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/17 加碼Palo Alto Networks Inc，至今上漲 14.3%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "PANW US",
+        "event_date": "2026-11-17",
+        "direction": "add",
+        "qty_change_pct": 14.1,
+        "weight_pct": 2.46,
+        "return_since_pct": 14.27,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R1-NET US-2026-11-23",
+      "rule": "R1",
+      "score": 24.52,
+      "selected": false,
+      "fact": "Cloudflare公司昨日 +5.88%，00409A 持股 4.17%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 Cloudflare公司（NET）上漲約 5.88%。\n00409A 自 8/28 首次買進，並於 11/12、11/13、11/16、11/23 加碼；截至 11/23 持有 41.592 張、占淨值 4.166%，報酬約 -3.8%。",
+      "data": {
+        "stockid": "NET US",
+        "pct_change": 5.88,
+        "weight_pct": 4.17,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-AMD US-2026-11-23",
+      "rule": "R1",
+      "score": 23.63,
+      "selected": false,
+      "fact": "超微半導體公司昨日 +6.85%，00409A 持股 3.45%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 超微半導體公司（AMD）上漲約 6.85%。\n00409A 自 9/16 首次買進，並於 10/28、11/6、11/11、11/12 加碼；截至 11/23 持有 22.1 張、占淨值 3.448%，報酬約 -16.4%。",
+      "data": {
+        "stockid": "AMD US",
+        "pct_change": 6.85,
+        "weight_pct": 3.45,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R3-ZS US-20261119-t8",
+      "rule": "R3",
+      "score": 22.88,
+      "selected": false,
+      "fact": "11/19 加碼的 Zscaler公司 至今 +11.4%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/19 加碼Zscaler公司，至今上漲 11.4%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "ZS US",
+        "event_date": "2026-11-19",
+        "direction": "add",
+        "qty_change_pct": 87.5,
+        "weight_pct": 1.026,
+        "return_since_pct": 11.44,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-WPM US-20261112-t8",
+      "rule": "R3",
+      "score": 21.06,
+      "selected": false,
+      "fact": "11/12 減碼 惠頓貴金屬公司，其後回跌 10.5%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/12 提前減碼惠頓貴金屬公司，隨後該股回跌 10.5%，成功避開損失。",
+      "data": {
+        "stockid": "WPM US",
+        "event_date": "2026-11-12",
+        "direction": "trim",
+        "qty_change_pct": -56.5,
+        "weight_pct": 0.901,
+        "return_since_pct": -10.53,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-AEM US-20261112-t8",
+      "rule": "R3",
+      "score": 20.97,
+      "selected": false,
+      "fact": "11/12 減碼 阿格尼科鷹礦業有限公司，其後回跌 10.5%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/12 提前減碼阿格尼科鷹礦業有限公司，隨後該股回跌 10.5%，成功避開損失。",
+      "data": {
+        "stockid": "AEM US",
+        "event_date": "2026-11-12",
+        "direction": "trim",
+        "qty_change_pct": -62.5,
+        "weight_pct": 2.148,
+        "return_since_pct": -10.49,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-TWLO US-20261030-t8",
+      "rule": "R3",
+      "score": 20.09,
+      "selected": false,
+      "fact": "10/30 減碼 Twilio公司，其後回跌 10.0%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/30 提前減碼Twilio公司，隨後該股回跌 10.0%，成功避開損失。",
+      "data": {
+        "stockid": "TWLO US",
+        "event_date": "2026-10-30",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 0.975,
+        "return_since_pct": -10.05,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-DASH US-20261110-t8",
+      "rule": "R3",
+      "score": 18.96,
+      "selected": false,
+      "fact": "11/10 減碼 DoorDash公司，其後回跌 9.5%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/10 提前減碼DoorDash公司，隨後該股回跌 9.5%，成功避開損失。",
+      "data": {
+        "stockid": "DASH US",
+        "event_date": "2026-11-10",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 0.763,
+        "return_since_pct": -9.48,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R1-ANET US-2026-11-23",
+      "rule": "R1",
+      "score": 18.76,
+      "selected": false,
+      "fact": "Arista網路公司昨日 +6.38%，00409A 持股 2.94%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 Arista網路公司（ANET）上漲約 6.38%。\n00409A 自 11/4 首次買進，並於 11/12、11/13、11/16、11/18 加碼；截至 11/23 持有 48 張、占淨值 2.945%，報酬約 -6.5%。",
+      "data": {
+        "stockid": "ANET US",
+        "pct_change": 6.38,
+        "weight_pct": 2.94,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R3-MRNA US-20261120-t8",
+      "rule": "R3",
+      "score": 17.52,
+      "selected": false,
+      "fact": "11/20 加碼的 莫德納公司 至今 +8.8%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/20 加碼莫德納公司，至今上漲 8.8%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "MRNA US",
+        "event_date": "2026-11-20",
+        "direction": "add",
+        "qty_change_pct": 23.1,
+        "weight_pct": 1.491,
+        "return_since_pct": 8.76,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R1-AMZN US-2026-11-23",
+      "rule": "R1",
+      "score": 16.0,
+      "selected": false,
+      "fact": "亞馬遜公司昨日 +3.47%，00409A 持股 4.61%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 亞馬遜公司（AMZN）上漲約 3.47%。\n00409A 自 8/31 首次買進，並於 11/4、11/5、11/16、11/17 加碼；截至 11/23 持有 52.5 張、占淨值 4.613%，報酬約 -2.5%。",
+      "data": {
+        "stockid": "AMZN US",
+        "pct_change": 3.47,
+        "weight_pct": 4.61,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 877,
+    "line_status": 200,
+    "candidate_count": 16,
+    "selected_count": 5
+  }
+}
