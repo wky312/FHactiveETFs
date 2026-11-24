@@ -34,6 +34,7 @@ import BreakIssueTab from './BreakIssueTab';
 import MarketCalendarTab from './MarketCalendarTab';
 import ShortBanStudyTab from './ShortBanStudyTab';
 import ComplaintTab from './ComplaintTab';
+import RtPremiumTab from './RtPremiumTab';
 import { captureAndShare } from '@/lib/captureImage';
 
 /* ── Design tokens ── */
@@ -48,7 +49,7 @@ const BORDER = '#E8E3DF';
 const MONO   = "'IBM Plex Mono', 'Courier New', monospace";
 const SANS   = "'Noto Sans TC', 'Segoe UI', Arial, sans-serif";
 
-type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'dailychange' | 'peerperf' | 'cumret' | 'stockattr' | 'impact' | 'top10' | 'risk' | 'turnover' | 'consensus' | 'sector' | 'sectorheatmap' | 'unitwatch' | 'beneficiary' | 'mktcap150' | 'newhigh150' | 'top300ytd' | 'top350etf' | 'breakissue' | 'calendar' | 'shortban' | 'complaint';
+type Tab = 'holdings' | 'compare' | 'summary' | 'country' | 'performance' | 'trajectory' | 'scorecard' | 'marketscorecard' | 'pred0050' | 'scale' | 'peer' | 'dailychange' | 'peerperf' | 'cumret' | 'stockattr' | 'impact' | 'top10' | 'risk' | 'turnover' | 'consensus' | 'sector' | 'sectorheatmap' | 'unitwatch' | 'beneficiary' | 'mktcap150' | 'newhigh150' | 'top300ytd' | 'top350etf' | 'breakissue' | 'calendar' | 'shortban' | 'complaint' | 'rtpremium';
 
 /* 舊分頁 id → 合併後的新 id（讓分享出去的舊連結不會直接壞掉，掉回首頁）。
    對應的子範圍（台股/美股、國內/海外）由各自的合併元件自己讀 URL 上的舊 tab 值還原，見
@@ -66,6 +67,7 @@ const NAV_GROUPS: { label: string; items: { id: Tab; label: string }[] }[] = [
     { id: 'compare',  label: '持股比較' },
     { id: 'country',  label: '國家配置' },
     { id: 'scale',    label: '規模變化' },
+    { id: 'rtpremium', label: '即時折溢價' },
   ] },
   { label: '個股與績效', items: [
     { id: 'performance', label: '股價表現' },
@@ -763,6 +765,12 @@ export default function Dashboard() {
         {activeTab === 'unitwatch' && (
           <Card title="單位數注意商品">
             <UnitWatchTab />
+          </Card>
+        )}
+
+        {activeTab === 'rtpremium' && (
+          <Card title="即時折溢價（復華主動式ETF）">
+            <RtPremiumTab />
           </Card>
         )}
 
