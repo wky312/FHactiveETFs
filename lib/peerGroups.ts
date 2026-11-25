@@ -57,6 +57,8 @@ export const PEER_GROUPS: Record<string, { label: string; items: PeerItem[] }> =
       { ticker: '00409A', yfTicker: '00409A.TW', name: '主動復華全球50' },
       // 2026/08/26 掛牌，**上櫃**（TWSE ISIN 查證）→ Yahoo 要 .TWO，寫 .TW 會查無此代號
       { ticker: '00411A', yfTicker: '00411A.TWO', name: '主動統一前沿科技' },
+      // 2026/10/13 掛牌，**上市**（證交所公告）→ Yahoo 用 .TW
+      { ticker: '00412A', yfTicker: '00412A.TW', name: '主動安聯亞半導體' },
       /* 美股對照組。要「還原權息」就得挑對 Yahoo 代號——一般指數（^IXIC/^GSPC）是價格指數，
          adjClose 等於 close、配息完全沒算進去，所以改用官方總報酬指數：
            ^XCMP    = NASDAQ Composite Total Return
