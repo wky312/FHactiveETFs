@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-24T13:42:39+08:00",
+  "updated_at": "2026-11-25T12:44:25+08:00",
   "pushed_dates": [
     "2026-10-06",
     "2026-10-07",
@@ -35,7 +35,8 @@
     "2026-11-18",
     "2026-11-19",
     "2026-11-20",
-    "2026-11-23"
+    "2026-11-23",
+    "2026-11-24"
   ],
   "r3_events": {
     "6976 JP|2026/10/01": {
@@ -205,6 +206,26 @@
     "OKTA US|2026/11/17": {
       "direction": "add",
       "tier_pushed": 15
+    },
+    "ALAB US|2026/11/02": {
+      "direction": "trim",
+      "tier_pushed": 15
+    },
+    "MRNA US|2026/11/20": {
+      "direction": "add",
+      "tier_pushed": 15
+    },
+    "AMD US|2026/11/03": {
+      "direction": "trim",
+      "tier_pushed": 8
+    },
+    "PANW US|2026/11/17": {
+      "direction": "add",
+      "tier_pushed": 8
+    },
+    "ZS US|2026/11/19": {
+      "direction": "add",
+      "tier_pushed": 8
     }
   },
   "r4_rank": {},
