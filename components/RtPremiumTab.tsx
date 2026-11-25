@@ -153,8 +153,11 @@ export default function RtPremiumTab() {
           ? <div style={{ fontSize: '.84rem', color: SUB }}>目前沒有基金超過門檻。</div>
           : <ul style={{ margin: 0, paddingLeft: 18, fontSize: '.86rem', lineHeight: 1.8 }}>
               {hits.map((h, i) => (
-                <li key={i}><span style={{ fontFamily: MONO, color: SUB }}>{h.time}</span>　<b>{h.code}</b> {h.name}
-                  <span style={{ color: colorOf(h.dpPct), fontWeight: 700 }}>{fmtPct(h.dpPct)}</span></li>
+                <li key={i}>
+                  <span style={{ fontFamily: MONO, color: SUB, marginRight: 14 }}>{h.time}</span>
+                  <b>{h.code}</b> {h.name}
+                  <span style={{ color: colorOf(h.dpPct), fontWeight: 700, marginLeft: 14 }}>{fmtPct(h.dpPct)}</span>
+                </li>
               ))}
             </ul>}
       </div>
