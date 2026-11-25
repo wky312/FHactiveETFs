@@ -16,7 +16,10 @@
 
    換股後表現（需網路：Yahoo 個股還原收盤＋匯率＋基金本身市價）：
    - 基準價＝換股日（持股公布日）收盤；個股報酬換算成新台幣（與基金同幣別）。
-   - 期間：之後第 5／20／60 個交易日（以該 ETF 在台股的交易日計），以及到最新一天。
+   - 期間（seg，預設、用來判斷買對／賣飛）：每個決定只算到經理人「下一次反向操作」為止——
+     買進算到下次減碼／出清那天、賣出算到下次新增／加碼那天；還沒反向操作就算到最新一天。
+     這樣「先加碼、後來又賣掉」的股票，賣掉之後的漲跌不會算在當初那筆買進頭上。
+   - 另附固定期間：之後第 5／20／60 個交易日（以該 ETF 在台股的交易日計），以及到最新一天。
    - 相對報酬＝個股報酬 − 同期間該 ETF 本身市價（還原）報酬：正值代表「比基金整體強」。 */
 
 import { OVERSEAS_FUNDS } from './overseasFunds';
@@ -47,9 +50,11 @@ export interface DetectedTrade {
 
 export interface TradeResult extends DetectedTrade {
   priced: boolean;
-  ret: Record<string, number | null>;   // 'd5' | 'd20' | 'd60' | 'now' → 個股報酬 %（新台幣）
+  ret: Record<string, number | null>;   // 'seg' | 'd5' | 'd20' | 'd60' | 'now' → 個股報酬 %（新台幣）
   rel: Record<string, number | null>;   // 同上，減去同期基金報酬（百分點）
   nowDate: string | null;               // 「至今」實際算到哪一天
+  segEnd: string | null;                // seg 算到哪一天（YYYY-MM-DD）
+  segEndBy: TradeType | null;           // 結束 seg 的反向操作；null＝尚未反向操作（算到最新一天）
 }
 
 export interface AllocationRow {
@@ -312,15 +317,31 @@ export async function computeTradeFollow(fund: string, start: string, end?: stri
   // ── 逐筆計算 ──
   const pct = (a: number | undefined, b: number | undefined) =>
     a != null && b != null && b !== 0 ? (a / b - 1) * 100 : null;
+  // 每檔股票的全部換股（不受查詢區間限制），用來找「下一次反向操作」
+  const allByStock = new Map<string, DetectedTrade[]>();
+  for (const x of allTrades) { const l = allByStock.get(x.id) ?? []; l.push(x); allByStock.set(x.id, l); }
+  for (const l of allByStock.values()) l.sort((a, b) => a.date.localeCompare(b.date));
+  const calIndexAtOrBefore = (d: string) => {
+    let k = -1;
+    for (let i = 0; i < calendar.length; i++) { if (calendar[i] <= d) k = i; else break; }
+    return k;
+  };
+
   const results: TradeResult[] = trades.map((t) => {
     const series = twdPx.get(t.id);
     const ret: Record<string, number | null> = {};
     const rel: Record<string, number | null> = {};
     // 換股日在台股交易日曆上的位置（公布日當天或之前最後一個交易日）
-    let i0 = -1;
-    for (let i = 0; i < calendar.length; i++) { if (calendar[i] <= t.date) i0 = i; else break; }
+    const i0 = calIndexAtOrBefore(t.date);
     const d0 = i0 >= 0 ? calendar[i0] : null;
+    const opp = (allByStock.get(t.id) ?? []).find(x => x.side !== t.side && x.date > t.endDate) ?? null;
+    let segDate: string | null = null;
+    if (d0) {
+      const j = opp ? calIndexAtOrBefore(opp.date) : calendar.length - 1;
+      segDate = j > i0 ? calendar[j] : null;
+    }
     const targets: [string, string | null][] = [
+      ['seg', segDate],
       ...WINDOWS.map(n => [`d${n}`, d0 && i0 + n < calendar.length ? calendar[i0 + n] : null] as [string, string | null]),
       ['now', d0 && lastCal > d0 ? lastCal : null],
     ];
@@ -331,7 +352,12 @@ export async function computeTradeFollow(fund: string, start: string, end?: stri
       ret[k] = r;
       rel[k] = r != null && f != null ? r - f : null;
     }
-    return { ...t, priced: !!series, ret, rel, nowDate: ret.now != null ? slashToIso(lastCal) : null };
+    return {
+      ...t, priced: !!series, ret, rel,
+      nowDate: ret.now != null ? slashToIso(lastCal) : null,
+      segEnd: segDate ? slashToIso(segDate) : null,
+      segEndBy: opp ? opp.type : null,
+    };
   });
 
   const warn: string[] = [];
