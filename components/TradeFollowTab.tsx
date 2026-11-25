@@ -366,10 +366,6 @@ export default function TradeFollowTab() {
             <span style={{ fontWeight: 400, fontSize: '.78rem', color: SUB }}>{res.fund} {res.fundName}｜換股日 {res.start} ~ {res.end}｜{WIN_LABEL[win]}</span>
           </h3>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'baseline', margin: '12px 0 4px' }}>
-            <div>
-              <div style={{ fontSize: '.76rem', color: SUB }}>換股對淨值的影響合計</div>
-              <div style={{ fontFamily: MONO, fontSize: '1.7rem', fontWeight: 700, color: col(summary.total) }}>{fmtPP(summary.total)}</div>
-            </div>
             <div style={{ fontSize: '.85rem', color: SUB, lineHeight: 1.8 }}>
               買進決定（新增／加碼）<span style={{ fontFamily: MONO, fontWeight: 700, color: col(summary.buy) }}>{fmtPP(summary.buy)}</span><br />
               賣出決定（減碼／出清）<span style={{ fontFamily: MONO, fontWeight: 700, color: col(summary.sell) }}>{fmtPP(summary.sell)}</span>
