@@ -22,7 +22,7 @@ type Win = 'seg' | 'd5' | 'd20' | 'd60' | 'now';
 type Basis = 'abs' | 'rel';
 type Verdict = 'buyGood' | 'buyBad' | 'sellMissed' | 'sellGood';
 
-const WIN_LABEL: Record<Win, string> = { seg: '到下次反向操作', d5: '之後5日', d20: '之後20日', d60: '之後60日', now: '至今' };
+const WIN_LABEL: Record<Win, string> = { seg: '到下次動作', d5: '之後5日', d20: '之後20日', d60: '之後60日', now: '至今' };
 const ALL_WINS: Win[] = ['seg', 'd5', 'd20', 'd60', 'now'];
 const TYPE_LABEL: Record<TradeType, string> = { new: '新增', add: '加碼', trim: '減碼', exit: '出清' };
 const TYPE_COLOR: Record<TradeType, string> = { new: UP, add: '#E26D5C', trim: '#4F8A6B', exit: DOWN };
@@ -122,7 +122,7 @@ type SortKey = 'date' | 'name' | 'type' | 'wb' | 'wa' | Win;
 /* seg 欄的小字：算到哪一天、被什麼操作結束 */
 function segNote(t: TradeResult): string {
   if (!t.segEnd) return '';
-  return t.segEndBy ? `至 ${t.segEnd.slice(5)} ${TYPE_LABEL[t.segEndBy]}` : (t.side === 'buy' ? '仍持有' : '尚未買回');
+  return t.segEndBy ? `至 ${t.segEnd.slice(5)} ${TYPE_LABEL[t.segEndBy]}` : (t.type === 'exit' ? '之後未再買回' : '之後無動作');
 }
 
 /* 依股票看：一檔股票一列，依時間排出每次操作與該次決定的漲跌 */
@@ -297,7 +297,7 @@ export default function TradeFollowTab() {
       [`${res.fund} ${res.fundName} 換股追蹤`, `換股日 ${res.start} ~ ${res.end}`, `口徑：${basisLbl}（新台幣、還原權息）`],
       [],
       ['換股日', '連續天數', '代號', '名稱', '動作', '調整前權重%', '調整後權重%',
-        ...ALL_WINS.flatMap(w => [`${WIN_LABEL[w]} 個股%`, `${WIN_LABEL[w]} 相對%`]), '反向操作日', '對淨值影響%（依目前選的期間/口徑）', '判斷（依目前選的期間/口徑）'],
+        ...ALL_WINS.flatMap(w => [`${WIN_LABEL[w]} 個股%`, `${WIN_LABEL[w]} 相對%`]), '算到（下次動作）', '對淨值影響%（依目前選的期間/口徑）', '判斷（依目前選的期間/口徑）'],
       ...rows.map(t => {
         const v = verdictOf(t, win, basis);
         return [t.date, t.days, t.rawId, t.name, TYPE_LABEL[t.type], +t.weightBefore.toFixed(2), +t.weightAfter.toFixed(2),
@@ -356,8 +356,8 @@ export default function TradeFollowTab() {
         </div>
         <p style={{ margin: '-6px 0 0', fontSize: '.76rem', color: SUB }}>
           {win === 'seg'
-            ? '每個決定只算到經理人下一次反向操作：買進的股票算到下次減碼／出清那天，賣出的股票算到下次新增／加碼那天；還沒反向操作就算到最新一天。中途賣掉之後的漲跌，不會算在當初那筆買進頭上。'
-            : `不管經理人之後有沒有反向操作，一律看換股後${WIN_LABEL[win]}的漲跌（期間還沒走完的顯示「—」）。`}
+            ? '依時間切段：每次操作只算到同一檔股票的下一次動作（不論買或賣）那天，沒有下一次動作就算到最新一天。例：09/14 新增、09/16 加碼 → 09/14 新增只算 09/14~09/16 這段，各段不重疊。'
+            : `不管經理人之後有沒有再動作，一律看換股後${WIN_LABEL[win]}的漲跌（期間還沒走完的顯示「—」）。`}
         </p>
 
         {/* ── 換股總結 ── */}
@@ -378,7 +378,7 @@ export default function TradeFollowTab() {
           <p style={{ margin: '0 0 12px', fontSize: '.74rem', color: SUB, lineHeight: 1.6 }}>
             每次操作對淨值的影響＝權重變化 × 之後的{basis === 'abs' ? '漲跌' : `漲跌（相對 ${res.fund}）`}。例：加碼 2% 權重、之後漲 10% → +0.20%；出清 3% 權重、之後反而漲 10% → −0.30%（少賺）；出清後跌 10% → +0.30%（躲掉虧損）。
             同一檔股票的所有操作加總，就是經理人在這檔股票的換股讓淨值多賺或少賺多少。點個股可看完整歷程。
-            {win !== 'seg' && <b>　目前選的是固定期間，前後操作的期間會重疊，合計數字僅供參考；看淨值影響建議用「到下次反向操作」。</b>}
+            {win !== 'seg' && <b>　目前選的是固定期間，前後操作的期間會重疊，合計數字僅供參考；看淨值影響建議用「到下次動作」。</b>}
           </p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24 }}>
             <SummaryList title="做對最多的個股" color={UP} list={summary.good}
@@ -490,8 +490,8 @@ export default function TradeFollowTab() {
             <li><b>新增／出清</b>：前一份持股沒有、這一份有＝新增；前一份有、這一份沒有＝出清。</li>
             <li><b>加碼／減碼</b>：ETF 每天有申購買回，所有持股股數會一起等比例變動，那不算經理人換股。所以先扣掉當天全體持股的共同變動，個股股數再多（少）10% 以上才算加碼（減碼）。</li>
             <li>同一檔股票連續幾天同方向調整，合併成一筆，日期記第一天。股票分割造成的股數倍增不算加碼。</li>
-            <li><b>到下次反向操作（預設）</b>：買進的股票從買進日算到經理人下次減碼／出清那天；賣出的股票從賣出日算到下次新增／加碼那天；還沒反向操作就算到最新一天。「買對／買錯／賣飛／賣對」預設依這段判斷。</li>
-            <li><b>固定期間</b>：以換股日（持股公布日）收盤為基準，計算之後第 5／20／60 個交易日，以及到最新一天的報酬，不管之後有沒有反向操作。海外股換算成新台幣、含配息（還原權息），與基金同口徑。還沒走滿的期間顯示「—」。</li>
+            <li><b>到下次動作（預設）</b>：每次操作從操作日算到同一檔股票的下一次動作（不論買或賣）那天；之後沒有動作就算到最新一天。各段時間不重疊。「買對／買錯／賣飛／賣對」預設依這段判斷。</li>
+            <li><b>固定期間</b>：以換股日（持股公布日）收盤為基準，計算之後第 5／20／60 個交易日，以及到最新一天的報酬，不管之後有沒有再動作。海外股換算成新台幣、含配息（還原權息），與基金同口徑。還沒走滿的期間顯示「—」。</li>
             <li><b>對淨值的影響</b>：權重變化 × 之後的漲跌（百分點）。權重用換股前後兩天的持股權重，未計入期間內權重隨股價漂移，屬近似值。</li>
             <li><b>相對 {res.fund}</b>：個股報酬減去同期間 {res.fund} 本身市價報酬。正值代表這檔股票比基金整體強。</li>
             <li>海外持股的公布日與實際交易時間可能差一天（時差），短期間（5 日）的數字僅供參考。</li>

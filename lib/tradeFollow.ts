@@ -16,9 +16,9 @@
 
    換股後表現（需網路：Yahoo 個股還原收盤＋匯率＋基金本身市價）：
    - 基準價＝換股日（持股公布日）收盤；個股報酬換算成新台幣（與基金同幣別）。
-   - 期間（seg，預設、用來判斷買對／賣飛）：每個決定只算到經理人「下一次反向操作」為止——
-     買進算到下次減碼／出清那天、賣出算到下次新增／加碼那天；還沒反向操作就算到最新一天。
-     這樣「先加碼、後來又賣掉」的股票，賣掉之後的漲跌不會算在當初那筆買進頭上。
+   - 期間（seg，預設、用來判斷買對／賣飛）：依時間切段——每次操作只算到同一檔股票的「下一次動作」
+     （不論買或賣）那天；沒有下一次動作就算到最新一天。例：09/14 新增、09/16 加碼、10/05 減碼
+     → 09/14 新增算 09/14~09/16、09/16 加碼算 09/16~10/05，各段不重疊。
    - 另附固定期間：之後第 5／20／60 個交易日（以該 ETF 在台股的交易日計），以及到最新一天。
    - 相對報酬＝個股報酬 − 同期間該 ETF 本身市價（還原）報酬：正值代表「比基金整體強」。 */
 
@@ -54,7 +54,7 @@ export interface TradeResult extends DetectedTrade {
   rel: Record<string, number | null>;   // 同上，減去同期基金報酬（百分點）
   nowDate: string | null;               // 「至今」實際算到哪一天
   segEnd: string | null;                // seg 算到哪一天（YYYY-MM-DD）
-  segEndBy: TradeType | null;           // 結束 seg 的反向操作；null＝尚未反向操作（算到最新一天）
+  segEndBy: TradeType | null;           // 結束 seg 的下一次動作；null＝之後沒有動作（算到最新一天）
 }
 
 export interface AllocationRow {
@@ -317,7 +317,7 @@ export async function computeTradeFollow(fund: string, start: string, end?: stri
   // ── 逐筆計算 ──
   const pct = (a: number | undefined, b: number | undefined) =>
     a != null && b != null && b !== 0 ? (a / b - 1) * 100 : null;
-  // 每檔股票的全部換股（不受查詢區間限制），用來找「下一次反向操作」
+  // 每檔股票的全部換股（不受查詢區間限制），用來找「下一次動作」
   const allByStock = new Map<string, DetectedTrade[]>();
   for (const x of allTrades) { const l = allByStock.get(x.id) ?? []; l.push(x); allByStock.set(x.id, l); }
   for (const l of allByStock.values()) l.sort((a, b) => a.date.localeCompare(b.date));
@@ -334,7 +334,7 @@ export async function computeTradeFollow(fund: string, start: string, end?: stri
     // 換股日在台股交易日曆上的位置（公布日當天或之前最後一個交易日）
     const i0 = calIndexAtOrBefore(t.date);
     const d0 = i0 >= 0 ? calendar[i0] : null;
-    const opp = (allByStock.get(t.id) ?? []).find(x => x.side !== t.side && x.date > t.endDate) ?? null;
+    const opp = (allByStock.get(t.id) ?? []).find(x => x.date > t.endDate) ?? null;
     let segDate: string | null = null;
     if (d0) {
       const j = opp ? calIndexAtOrBefore(opp.date) : calendar.length - 1;
