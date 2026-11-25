@@ -2,11 +2,11 @@
 import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { OVERSEAS_FUNDS } from '@/lib/overseasFunds';
-import type { TradeFollowResult, TradeResult, AllocationRow, TradeType } from '@/lib/tradeFollow';
+import type { TradeFollowResult, TradeResult, TradeType } from '@/lib/tradeFollow';
 
 /* 換股追蹤分頁（海外主動式 ETF）
    經理人新增／加碼後股票有沒有漲（買對 vs 買錯）、減碼／出清後是不是反而漲了（賣飛 vs 賣對），
-   以及目前配置 vs 約 20 個交易日前。算法說明見 lib/tradeFollow.ts 與頁尾註腳。
+   以及每檔股票的換股對淨值的影響（權重變化 × 之後漲跌）。算法說明見 lib/tradeFollow.ts 與頁尾註腳。
    台股配色慣例：紅＝漲、綠＝跌。 */
 
 const TEXT   = '#1C1C1E';
@@ -81,28 +81,38 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
   );
 }
 
-/* 「漲最多」精選清單：買進後漲最多／賣出後漲最多 */
-function TopList({ title, hint, list, win, basis }: { title: string; hint: string; list: TradeResult[]; win: Win; basis: Basis }) {
+/* 單筆換股對淨值的影響（百分點）＝ 權重變化 × 之後的漲跌。
+   買進：權重增加 × 漲跌（漲了＝賺到）；賣出：權重減少（負）× 漲跌（賣後漲＝少賺、賣後跌＝躲掉虧損）。 */
+function impactOf(t: TradeResult, win: Win, basis: Basis): number | null {
+  const v = (basis === 'abs' ? t.ret : t.rel)[win];
+  if (v == null) return null;
+  return (t.weightAfter - t.weightBefore) / 100 * v;
+}
+const fmtPP = (v: number | null | undefined) => v == null ? '—' : `${v >= 0 ? '+' : ''}${v.toFixed(2)}%`;
+
+interface StockImpact { id: string; rawId: string; name: string; total: number; buy: number; sell: number; n: number }
+
+/* 換股總結：做對／做錯的個股，依對淨值影響排名 */
+function SummaryList({ title, color, list, onPick }: { title: string; color: string; list: StockImpact[]; onPick: (s: StockImpact) => void }) {
   return (
-    <div style={card}>
-      <h3 style={{ margin: 0, fontSize: '.95rem', color: TEXT, fontWeight: 700 }}>{title}</h3>
-      <p style={{ margin: '4px 0 10px', fontSize: '.75rem', color: SUB }}>{hint}</p>
-      {list.length === 0 && <p style={{ color: '#AAA', fontSize: '.85rem', margin: '8px 0' }}>無</p>}
-      {list.map((t, i) => {
-        const v = (basis === 'abs' ? t.ret : t.rel)[win];
-        return (
-          <div key={`${t.id}-${t.date}`} style={{ display: 'grid', gridTemplateColumns: '18px 64px 1fr auto 70px', gap: 8,
-            alignItems: 'center', padding: '7px 0', borderBottom: '1px solid #F0ECE8', fontSize: '.83rem' }}>
-            <span style={{ color: '#A8A29E', fontFamily: MONO, fontSize: '.72rem' }}>{i + 1}</span>
-            <span style={{ fontFamily: MONO, color: SUB }}>{shortId(t.rawId)}</span>
-            <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', color: TEXT }}>{t.name}</span>
-            <span style={{ fontSize: '.72rem', color: TYPE_COLOR[t.type], fontWeight: 600, whiteSpace: 'nowrap' }}>
-              {t.date.slice(5)} {TYPE_LABEL[t.type]}
+    <div style={{ flex: '1 1 340px' }}>
+      <h4 style={{ margin: '0 0 6px', fontSize: '.9rem', color }}>{title}</h4>
+      {list.length === 0 && <p style={{ color: '#AAA', fontSize: '.82rem', margin: '6px 0' }}>無</p>}
+      {list.map((s, i) => (
+        <div key={s.id} onClick={() => onPick(s)} title="點一下看這檔的完整換股歷程" style={{
+          display: 'grid', gridTemplateColumns: '18px minmax(0,1fr) auto', gap: 8, alignItems: 'center',
+          padding: '7px 0', borderBottom: '1px solid #F0ECE8', fontSize: '.83rem', cursor: 'pointer' }}>
+          <span style={{ color: '#A8A29E', fontFamily: MONO, fontSize: '.72rem' }}>{i + 1}</span>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            <span style={{ fontFamily: MONO, color: SUB, marginRight: 6 }}>{shortId(s.rawId)}</span>{s.name}
+            <span style={{ display: 'block', fontSize: '.7rem', color: SUB }}>
+              {s.n} 次操作｜買進 <span style={{ fontFamily: MONO, color: col(s.buy) }}>{fmtPP(s.buy)}</span>
+              {' '}／賣出 <span style={{ fontFamily: MONO, color: col(s.sell) }}>{fmtPP(s.sell)}</span>
             </span>
-            <span style={{ fontFamily: MONO, textAlign: 'right', fontWeight: 700, color: col(v) }}>{fmtPct(v)}</span>
-          </div>
-        );
-      })}
+          </span>
+          <span style={{ fontFamily: MONO, fontWeight: 700, color: col(s.total), fontSize: '.9rem' }}>{fmtPP(s.total)}</span>
+        </div>
+      ))}
     </div>
   );
 }
@@ -140,6 +150,12 @@ function StockTimeline({ trades, win, basis, weightOf }: {
               <div style={{ fontSize: '.72rem', color: w > 0 ? TEXT : '#A8A29E' }}>
                 {w > 0 ? `目前權重 ${fmtW(w)}` : '目前未持有'}
               </div>
+              {(() => {
+                const imps = l.map(t => impactOf(t, win, basis)).filter((x): x is number => x != null);
+                if (!imps.length) return null;
+                const tot = imps.reduce((a, b) => a + b, 0);
+                return <div style={{ fontSize: '.72rem', color: SUB }}>對淨值 <b style={{ fontFamily: MONO, color: col(tot) }}>{fmtPP(tot)}</b></div>;
+              })()}
             </div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
               {l.map((t, i) => {
@@ -205,23 +221,40 @@ export default function TradeFollowTab() {
   const valOf = useCallback((t: TradeResult) => (basis === 'abs' ? t.ret : t.rel)[win], [basis, win]);
 
   const stats = useMemo(() => {
-    const out: Record<Verdict, { n: number; sum: number }> = {
-      buyGood: { n: 0, sum: 0 }, buyBad: { n: 0, sum: 0 }, sellMissed: { n: 0, sum: 0 }, sellGood: { n: 0, sum: 0 },
+    const out: Record<Verdict, { n: number; sum: number; imp: number }> = {
+      buyGood: { n: 0, sum: 0, imp: 0 }, buyBad: { n: 0, sum: 0, imp: 0 }, sellMissed: { n: 0, sum: 0, imp: 0 }, sellGood: { n: 0, sum: 0, imp: 0 },
     };
     let buyEval = 0, sellEval = 0;
     for (const t of trades) {
       const v = verdictOf(t, win, basis);
       if (!v) continue;
-      out[v].n++; out[v].sum += valOf(t)!;
+      out[v].n++; out[v].sum += valOf(t)!; out[v].imp += impactOf(t, win, basis) ?? 0;
       if (t.side === 'buy') buyEval++; else sellEval++;
     }
     return { out, buyEval, sellEval };
   }, [trades, win, basis, valOf]);
 
-  const topBuys = useMemo(() => trades.filter(t => t.side === 'buy' && (valOf(t) ?? 0) > 0)
-    .sort((a, b) => valOf(b)! - valOf(a)!).slice(0, 10), [trades, valOf]);
-  const topMissed = useMemo(() => trades.filter(t => t.side === 'sell' && (valOf(t) ?? 0) > 0)
-    .sort((a, b) => valOf(b)! - valOf(a)!).slice(0, 10), [trades, valOf]);
+  const summary = useMemo(() => {
+    const m = new Map<string, StockImpact>();
+    let buy = 0, sell = 0, nEval = 0;
+    for (const t of trades) {
+      const imp = impactOf(t, win, basis);
+      if (imp == null) continue;
+      nEval++;
+      const s = m.get(t.id) ?? { id: t.id, rawId: t.rawId, name: t.name, total: 0, buy: 0, sell: 0, n: 0 };
+      s.total += imp; s.n++;
+      if (t.side === 'buy') { s.buy += imp; buy += imp; } else { s.sell += imp; sell += imp; }
+      m.set(t.id, s);
+    }
+    const list = [...m.values()];
+    return {
+      total: buy + sell, buy, sell, nEval,
+      good: list.filter(s => s.total > 0.005).sort((a, b) => b.total - a.total).slice(0, 10),
+      bad: list.filter(s => s.total < -0.005).sort((a, b) => a.total - b.total).slice(0, 10),
+      nGood: list.filter(s => s.total > 0.005).length,
+      nBad: list.filter(s => s.total < -0.005).length,
+    };
+  }, [trades, win, basis]);
 
   const rows = useMemo(() => {
     const kw = q.trim().toUpperCase();
@@ -264,23 +297,17 @@ export default function TradeFollowTab() {
       [`${res.fund} ${res.fundName} 換股追蹤`, `換股日 ${res.start} ~ ${res.end}`, `口徑：${basisLbl}（新台幣、還原權息）`],
       [],
       ['換股日', '連續天數', '代號', '名稱', '動作', '調整前權重%', '調整後權重%',
-        ...ALL_WINS.flatMap(w => [`${WIN_LABEL[w]} 個股%`, `${WIN_LABEL[w]} 相對%`]), '反向操作日', '判斷（依目前選的期間/口徑）'],
+        ...ALL_WINS.flatMap(w => [`${WIN_LABEL[w]} 個股%`, `${WIN_LABEL[w]} 相對%`]), '反向操作日', '對淨值影響%（依目前選的期間/口徑）', '判斷（依目前選的期間/口徑）'],
       ...rows.map(t => {
         const v = verdictOf(t, win, basis);
         return [t.date, t.days, t.rawId, t.name, TYPE_LABEL[t.type], +t.weightBefore.toFixed(2), +t.weightAfter.toFixed(2),
           ...ALL_WINS.flatMap(w => [
             t.ret[w] == null ? null : +t.ret[w]!.toFixed(2), t.rel[w] == null ? null : +t.rel[w]!.toFixed(2)]),
-          segNote(t), v ? VERDICT[v].label : ''];
+          segNote(t), (() => { const x = impactOf(t, win, basis); return x == null ? null : +x.toFixed(3); })(), v ? VERDICT[v].label : ''];
       }),
     ];
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(aoa), '換股追蹤');
-    const alloc: (string | number)[][] = [
-      ['代號', '名稱', '目前權重%', `${res.allocPrevDate} 權重%`, '變化(百分點)', '備註'],
-      ...res.allocation.map(a => [a.rawId, a.name, +a.weight.toFixed(2), +a.weightPrev.toFixed(2), +(a.weight - a.weightPrev).toFixed(2), a.isNew ? '新進' : '']),
-      ...res.exitedRecently.map(a => [a.rawId, a.name, 0, +a.weightPrev.toFixed(2), +(-a.weightPrev).toFixed(2), '已出清']),
-    ];
-    XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(alloc), '目前配置');
     XLSX.writeFile(wb, `換股追蹤_${res.fund}_${res.start}_${res.end}.xlsx`);
   };
 
@@ -315,54 +342,6 @@ export default function TradeFollowTab() {
       {res && (<>
         {res.warning && <p style={{ background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 6, padding: '8px 12px', fontSize: '.8rem', margin: 0 }}>{res.warning}</p>}
 
-        {/* ── 目前配置 ── */}
-        <div style={card}>
-          <h3 style={{ margin: 0, fontSize: '.95rem', fontWeight: 700 }}>
-            目前配置　<span style={{ fontWeight: 400, fontSize: '.78rem', color: SUB }}>
-              持股日 {res.asOf}（{res.holdingsCount} 檔），對照約 20 個交易日前 {res.allocPrevDate}
-            </span>
-          </h3>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, marginTop: 10 }}>
-            <div style={{ flex: '2 1 420px', maxHeight: 420, overflowY: 'auto' }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-                <thead><tr>
-                  <th style={{ ...th, textAlign: 'left', cursor: 'default' }}>代號</th>
-                  <th style={{ ...th, textAlign: 'left', cursor: 'default' }}>名稱</th>
-                  <th style={{ ...th, cursor: 'default' }}>目前權重</th>
-                  <th style={{ ...th, cursor: 'default' }}>20日前</th>
-                  <th style={{ ...th, cursor: 'default' }}>變化</th>
-                </tr></thead>
-                <tbody>
-                  {res.allocation.map((a: AllocationRow) => {
-                    const d = a.weight - a.weightPrev;
-                    return (
-                      <tr key={a.id} style={{ borderBottom: '1px solid #F0ECE8' }}>
-                        <td style={{ ...td, textAlign: 'left', color: SUB }}>{shortId(a.rawId)}</td>
-                        <td style={{ ...td, textAlign: 'left', fontFamily: SANS, maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                          {a.name}{a.isNew && <span style={{ marginLeft: 6, fontSize: '.68rem', color: '#fff', background: UP, borderRadius: 4, padding: '1px 5px' }}>新進</span>}
-                        </td>
-                        <td style={{ ...td, fontWeight: 700 }}>{fmtW(a.weight)}</td>
-                        <td style={{ ...td, color: SUB }}>{a.isNew ? '—' : fmtW(a.weightPrev)}</td>
-                        <td style={{ ...td, color: col(d) }}>{Math.abs(d) < 0.005 ? '—' : `${d > 0 ? '+' : ''}${d.toFixed(2)}`}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table>
-            </div>
-            <div style={{ flex: '1 1 220px' }}>
-              <h4 style={{ margin: '0 0 8px', fontSize: '.85rem', color: DOWN }}>近 20 日已出清（{res.exitedRecently.length} 檔）</h4>
-              {res.exitedRecently.length === 0 && <p style={{ color: '#AAA', fontSize: '.82rem' }}>無</p>}
-              {res.exitedRecently.map(a => (
-                <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', gap: 8, padding: '5px 0', borderBottom: '1px solid #F0ECE8', fontSize: '.8rem' }}>
-                  <span><span style={{ fontFamily: MONO, color: SUB }}>{shortId(a.rawId)}</span> {a.name}</span>
-                  <span style={{ fontFamily: MONO, color: SUB, whiteSpace: 'nowrap' }}>原 {fmtW(a.weightPrev)}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
         {/* ── 判斷期間 / 口徑 ── */}
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: 18, alignItems: 'center' }}>
           <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
@@ -381,6 +360,38 @@ export default function TradeFollowTab() {
             : `不管經理人之後有沒有反向操作，一律看換股後${WIN_LABEL[win]}的漲跌（期間還沒走完的顯示「—」）。`}
         </p>
 
+        {/* ── 換股總結 ── */}
+        <div style={card}>
+          <h3 style={{ margin: 0, fontSize: '.95rem', fontWeight: 700 }}>換股總結　
+            <span style={{ fontWeight: 400, fontSize: '.78rem', color: SUB }}>{res.fund} {res.fundName}｜換股日 {res.start} ~ {res.end}｜{WIN_LABEL[win]}</span>
+          </h3>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24, alignItems: 'baseline', margin: '12px 0 4px' }}>
+            <div>
+              <div style={{ fontSize: '.76rem', color: SUB }}>換股對淨值的影響合計</div>
+              <div style={{ fontFamily: MONO, fontSize: '1.7rem', fontWeight: 700, color: col(summary.total) }}>{fmtPP(summary.total)}</div>
+            </div>
+            <div style={{ fontSize: '.85rem', color: SUB, lineHeight: 1.8 }}>
+              買進決定（新增／加碼）<span style={{ fontFamily: MONO, fontWeight: 700, color: col(summary.buy) }}>{fmtPP(summary.buy)}</span><br />
+              賣出決定（減碼／出清）<span style={{ fontFamily: MONO, fontWeight: 700, color: col(summary.sell) }}>{fmtPP(summary.sell)}</span>
+            </div>
+            <div style={{ fontSize: '.85rem', color: SUB, lineHeight: 1.8 }}>
+              做對的個股 <b style={{ color: UP }}>{summary.nGood}</b> 檔<br />
+              做錯的個股 <b style={{ color: DOWN }}>{summary.nBad}</b> 檔
+            </div>
+          </div>
+          <p style={{ margin: '0 0 12px', fontSize: '.74rem', color: SUB, lineHeight: 1.6 }}>
+            每次操作對淨值的影響＝權重變化 × 之後的{basis === 'abs' ? '漲跌' : `漲跌（相對 ${res.fund}）`}。例：加碼 2% 權重、之後漲 10% → +0.20%；出清 3% 權重、之後反而漲 10% → −0.30%（少賺）；出清後跌 10% → +0.30%（躲掉虧損）。
+            同一檔股票的所有操作加總，就是經理人在這檔股票的換股讓淨值多賺或少賺多少。點個股可看完整歷程。
+            {win !== 'seg' && <b>　目前選的是固定期間，前後操作的期間會重疊，合計數字僅供參考；看淨值影響建議用「到下次反向操作」。</b>}
+          </p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 24 }}>
+            <SummaryList title="做對最多的個股" color={UP} list={summary.good}
+              onPick={(st) => { setQ(shortId(st.rawId)); setView('stock'); setTypeFilter('all'); setVerdictFilter(null); }} />
+            <SummaryList title="做錯最多的個股" color={DOWN} list={summary.bad}
+              onPick={(st) => { setQ(shortId(st.rawId)); setView('stock'); setTypeFilter('all'); setVerdictFilter(null); }} />
+          </div>
+        </div>
+
         {/* ── 四格總結 ── */}
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(170px, 1fr))', gap: 12 }}>
           {(Object.keys(VERDICT) as Verdict[]).map(k => {
@@ -396,16 +407,11 @@ export default function TradeFollowTab() {
                 <div style={{ fontFamily: MONO, fontSize: '1.3rem', fontWeight: 700, color: TEXT }}>
                   {s.n} <span style={{ fontSize: '.78rem', color: SUB, fontWeight: 400 }}>/ {denom} 筆{denom ? `（${(s.n / denom * 100).toFixed(0)}%）` : ''}</span>
                 </div>
-                <div style={{ fontSize: '.75rem', color: SUB }}>平均 <span style={{ fontFamily: MONO, color: col(s.n ? s.sum / s.n : null) }}>{fmtPct(s.n ? s.sum / s.n : null)}</span></div>
+                <div style={{ fontSize: '.75rem', color: SUB }}>平均漲跌 <span style={{ fontFamily: MONO, color: col(s.n ? s.sum / s.n : null) }}>{fmtPct(s.n ? s.sum / s.n : null)}</span></div>
+                <div style={{ fontSize: '.75rem', color: SUB }}>對淨值 <span style={{ fontFamily: MONO, fontWeight: 700, color: col(s.imp) }}>{fmtPP(s.imp)}</span></div>
               </button>
             );
           })}
-        </div>
-
-        {/* ── 漲最多清單 ── */}
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(320px, 1fr))', gap: 14 }}>
-          <TopList title="買進後漲最多" hint={`新增／加碼之後（${WIN_LABEL[win]}）漲幅前 10 名`} list={topBuys} win={win} basis={basis} />
-          <TopList title="賣出後反而漲最多（賣飛）" hint={`減碼／出清之後（${WIN_LABEL[win]}）漲幅前 10 名`} list={topMissed} win={win} basis={basis} />
         </div>
 
         {/* ── 全部換股明細 ── */}
@@ -444,10 +450,11 @@ export default function TradeFollowTab() {
                 {winCols.map(w => (
                   <th key={w} style={{ ...th, background: w === win ? UP : TEXT }} onClick={() => clickSort(w)}>{WIN_LABEL[w]}{arrow(w)}</th>
                 ))}
+                <th style={{ ...th, cursor: 'default' }}>對淨值</th>
                 <th style={{ ...th, textAlign: 'center', cursor: 'default' }}>判斷</th>
               </tr></thead>
               <tbody>
-                {rows.length === 0 && <tr><td colSpan={11} style={{ ...td, textAlign: 'center', color: '#AAA', fontFamily: SANS }}>這段期間沒有符合條件的換股</td></tr>}
+                {rows.length === 0 && <tr><td colSpan={12} style={{ ...td, textAlign: 'center', color: '#AAA', fontFamily: SANS }}>這段期間沒有符合條件的換股</td></tr>}
                 {rows.map(t => {
                   const v = verdictOf(t, win, basis);
                   const src = basis === 'abs' ? t.ret : t.rel;
@@ -468,6 +475,7 @@ export default function TradeFollowTab() {
                           {w === 'seg' && t.priced && <div style={{ fontSize: '.66rem', color: SUB, fontWeight: 400, fontFamily: SANS }}>{segNote(t)}</div>}
                         </td>
                       ))}
+                      <td style={{ ...td, fontWeight: 700, color: col(impactOf(t, win, basis)) }}>{fmtPP(impactOf(t, win, basis))}</td>
                       <td style={{ ...td, textAlign: 'center', fontFamily: SANS }}>
                         {v ? <span style={{ color: VERDICT[v].color, background: VERDICT[v].bg, borderRadius: 4, padding: '2px 6px', fontSize: '.74rem', fontWeight: 700 }}>{VERDICT[v].label}</span> : <span style={{ color: '#AAA' }}>—</span>}
                       </td>
@@ -488,6 +496,7 @@ export default function TradeFollowTab() {
             <li>同一檔股票連續幾天同方向調整，合併成一筆，日期記第一天。股票分割造成的股數倍增不算加碼。</li>
             <li><b>到下次反向操作（預設）</b>：買進的股票從買進日算到經理人下次減碼／出清那天；賣出的股票從賣出日算到下次新增／加碼那天；還沒反向操作就算到最新一天。「買對／買錯／賣飛／賣對」預設依這段判斷。</li>
             <li><b>固定期間</b>：以換股日（持股公布日）收盤為基準，計算之後第 5／20／60 個交易日，以及到最新一天的報酬，不管之後有沒有反向操作。海外股換算成新台幣、含配息（還原權息），與基金同口徑。還沒走滿的期間顯示「—」。</li>
+            <li><b>對淨值的影響</b>：權重變化 × 之後的漲跌（百分點）。權重用換股前後兩天的持股權重，未計入期間內權重隨股價漂移，屬近似值。</li>
             <li><b>相對 {res.fund}</b>：個股報酬減去同期間 {res.fund} 本身市價報酬。正值代表這檔股票比基金整體強。</li>
             <li>海外持股的公布日與實際交易時間可能差一天（時差），短期間（5 日）的數字僅供參考。</li>
             {res.skippedDates.length > 0 && <li>略過的持股日（疑似資料不完整）：{res.skippedDates.join('、')}</li>}
