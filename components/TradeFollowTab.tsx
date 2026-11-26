@@ -98,7 +98,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 /* 一次操作的小標籤：日期 動作 漲跌（紅底＝做對、綠底＝做錯） */
-function TradeChip({ t, value, withName }: { t: TradeResult; value: number | null; withName?: boolean }) {
+function TradeChip({ t, value, until, withName }: { t: TradeResult; value: number | null; until?: string | null; withName?: boolean }) {
   const good = value == null ? null : t.side === 'buy' ? value > 0 : value < 0;
   return (
     <span title={`${t.date} ${TYPE_LABEL[t.type]}，權重 ${fmtW(t.weightBefore)} → ${fmtW(t.weightAfter)}`} style={{
@@ -109,6 +109,7 @@ function TradeChip({ t, value, withName }: { t: TradeResult; value: number | nul
         ? <span><b style={{ color: TEXT, fontWeight: 600 }}>{shortName(t.name, t.rawId)}</b> <span style={{ fontFamily: MONO, color: '#A8A29E', fontSize: '.68rem' }}>{shortId(t.rawId)}</span></span>
         : <span style={{ fontFamily: MONO, color: SUB }}>{t.date.slice(5)}</span>}
       <span style={{ color: TYPE_COLOR[t.type], fontWeight: 700 }}>{TYPE_LABEL[t.type]}</span>
+      {until && value != null && <span style={{ color: SUB, fontSize: '.7rem' }}>至 {until.slice(5).replace('-', '/')}</span>}
       <b style={{ fontFamily: MONO, color: col(value) }}>{t.priced ? fmtPct(value) : '無報價'}</b>
     </span>
   );
@@ -156,14 +157,21 @@ function WeightMove({ before, after, big }: { before: number; after: number; big
       <span style={{ color: '#A8A29E' }}> → </span>
       <b style={{ color: TEXT }}>{fmtW(after)}</b>
       <span style={{ marginLeft: 6, fontFamily: SANS, fontSize: '.72rem', fontWeight: 700, color: col(d) }}>
-        {dir}{dir !== '持平' && <span style={{ fontFamily: MONO }}> {d > 0 ? '+' : ''}{d.toFixed(2)}</span>}
+        {dir}{dir !== '持平' && <span style={{ fontFamily: MONO }}> {d > 0 ? '+' : ''}{d.toFixed(2)}%</span>}
       </span>
     </span>
   );
 }
 
+/* 「至今」實際算到的最後報價日（各筆 nowDate 取最大） */
+function lastPriceDate(res: TradeFollowResult): string {
+  return res.trades.reduce((m, t) => (t.nowDate && t.nowDate > m ? t.nowDate : m), '');
+}
+
 function RecentOps({ res }: { res: TradeFollowResult }) {
   const [n, setN] = useState<5 | 10 | 20>(5);
+  const [dir, setDir] = useState<'all' | 'add' | 'cut'>('all');
+  const [minChg, setMinChg] = useState(0);
   const dates = res.recentDates ?? [];
   const from = dates[Math.min(n, dates.length) - 1];            // 期間內第一天
   const baseDate = dates[Math.min(n, dates.length - 1)];         // 操作前基準（期間前一天）
@@ -199,6 +207,17 @@ function RecentOps({ res }: { res: TradeFollowResult }) {
     return { rows, recent };
   }, [res, from, baseDate, latest]);
 
+  /* 篩選：只看淨加碼／淨減碼、權重變化至少幾 % 的個股；沒有符合個股的產業整列隱藏 */
+  const shown = useMemo(() => rows.map(r => ({
+    ...r,
+    lines: r.lines.filter(l => {
+      const d = l.after - l.before;
+      if (dir === 'add' && d <= 0.005) return false;
+      if (dir === 'cut' && d >= -0.005) return false;
+      return Math.abs(d) >= minChg;
+    }),
+  })).filter(r => r.lines.length > 0), [rows, dir, minChg]);
+
   const chg = (r: SectorRow) => r.after - r.before;
   const adds = rows.filter(r => chg(r) > 0.005).sort((a, b) => chg(b) - chg(a)).slice(0, 3);
   const cuts = rows.filter(r => chg(r) < -0.005).sort((a, b) => chg(a) - chg(b)).slice(0, 3);
@@ -226,7 +245,22 @@ function RecentOps({ res }: { res: TradeFollowResult }) {
       <div style={{ margin: '12px 0', padding: '12px 16px', background: '#FAF8F6', borderRadius: 8, fontSize: '.9rem', lineHeight: 2 }}>
         <div><b style={{ color: UP }}>主要加碼：</b>{sectorList(adds)}</div>
         <div><b style={{ color: DOWN }}>主要減碼：</b>{sectorList(cuts)}</div>
-        <div>{perfText(buyAll, 'buy')}　　{perfText(sellAll, 'sell')}<span style={{ fontSize: '.74rem', color: SUB }}>（「之後」＝操作日到最新一天的漲跌）</span></div>
+        <div>
+          {perfText(buyAll, 'buy')}　　{perfText(sellAll, 'sell')}
+          <div style={{ fontSize: '.74rem', color: SUB, lineHeight: 1.5 }}>
+            算法：期間內每一筆加碼（減碼）的股票，從操作日收盤算到 {md(lastPriceDate(res))} 收盤的漲跌，再依每筆調整的權重大小加權平均。加碼的股票之後上漲＝加對；減碼的股票之後下跌＝減對、上漲＝減早了。
+          </div>
+        </div>
+      </div>
+
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', margin: '0 0 10px' }}>
+        <span style={{ fontSize: '.78rem', color: SUB }}>篩選個股：</span>
+        {([['all', '全部'], ['add', '只看淨加碼'], ['cut', '只看淨減碼']] as const).map(([k, l]) =>
+          <button key={k} style={seg(dir === k)} onClick={() => setDir(k)}>{l}</button>)}
+        <span style={{ fontSize: '.78rem', color: SUB, marginLeft: 10 }}>權重變化至少</span>
+        {[0, 0.5, 1, 2].map(v =>
+          <button key={v} style={seg(minChg === v)} onClick={() => setMinChg(v)}>{v === 0 ? '不限' : `${v}%`}</button>)}
+        <span style={{ fontSize: '.76rem', color: SUB, marginLeft: 6 }}>（顯示 {shown.reduce((a, r) => a + r.lines.length, 0)} 檔）</span>
       </div>
 
       <div style={{ overflow: 'auto', maxHeight: 560 }}>
@@ -234,12 +268,11 @@ function RecentOps({ res }: { res: TradeFollowResult }) {
           <thead><tr>
             <th style={{ ...th, textAlign: 'left' }}>產業</th>
             <th style={{ ...th, textAlign: 'left' }}>產業權重 {md(baseDate)} → {md(latest)}</th>
-            <th style={{ ...th, textAlign: 'left' }}>個股權重 {md(baseDate)} → {md(latest)}｜期間內每次操作（之後漲跌）</th>
-            <th style={th}>之後表現</th>
+            <th style={{ ...th, textAlign: 'left' }}>個股權重 {md(baseDate)} → {md(latest)}｜期間內每次操作（操作日 → 最新一天的漲跌）</th>
           </tr></thead>
           <tbody>
-            {rows.length === 0 && <tr><td colSpan={4} style={{ ...td, textAlign: 'center', color: '#AAA', fontFamily: SANS }}>這段期間沒有換股</td></tr>}
-            {rows.map(r => (
+            {shown.length === 0 && <tr><td colSpan={3} style={{ ...td, textAlign: 'center', color: '#AAA', fontFamily: SANS }}>沒有符合條件的個股</td></tr>}
+            {shown.map(r => (
               <tr key={r.sector} style={{ borderBottom: '1px solid #E8E3DF' }}>
                 <td style={{ ...td, textAlign: 'left', fontFamily: SANS, whiteSpace: 'normal', minWidth: 120, maxWidth: 170, fontWeight: 600 }}>{r.sector}</td>
                 <td style={{ ...td, textAlign: 'left' }}><WeightMove before={r.before} after={r.after} big /></td>
@@ -255,17 +288,12 @@ function RecentOps({ res }: { res: TradeFollowResult }) {
                         {l.trades.map((t, i) => (
                           <span key={t.date} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
                             {i > 0 && <span style={{ color: '#C8C2BC' }}>→</span>}
-                            <TradeChip t={t} value={t.ret.now} />
+                            <TradeChip t={t} value={t.ret.now} until={t.nowDate} />
                           </span>
                         ))}
                       </span>
                     </div>
                   ))}
-                </td>
-                <td style={{ ...td, fontFamily: SANS, lineHeight: 1.7 }}>
-                  {r.buyPerf != null && <div>{perfText(r.buyPerf, 'buy')}</div>}
-                  {r.sellPerf != null && <div>{perfText(r.sellPerf, 'sell')}</div>}
-                  {r.buyPerf == null && r.sellPerf == null && <span style={{ color: '#AAA' }}>—</span>}
                 </td>
               </tr>
             ))}
@@ -478,7 +506,7 @@ export default function TradeFollowTab() {
                         {s.trades.map((t, i) => (
                           <span key={t.date} style={{ display: 'inline-flex', alignItems: 'center', gap: 5 }}>
                             {i > 0 && <span style={{ color: '#C8C2BC' }}>→</span>}
-                            <TradeChip t={t} value={segRet(t)} />
+                            <TradeChip t={t} value={segRet(t)} until={t.segEnd} />
                           </span>
                         ))}
                       </div>
