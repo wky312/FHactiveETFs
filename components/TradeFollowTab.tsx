@@ -125,62 +125,89 @@ function segNote(t: TradeResult): string {
   return t.segEndBy ? `至 ${t.segEnd.slice(5)} ${TYPE_LABEL[t.segEndBy]}` : (t.type === 'exit' ? '之後未再買回' : '之後無動作');
 }
 
-/* 依股票看：一檔股票一列，依時間排出每次操作與該次決定的漲跌 */
+/* 依股票看：一檔股票一列，依時間列出每次操作與該段漲跌；欄位可排序 */
+type StockSortKey = 'name' | 'weight' | 'impact' | 'n' | 'last';
+
 function StockTimeline({ trades, win, basis, weightOf }: {
   trades: TradeResult[]; win: Win; basis: Basis; weightOf: (id: string) => number;
 }) {
+  const [sortKey, setSortKey] = useState<StockSortKey>('impact');
+  const [asc, setAsc] = useState(false);
   const groups = useMemo(() => {
     const m = new Map<string, TradeResult[]>();
     for (const t of trades) { const l = m.get(t.id) ?? []; l.push(t); m.set(t.id, l); }
-    return [...m.values()]
-      .map(l => [...l].sort((a, b) => a.date.localeCompare(b.date)))
-      .sort((a, b) => b[b.length - 1].date.localeCompare(a[a.length - 1].date));
-  }, [trades]);
+    return [...m.values()].map(l => {
+      const list = [...l].sort((a, b) => a.date.localeCompare(b.date));
+      const imps = list.map(t => impactOf(t, win, basis)).filter((x): x is number => x != null);
+      return {
+        id: list[0].id, rawId: list[0].rawId, name: list[0].name, list,
+        weight: weightOf(list[0].id),
+        impact: imps.length ? imps.reduce((x, y) => x + y, 0) : null,
+        n: list.length, last: list[list.length - 1].date,
+      };
+    });
+  }, [trades, win, basis, weightOf]);
+  const sorted = useMemo(() => [...groups].sort((a, b) => {
+    const x = a[sortKey], y = b[sortKey];
+    if (x == null && y == null) return 0;
+    if (x == null) return 1;            // 無數值一律排最後
+    if (y == null) return -1;
+    const c = typeof x === 'number' && typeof y === 'number' ? x - y : String(sortKey === 'name' ? a.rawId : x).localeCompare(String(sortKey === 'name' ? b.rawId : y));
+    return asc ? c : -c;
+  }), [groups, sortKey, asc]);
+  const click = (k: StockSortKey) => {
+    if (sortKey === k) setAsc(!asc);
+    else { setSortKey(k); setAsc(k === 'name'); }
+  };
+  const arrow = (k: StockSortKey) => sortKey === k ? (asc ? ' ▲' : ' ▼') : '';
+
   if (groups.length === 0) return <p style={{ color: '#AAA', fontSize: '.85rem', textAlign: 'center' }}>這段期間沒有符合條件的換股</p>;
   return (
-    <div style={{ display: 'flex', flexDirection: 'column' }}>
-      {groups.map(l => {
-        const f = l[0];
-        const w = weightOf(f.id);
-        return (
-          <div key={f.id} style={{ display: 'grid', gridTemplateColumns: 'minmax(150px, 210px) 1fr', gap: 12,
-            padding: '9px 0', borderBottom: '1px solid #F0ECE8', alignItems: 'start' }}>
-            <div style={{ fontSize: '.83rem', lineHeight: 1.4 }}>
-              <span style={{ fontFamily: MONO, color: SUB, marginRight: 6 }}>{shortId(f.rawId)}</span>{f.name}
-              <div style={{ fontSize: '.72rem', color: w > 0 ? TEXT : '#A8A29E' }}>
-                {w > 0 ? `目前權重 ${fmtW(w)}` : '目前未持有'}
-              </div>
-              {(() => {
-                const imps = l.map(t => impactOf(t, win, basis)).filter((x): x is number => x != null);
-                if (!imps.length) return null;
-                const tot = imps.reduce((a, b) => a + b, 0);
-                return <div style={{ fontSize: '.72rem', color: SUB }}>對淨值 <b style={{ fontFamily: MONO, color: col(tot) }}>{fmtPP(tot)}</b></div>;
-              })()}
-            </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-              {l.map((t, i) => {
-                const v = (basis === 'abs' ? t.ret : t.rel)[win];
-                const vd = verdictOf(t, win, basis);
-                return (
-                  <span key={t.date} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-                    {i > 0 && <span style={{ color: '#C8C2BC' }}>→</span>}
-                    <span title={vd ? `${VERDICT[vd].label}（${VERDICT[vd].desc}）` : '期間未走完或無報價'} style={{
-                      display: 'inline-flex', gap: 5, alignItems: 'baseline', padding: '3px 8px', borderRadius: 6,
-                      background: vd ? VERDICT[vd].bg : '#F5F3F0', border: `1px solid ${vd ? VERDICT[vd].color + '55' : BORDER}`,
-                      fontSize: '.76rem', whiteSpace: 'nowrap' }}>
-                      <span style={{ fontFamily: MONO, color: SUB }}>{t.date.slice(5)}</span>
-                      <span style={{ color: TYPE_COLOR[t.type], fontWeight: 700 }}>{TYPE_LABEL[t.type]}</span>
-                      <span style={{ fontFamily: MONO, fontWeight: 700, color: col(v) }}>{t.priced ? fmtPct(v) : '無報價'}</span>
-                      {vd && <span style={{ color: VERDICT[vd].color, fontWeight: 700 }}>{VERDICT[vd].label}</span>}
+    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 820 }}>
+      <thead><tr>
+        <th style={{ ...th, textAlign: 'left' }} onClick={() => click('name')}>股票{arrow('name')}</th>
+        <th style={th} onClick={() => click('weight')}>目前權重{arrow('weight')}</th>
+        <th style={th} onClick={() => click('impact')}>對淨值{arrow('impact')}</th>
+        <th style={th} onClick={() => click('n')}>操作次數{arrow('n')}</th>
+        <th style={th} onClick={() => click('last')}>最近動作{arrow('last')}</th>
+        <th style={{ ...th, textAlign: 'left', cursor: 'default' }}>換股歷程（{WIN_LABEL[win]}的漲跌）</th>
+      </tr></thead>
+      <tbody>
+        {sorted.map(g => (
+          <tr key={g.id} style={{ borderBottom: '1px solid #F0ECE8', verticalAlign: 'top' }}>
+            <td style={{ ...td, textAlign: 'left', fontFamily: SANS, minWidth: 150, maxWidth: 210, whiteSpace: 'normal' }}>
+              <span style={{ fontFamily: MONO, color: SUB, marginRight: 6 }}>{shortId(g.rawId)}</span>{g.name}
+            </td>
+            <td style={{ ...td, color: g.weight > 0 ? TEXT : '#A8A29E' }}>{g.weight > 0 ? fmtW(g.weight) : '未持有'}</td>
+            <td style={{ ...td, fontWeight: 700, color: col(g.impact) }}>{fmtPP(g.impact)}</td>
+            <td style={{ ...td, color: SUB }}>{g.n}</td>
+            <td style={{ ...td, color: SUB }}>{g.last.slice(5)}</td>
+            <td style={{ ...td, textAlign: 'left', whiteSpace: 'normal' }}>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                {g.list.map((t, i) => {
+                  const v = (basis === 'abs' ? t.ret : t.rel)[win];
+                  const vd = verdictOf(t, win, basis);
+                  return (
+                    <span key={t.date} style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+                      {i > 0 && <span style={{ color: '#C8C2BC' }}>→</span>}
+                      <span title={vd ? `${VERDICT[vd].label}（${VERDICT[vd].desc}）` : '期間未走完或無報價'} style={{
+                        display: 'inline-flex', gap: 5, alignItems: 'baseline', padding: '3px 8px', borderRadius: 6,
+                        background: vd ? VERDICT[vd].bg : '#F5F3F0', border: `1px solid ${vd ? VERDICT[vd].color + '55' : BORDER}`,
+                        fontSize: '.76rem', whiteSpace: 'nowrap', fontFamily: SANS }}>
+                        <span style={{ fontFamily: MONO, color: SUB }}>{t.date.slice(5)}</span>
+                        <span style={{ color: TYPE_COLOR[t.type], fontWeight: 700 }}>{TYPE_LABEL[t.type]}</span>
+                        <span style={{ fontFamily: MONO, fontWeight: 700, color: col(v) }}>{t.priced ? fmtPct(v) : '無報價'}</span>
+                        {vd && <span style={{ color: VERDICT[vd].color, fontWeight: 700 }}>{VERDICT[vd].label}</span>}
+                      </span>
                     </span>
-                  </span>
-                );
-              })}
-            </div>
-          </div>
-        );
-      })}
-    </div>
+                  );
+                })}
+              </div>
+            </td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
   );
 }
 
@@ -312,7 +339,7 @@ export default function TradeFollowTab() {
   };
 
   const winCols = ALL_WINS;
-  const weightOf = (id: string) => res?.allocation.find(a => a.id === id)?.weight ?? 0;
+  const weightOf = useCallback((id: string) => res?.allocation.find(a => a.id === id)?.weight ?? 0, [res]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, fontFamily: SANS, color: TEXT }}>
