@@ -1,0 +1,311 @@
+{
+  "date": "2026-11-25",
+  "scanned_at": "2026-11-26T11:53:12+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": null
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "overseas"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "ok",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R3-AMD US-20261103-t15",
+      "rule": "R3",
+      "score": 32.18,
+      "selected": true,
+      "fact": "11/3 減碼 超微半導體公司，其後回跌 16.1%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/3 提前減碼超微半導體公司，隨後該股回跌 16.1%，成功避開損失。",
+      "data": {
+        "stockid": "AMD US",
+        "event_date": "2026-11-03",
+        "direction": "trim",
+        "qty_change_pct": -31.1,
+        "weight_pct": 2.939,
+        "return_since_pct": -16.09,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-PANW US-20261117-t15",
+      "rule": "R3",
+      "score": 30.3,
+      "selected": true,
+      "fact": "11/17 加碼的 Palo Alto Networks Inc 至今 +15.1%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/17 加碼Palo Alto Networks Inc，至今上漲 15.1%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "PANW US",
+        "event_date": "2026-11-17",
+        "direction": "add",
+        "qty_change_pct": 14.1,
+        "weight_pct": 2.46,
+        "return_since_pct": 15.15,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-LITE US-20261116-t8",
+      "rule": "R3",
+      "score": 25.43,
+      "selected": true,
+      "fact": "11/16 減碼 魯門特姆控股公司，其後回跌 12.7%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/16 提前減碼魯門特姆控股公司，隨後該股回跌 12.7%，成功避開損失。",
+      "data": {
+        "stockid": "LITE US",
+        "event_date": "2026-11-16",
+        "direction": "trim",
+        "qty_change_pct": -85.7,
+        "weight_pct": 1.253,
+        "return_since_pct": -12.71,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-BE US-20261117-t8",
+      "rule": "R3",
+      "score": 23.72,
+      "selected": true,
+      "fact": "11/17 減碼 布魯姆能源公司，其後回跌 11.9%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/17 提前減碼布魯姆能源公司，隨後該股回跌 11.9%，成功避開損失。",
+      "data": {
+        "stockid": "BE US",
+        "event_date": "2026-11-17",
+        "direction": "trim",
+        "qty_change_pct": -23.7,
+        "weight_pct": 5.254,
+        "return_since_pct": -11.86,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-TWLO US-20261030-t8",
+      "rule": "R3",
+      "score": 23.65,
+      "selected": true,
+      "fact": "10/30 減碼 Twilio公司，其後回跌 11.8%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 10/30 提前減碼Twilio公司，隨後該股回跌 11.8%，成功避開損失。",
+      "data": {
+        "stockid": "TWLO US",
+        "event_date": "2026-10-30",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 0.975,
+        "return_since_pct": -11.82,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-NTRA US-20261120-t8",
+      "rule": "R3",
+      "score": 20.43,
+      "selected": false,
+      "fact": "11/20 加碼的 那提拉公司 至今 +10.2%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/20 加碼那提拉公司，至今上漲 10.2%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "NTRA US",
+        "event_date": "2026-11-20",
+        "direction": "add",
+        "qty_change_pct": 23.8,
+        "weight_pct": 1.531,
+        "return_since_pct": 10.22,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-NVDA US-20261112-t8",
+      "rule": "R3",
+      "score": 20.33,
+      "selected": false,
+      "fact": "11/12 減碼 輝達公司，其後回跌 10.2%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/12 提前減碼輝達公司，隨後該股回跌 10.2%，成功避開損失。",
+      "data": {
+        "stockid": "NVDA US",
+        "event_date": "2026-11-12",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 0.753,
+        "return_since_pct": -10.16,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-MRVL US-20261116-t8",
+      "rule": "R3",
+      "score": 19.85,
+      "selected": false,
+      "fact": "11/16 減碼 Marvell Technology Inc，其後回跌 9.9%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/16 提前減碼Marvell Technology Inc，隨後該股回跌 9.9%，成功避開損失。",
+      "data": {
+        "stockid": "MRVL US",
+        "event_date": "2026-11-16",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 1.693,
+        "return_since_pct": -9.93,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-AEM US-20261112-t8",
+      "rule": "R3",
+      "score": 19.29,
+      "selected": false,
+      "fact": "11/12 減碼 阿格尼科鷹礦業有限公司，其後回跌 9.6%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/12 提前減碼阿格尼科鷹礦業有限公司，隨後該股回跌 9.6%，成功避開損失。",
+      "data": {
+        "stockid": "AEM US",
+        "event_date": "2026-11-12",
+        "direction": "trim",
+        "qty_change_pct": -62.5,
+        "weight_pct": 2.148,
+        "return_since_pct": -9.65,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-DDOG US-20261105-t8",
+      "rule": "R3",
+      "score": 18.73,
+      "selected": false,
+      "fact": "11/5 減碼 數據狗公司，其後回跌 9.4%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/5 提前減碼數據狗公司，隨後該股回跌 9.4%，成功避開損失。",
+      "data": {
+        "stockid": "DDOG US",
+        "event_date": "2026-11-05",
+        "direction": "trim",
+        "qty_change_pct": -100.0,
+        "weight_pct": 0.724,
+        "return_since_pct": -9.36,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-OKTA US-20261102-t8",
+      "rule": "R3",
+      "score": 18.28,
+      "selected": false,
+      "fact": "11/2 加碼的 Okta公司 至今 +9.1%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/2 加碼Okta公司，至今上漲 9.1%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "OKTA US",
+        "event_date": "2026-11-02",
+        "direction": "add",
+        "qty_change_pct": 20.0,
+        "weight_pct": 1.552,
+        "return_since_pct": 9.14,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-TTWO US-20261119-t8",
+      "rule": "R3",
+      "score": 17.92,
+      "selected": false,
+      "fact": "11/19 加碼的 Take-Two互動軟體公司 至今 +9.0%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/19 加碼Take-Two互動軟體公司，至今上漲 9.0%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "TTWO US",
+        "event_date": "2026-11-19",
+        "direction": "add",
+        "qty_change_pct": 100.0,
+        "weight_pct": 0.832,
+        "return_since_pct": 8.96,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-MU US-20261105-t8",
+      "rule": "R3",
+      "score": 16.8,
+      "selected": false,
+      "fact": "11/5 減碼 美光科技公司，其後回跌 8.4%",
+      "angle": "操作驗證：減碼躲過回檔",
+      "draft": "經理人 11/5 提前減碼美光科技公司，隨後該股回跌 8.4%，成功避開損失。",
+      "data": {
+        "stockid": "MU US",
+        "event_date": "2026-11-05",
+        "direction": "trim",
+        "qty_change_pct": -17.9,
+        "weight_pct": 3.797,
+        "return_since_pct": -8.4,
+        "tier": 8
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 559,
+    "line_status": 200,
+    "candidate_count": 13,
+    "selected_count": 5
+  }
+}
