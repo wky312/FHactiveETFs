@@ -31,6 +31,15 @@ const fmtW = (v: number) => `${v.toFixed(2)}%`;
 const col = (v: number | null | undefined) => v == null ? SUB : v > 0 ? UP : v < 0 ? DOWN : SUB;
 const shortId = (raw: string) => raw.split(/\s+/)[0];
 const toIso = (d: string) => d.replace(/\//g, '-');
+/* 公司簡稱：去掉「股份有限公司／控股／公司」「Inc / Corp / Class A」等字尾，過長截斷 */
+function shortName(name: string, rawId: string): string {
+  let n = (name || '').replace(/\(.*?\)|（.*?）/g, '').trim();
+  n = n.replace(/(股份有限公司|有限公司|控股公司|控股|集團|公司)$/g, '').trim();
+  n = n.replace(/[\s,.-]*(INC|CORP|CORPORATION|CO|LTD|PLC|HOLDINGS?|GROUP|SA|AG|NV|SE)\b.*$/i, '').trim();
+  n = n.replace(/[\s-]*CL(ASS)?[\s-]*[A-C]$/i, '').trim();
+  if (!n) return shortId(rawId);
+  return n.length > 10 ? n.slice(0, 10) + '…' : n;
+}
 const dW = (t: TradeResult) => t.weightAfter - t.weightBefore;
 
 function isoDaysAgo(n: number): string {
@@ -89,14 +98,16 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 }
 
 /* 一次操作的小標籤：日期 動作 漲跌（紅底＝做對、綠底＝做錯） */
-function TradeChip({ t, value, extra }: { t: TradeResult; value: number | null; extra?: string }) {
+function TradeChip({ t, value, withName }: { t: TradeResult; value: number | null; withName?: boolean }) {
   const good = value == null ? null : t.side === 'buy' ? value > 0 : value < 0;
   return (
     <span title={`${t.date} ${TYPE_LABEL[t.type]}，權重 ${fmtW(t.weightBefore)} → ${fmtW(t.weightAfter)}`} style={{
       display: 'inline-flex', gap: 5, alignItems: 'baseline', padding: '3px 8px', borderRadius: 6,
       background: good == null ? NA_BG : good ? GOOD_BG : BAD_BG, border: `1px solid ${good == null ? BORDER : good ? GOOD_BD : BAD_BD}`,
       fontSize: '.76rem', whiteSpace: 'nowrap', fontFamily: SANS }}>
-      <span style={{ fontFamily: MONO, color: SUB }}>{extra ?? t.date.slice(5)}</span>
+      {withName
+        ? <span><b style={{ color: TEXT, fontWeight: 600 }}>{shortName(t.name, t.rawId)}</b> <span style={{ fontFamily: MONO, color: '#A8A29E', fontSize: '.68rem' }}>{shortId(t.rawId)}</span></span>
+        : <span style={{ fontFamily: MONO, color: SUB }}>{t.date.slice(5)}</span>}
       <span style={{ color: TYPE_COLOR[t.type], fontWeight: 700 }}>{TYPE_LABEL[t.type]}</span>
       <b style={{ fontFamily: MONO, color: col(value) }}>{t.priced ? fmtPct(value) : '無報價'}</b>
     </span>
@@ -169,7 +180,7 @@ function RecentOps({ res }: { res: TradeFollowResult }) {
         {([5, 10, 20] as const).map(k => <button key={k} style={seg(n === k)} onClick={() => setN(k)}>近 {k} 日</button>)}
         <Legend />
       </div>
-      <p style={note}>{from ? `持股日 ${from.slice(5)} ~ ${latest?.slice(5)}，共 ${recent.length} 筆操作。` : ''}「之後」＝操作日到最新一天的漲跌。</p>
+      <p style={note}>{from ? `持股日 ${from.slice(5)} ~ ${latest?.slice(5)}，共 ${recent.length} 筆操作。` : ''}「權重增減」＝這個產業在基金裡的權重，這段期間被加碼（＋）或減碼（－）了幾個百分點；「之後」＝操作日到最新一天的漲跌。</p>
       {res.end < (latest ?? '') && <p style={{ ...note, color: UP }}>⚠ 「換股日 迄」早於最新持股日，近期操作可能不完整，請把它留空再查詢。</p>}
 
       <div style={{ margin: '12px 0', padding: '12px 16px', background: '#FAF8F6', borderRadius: 8, fontSize: '.9rem', lineHeight: 2 }}>
@@ -182,7 +193,7 @@ function RecentOps({ res }: { res: TradeFollowResult }) {
         <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
           <thead><tr>
             <th style={{ ...th, textAlign: 'left' }}>產業</th>
-            <th style={th}>加減碼</th>
+            <th style={th} title="這段期間，這個產業在基金裡的權重增加或減少了幾個百分點">權重增減</th>
             <th style={{ ...th, textAlign: 'left' }}>股票（之後漲跌）</th>
             <th style={th}>之後表現</th>
           </tr></thead>
@@ -191,10 +202,11 @@ function RecentOps({ res }: { res: TradeFollowResult }) {
             {rows.map(r => (
               <tr key={r.sector} style={{ borderBottom: '1px solid #F0ECE8' }}>
                 <td style={{ ...td, textAlign: 'left', fontFamily: SANS, whiteSpace: 'normal', minWidth: 130, fontWeight: 600 }}>{r.sector}</td>
-                <td style={{ ...td, fontWeight: 700, color: r.net > 0.005 ? UP : r.net < -0.005 ? DOWN : SUB }}>{r.net >= 0 ? '+' : ''}{r.net.toFixed(2)}%</td>
+                <td style={{ ...td, fontWeight: 700, color: r.net > 0.005 ? UP : r.net < -0.005 ? DOWN : SUB }}>{r.net >= 0 ? '+' : ''}{r.net.toFixed(2)}%
+                  <div style={{ fontSize: '.68rem', fontFamily: SANS, fontWeight: 400 }}>{r.net > 0.005 ? '加碼' : r.net < -0.005 ? '減碼' : '持平'}</div></td>
                 <td style={{ ...td, textAlign: 'left', whiteSpace: 'normal' }}>
                   <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                    {r.trades.map(t => <TradeChip key={`${t.id}-${t.date}`} t={t} value={t.ret.now} extra={shortId(t.rawId)} />)}
+                    {r.trades.map(t => <TradeChip key={`${t.id}-${t.date}`} t={t} value={t.ret.now} withName />)}
                   </div>
                 </td>
                 <td style={{ ...td, fontFamily: SANS, lineHeight: 1.7 }}>
