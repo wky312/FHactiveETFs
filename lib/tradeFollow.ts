@@ -25,7 +25,7 @@
 import { OVERSEAS_FUNDS } from './overseasFunds';
 import { PEER_GROUPS } from './peerGroups';
 import { buildOverseasDayMap, isCashLike, canonOf } from './overseasAttribution';
-import { resolveYfTicker, stockidToYfTicker } from './exchangeMap';
+import { resolveYfTicker, stockidToYfTicker, getSuffixCountry, TW_BARE_CODE } from './exchangeMap';
 import { BUILTIN_GROUPS_OVERSEAS } from './sectorGroupsOverseas';
 import { canonicalCode } from './sectorExposure';
 import { yf } from './marketCalendar/sources/yahoo';
@@ -79,7 +79,10 @@ export interface TradeFollowResult {
   exitedRecently: AllocationRow[];         // 20 日前有、現在沒有
   skippedDates: string[];                  // 疑似資料不完整而略過的持股日
   recentDates: string[];                   // 最近 21 份持股日（新→舊，YYYY-MM-DD），給「近期操作」切區間；多 1 份當「操作前」基準
-  recentWeights: Record<string, Record<string, number>>;  // 上述每一天：個股 id → 權重 %（算產業／個股操作前後權重）
+  recentWeights: Record<string, Record<string, number>>;
+  allWeights: Record<string, Record<string, number>>;     // 每一份持股日（YYYY-MM-DD）：個股 id → 權重 %（國家配置調整用）
+  countryOf: Record<string, string>;                      // 個股 id → 掛牌市場國家（中文）
+  stockNames: Record<string, { raw: string; name: string }>;  // 上述每一天：個股 id → 權重 %（算產業／個股操作前後權重）
   sectors: Record<string, string>;         // 個股 id → 產業（近 21 份持股內出現過的股票）
   /* 個股 id → 「選股對帳單」同一套算法的持有總報酬（移動平均成本、當地幣別、未還原息）：
      目前持有＝未實現報酬（現價 vs 剩餘部位平均成本）；已出清＝已實現＋未實現總報酬。
@@ -232,6 +235,25 @@ function ffill(raw: Map<string, number>, start: string, end: string): Map<string
   return out;
 }
 
+/* ── 國家：依掛牌市場（彭博交易所後綴；裸 4 碼＝台股、裸英文代號＝美股）── */
+const COUNTRY_ZH: Record<string, string> = {
+  'United States': '美國', 'Taiwan': '台灣', 'Japan': '日本', 'South Korea': '韓國', 'Hong Kong': '香港',
+  'China': '中國', 'Germany': '德國', 'France': '法國', 'United Kingdom': '英國', 'Netherlands': '荷蘭',
+  'Switzerland': '瑞士', 'Canada': '加拿大', 'Australia': '澳洲', 'Spain': '西班牙', 'Italy': '義大利',
+  'Denmark': '丹麥', 'Norway': '挪威', 'Sweden': '瑞典', 'Singapore': '新加坡', 'India': '印度',
+  'South Africa': '南非', 'Brazil': '巴西', 'Austria': '奧地利', 'Belgium': '比利時', 'Greece': '希臘',
+  'Portugal': '葡萄牙', 'Finland': '芬蘭', 'New Zealand': '紐西蘭', 'Malaysia': '馬來西亞',
+  'Philippines': '菲律賓', 'Indonesia': '印尼', 'Thailand': '泰國', 'Poland': '波蘭',
+};
+export function countryOfStock(rawId: string): string {
+  const raw = rawId.trim();
+  const { suffix } = stockidToYfTicker(raw);
+  if (suffix) { const c = getSuffixCountry(suffix); return COUNTRY_ZH[c] ?? c; }
+  if (TW_BARE_CODE.test(raw.toUpperCase())) return '台灣';
+  if (/^[A-Za-z][A-Za-z.\-]{0,5}$/.test(raw)) return '美國';
+  return '其他';
+}
+
 /* ── 產業分類：先用內建海外族群（科技股為主，名稱去掉括號英文），沒有的再問 Yahoo 的 sector ── */
 const groupOfCode = new Map<string, string>();
 for (const g of BUILTIN_GROUPS_OVERSEAS) for (const c of g.codes) {
@@ -315,7 +337,16 @@ export async function computeTradeFollow(fund: string, start: string, end?: stri
     ])),
     sectors: {},
     costReturn: {},
+    allWeights: Object.fromEntries(goodDates.map(d => [
+      slashToIso(d), Object.fromEntries([...snapByDate.get(d)!].map(([id, p]) => [id, +p.w.toFixed(4)])),
+    ])),
+    countryOf: {},
+    stockNames: {},
   };
+  for (const d of goodDates) for (const [id, p] of snapByDate.get(d)!) {
+    base.stockNames[id] = { raw: p.raw, name: p.name || base.stockNames[id]?.name || '' };
+    if (!base.countryOf[id]) base.countryOf[id] = countryOfStock(p.raw);
+  }
   // 近 21 份持股內出現過的所有股票 → 產業（產業權重要把沒換股的持股也算進去）
   const recentIds = new Map<string, string>();
   for (const d of goodDates.slice(-21)) for (const [id, p] of snapByDate.get(d)!) recentIds.set(id, p.raw);

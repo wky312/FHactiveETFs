@@ -1,13 +1,14 @@
 'use client';
-import { useState, useMemo, useCallback, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useCallback, useEffect, useRef } from 'react';
 import * as XLSX from 'xlsx';
 import { OVERSEAS_FUNDS } from '@/lib/overseasFunds';
 import type { TradeFollowResult, TradeResult, TradeType } from '@/lib/tradeFollow';
 
-/* 換股追蹤分頁（海外主動式 ETF）——精簡版，只有三塊：
+/* 換股追蹤分頁（海外主動式 ETF）——精簡版，四塊：
    ① 近期操作：近 5／10／20 個交易日加減碼哪些產業、之後有沒有加對／減對
-   ② 做對／做錯最多的個股：依「對淨值」排名
-   ③ 每檔股票的換股歷程：可排序
+   ② 國家配置調整：自選兩個持股日，比較各國權重變化
+   ③ 做對／做錯最多的個股：依「淨值貢獻」排名
+   ④ 每檔股票的換股歷程：可排序
    判斷一律用「這次操作 → 同一檔下一次動作」那段、個股本身漲跌（新台幣、含息）。
    其他期間、相對報酬、逐筆明細都放在匯出的 Excel。算法見 lib/tradeFollow.ts。
    台股配色：紅＝漲／做對，綠＝跌／做錯。 */
@@ -323,6 +324,124 @@ function RecentOps({ res }: { res: TradeFollowResult }) {
   );
 }
 
+/* ── ② 國家配置調整：自選兩個持股日，比較各國權重 ─────────────────── */
+type CSort = 'a' | 'b' | 'd';
+function CountryShift({ res }: { res: TradeFollowResult }) {
+  const dates = useMemo(() => Object.keys(res.allWeights ?? {}).sort(), [res]);
+  const defA = dates.find(d => d >= res.start) ?? dates[0];
+  const [a, setA] = useState(defA);
+  const [b, setB] = useState(dates[dates.length - 1]);
+  const [sortKey, setSortKey] = useState<CSort>('d');
+  const [asc, setAsc] = useState(false);
+  const [open, setOpen] = useState<string | null>(null);
+
+  const quick = (k: number) => { setB(dates[dates.length - 1]); setA(dates[Math.max(0, dates.length - 1 - k)]); };
+
+  const rows = useMemo(() => {
+    const wa = res.allWeights?.[a] ?? {}, wb = res.allWeights?.[b] ?? {};
+    const m = new Map<string, { country: string; a: number; b: number; stocks: { id: string; a: number; b: number }[] }>();
+    for (const id of new Set([...Object.keys(wa), ...Object.keys(wb)])) {
+      const c = res.countryOf?.[id] ?? '其他';
+      const r = m.get(c) ?? { country: c, a: 0, b: 0, stocks: [] };
+      r.a += wa[id] ?? 0; r.b += wb[id] ?? 0;
+      r.stocks.push({ id, a: wa[id] ?? 0, b: wb[id] ?? 0 });
+      m.set(c, r);
+    }
+    const list = [...m.values()];
+    const sumA = list.reduce((x, r) => x + r.a, 0), sumB = list.reduce((x, r) => x + r.b, 0);
+    list.push({ country: '現金／其他', a: Math.max(0, 100 - sumA), b: Math.max(0, 100 - sumB), stocks: [] });
+    for (const r of list) r.stocks.sort((x, y) => (y.b - y.a) - (x.b - x.a));
+    const key = (r: { a: number; b: number }) => sortKey === 'a' ? r.a : sortKey === 'b' ? r.b : r.b - r.a;
+    return list.sort((x, y) => asc ? key(x) - key(y) : key(y) - key(x));
+  }, [res, a, b, sortKey, asc]);
+
+  const maxD = Math.max(0.01, ...rows.map(r => Math.abs(r.b - r.a)));
+  const click = (k: CSort) => { if (sortKey === k) setAsc(!asc); else { setSortKey(k); setAsc(false); } };
+  const arrow = (k: CSort) => sortKey === k ? (asc ? ' ▲' : ' ▼') : '';
+  const dateSel = (v: string, set: (x: string) => void) => (
+    <select value={v} onChange={e => set(e.target.value)} style={{ ...inputStyle, minWidth: 130, padding: '5px 8px' }}>
+      {[...dates].reverse().map(d => <option key={d} value={d}>{d}</option>)}
+    </select>
+  );
+
+  return (
+    <div style={card}>
+      <h3 style={h3}>② 國家配置調整</h3>
+      <p style={note}>自選兩個持股日，比較各國（依股票掛牌市場）的權重變化。點國家可展開看是哪些股票造成的。</p>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', margin: '10px 0' }}>
+        <span style={{ fontSize: '.8rem', color: SUB }}>從</span>{dateSel(a, setA)}
+        <span style={{ fontSize: '.8rem', color: SUB }}>到</span>{dateSel(b, setB)}
+        <span style={{ fontSize: '.78rem', color: SUB, marginLeft: 8 }}>快速選：</span>
+        {[[5, '近 5 日'], [20, '近 20 日'], [60, '近 60 日']].map(([k, l]) =>
+          <button key={k} style={seg(false)} onClick={() => quick(k as number)}>{l}</button>)}
+        <button style={seg(false)} onClick={() => { setA(dates[0]); setB(dates[dates.length - 1]); }}>全部期間</button>
+      </div>
+      {a > b && <p style={{ ...note, color: UP }}>⚠ 「從」的日期比「到」晚，數字會是反過來的變化。</p>}
+      <div style={{ overflow: 'auto' }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 620 }}>
+          <thead><tr>
+            <th style={{ ...th, textAlign: 'left' }}>國家</th>
+            <th style={{ ...th, cursor: 'pointer' }} onClick={() => click('a')}>{a} 權重{arrow('a')}</th>
+            <th style={{ ...th, cursor: 'pointer' }} onClick={() => click('b')}>{b} 權重{arrow('b')}</th>
+            <th style={{ ...th, cursor: 'pointer' }} onClick={() => click('d')}>調整{arrow('d')}</th>
+            <th style={{ ...th, textAlign: 'left', width: '30%' }}></th>
+          </tr></thead>
+          <tbody>
+            {rows.map(r => {
+              const d = r.b - r.a;
+              const isOpen = open === r.country;
+              return (
+                <React.Fragment key={r.country}>
+                  <tr onClick={() => r.stocks.length && setOpen(isOpen ? null : r.country)}
+                    style={{ borderBottom: '1px solid #F0ECE8', cursor: r.stocks.length ? 'pointer' : 'default', background: isOpen ? '#FAF8F6' : undefined }}>
+                    <td style={{ ...td, textAlign: 'left', fontFamily: SANS, fontWeight: 600 }}>
+                      {r.stocks.length > 0 && <span style={{ color: SUB, marginRight: 4 }}>{isOpen ? '▾' : '▸'}</span>}{r.country}
+                    </td>
+                    <td style={{ ...td, color: SUB }}>{fmtW(r.a)}</td>
+                    <td style={{ ...td, fontWeight: 700 }}>{fmtW(r.b)}</td>
+                    <td style={{ ...td, fontWeight: 700, color: col(Math.abs(d) < 0.005 ? 0 : d) }}>
+                      {Math.abs(d) < 0.005 ? '—' : `${d > 0 ? '+' : ''}${d.toFixed(2)}%`}
+                    </td>
+                    <td style={{ ...td, textAlign: 'left' }}>
+                      <div style={{ display: 'flex', height: 10 }}>
+                        <div style={{ flex: 1, display: 'flex', justifyContent: 'flex-end' }}>
+                          {d < 0 && <div style={{ width: `${Math.abs(d) / maxD * 100}%`, background: DOWN, borderRadius: '3px 0 0 3px' }} />}
+                        </div>
+                        <div style={{ width: 1, background: '#C8C2BC' }} />
+                        <div style={{ flex: 1 }}>
+                          {d > 0 && <div style={{ width: `${d / maxD * 100}%`, height: '100%', background: UP, borderRadius: '0 3px 3px 0' }} />}
+                        </div>
+                      </div>
+                    </td>
+                  </tr>
+                  {isOpen && r.stocks.filter(x => Math.abs(x.b - x.a) >= 0.005).map(x => {
+                    const nm = res.stockNames?.[x.id];
+                    const dd = x.b - x.a;
+                    return (
+                      <tr key={x.id} style={{ background: '#FAF8F6', borderBottom: '1px dashed #EEE9E4' }}>
+                        <td style={{ ...td, textAlign: 'left', fontFamily: SANS, paddingLeft: 30 }}>
+                          {shortName(nm?.name ?? '', nm?.raw ?? x.id)} <span style={{ fontFamily: MONO, color: '#A8A29E', fontSize: '.7rem' }}>{shortId(nm?.raw ?? x.id)}</span>
+                          {x.a === 0 && <span style={{ marginLeft: 6, fontSize: '.68rem', color: UP, fontWeight: 700 }}>新增</span>}
+                          {x.b === 0 && <span style={{ marginLeft: 6, fontSize: '.68rem', color: DOWN, fontWeight: 700 }}>出清</span>}
+                        </td>
+                        <td style={{ ...td, color: SUB }}>{fmtW(x.a)}</td>
+                        <td style={{ ...td }}>{fmtW(x.b)}</td>
+                        <td style={{ ...td, color: col(dd) }}>{dd > 0 ? '+' : ''}{dd.toFixed(2)}%</td>
+                        <td />
+                      </tr>
+                    );
+                  })}
+                </React.Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+      <p style={{ ...note, fontSize: '.72rem' }}>國家依股票的掛牌市場判斷（例如台積電 ADR「TSM US」算美國）。權重變化同時包含經理人買賣與股價漲跌的影響。「現金／其他」＝100% 扣掉股票部位。</p>
+    </div>
+  );
+}
+
 /* ── ②③ 用的個股彙總 ─────────────────────────────────────────── */
 interface StockRow {
   id: string; rawId: string; name: string; trades: TradeResult[];
@@ -481,9 +600,11 @@ export default function TradeFollowTab() {
 
         <RecentOps res={res} />
 
+        <CountryShift key={res.fund + res.start + res.end} res={res} />
+
         {/* ── ② 做對／做錯最多的個股 ── */}
         <div style={card}>
-          <h3 style={h3}>② 做對／做錯最多的個股</h3>
+          <h3 style={h3}>③ 做對／做錯最多的個股</h3>
           <p style={note}>換股日 {res.start} ~ {res.end}，共 {stocks.length} 檔有換股。依「淨值貢獻」排名：經理人在這檔股票的買賣，讓基金淨值多賺（正）或少賺（負）幾個百分點。點股票可看它的換股歷程。</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 28, marginTop: 10 }}>
             {rankList('做對最多', UP, good)}
@@ -494,7 +615,7 @@ export default function TradeFollowTab() {
         {/* ── ③ 每檔股票的換股歷程 ── */}
         <div style={card} ref={tableRef}>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
-            <h3 style={{ ...h3, marginRight: 6 }}>③ 每檔股票的換股歷程</h3>
+            <h3 style={{ ...h3, marginRight: 6 }}>④ 每檔股票的換股歷程</h3>
             <input placeholder="搜尋代號或名稱" value={q} onChange={e => setQ(e.target.value)}
               style={{ ...inputStyle, fontFamily: SANS, minWidth: 170, padding: '6px 10px' }} />
             {q && <button style={seg(true)} onClick={() => setQ('')}>清除搜尋 ✕</button>}
