@@ -136,14 +136,20 @@ function weightedPerf(list: TradeResult[]): number | null {
   for (const t of list) { const v = t.ret.now; if (v == null) continue; const k = Math.abs(dW(t)); w += k; s += k * v; }
   return w > 0 ? s / w : null;
 }
-function perfText(v: number | null, side: 'buy' | 'sell') {
-  if (v == null) return <span style={{ color: '#AAA' }}>—</span>;
-  const good = side === 'buy' ? v > 0 : v < 0;
-  const label = side === 'buy' ? (good ? '加對了' : '加錯了') : (good ? '減對了' : '減早了');
+/* 白話總結句：「加碼的股票：加碼之後到 11/24，股價平均下跌 1.95% → 目前看來加錯了」 */
+function perfText(v: number | null, side: 'buy' | 'sell', until: string) {
+  const what = side === 'buy' ? '加碼' : '減碼';
+  if (v == null) return <span>{what}的股票：還沒有之後的股價</span>;
+  const up = v > 0;
+  const good = side === 'buy' ? up : !up;
+  const verdict = side === 'buy'
+    ? (good ? '買了之後漲，目前看來加對了' : '買了之後跌，目前看來加錯了')
+    : (good ? '賣了之後跌，目前看來減對了' : '賣了之後反而漲，目前看來減太早');
   return (
-    <span style={{ whiteSpace: 'nowrap' }}>
-      {side === 'buy' ? '加碼後' : '減碼後'} <b style={{ fontFamily: MONO, color: col(v) }}>{fmtPct(v, 2)}</b>{' '}
-      <b style={{ color: good ? UP : DOWN }}>{label}</b>
+    <span>
+      <b>{what}的股票</b>：{what}之後到 {until}，股價平均{up ? '上漲' : '下跌'}{' '}
+      <b style={{ fontFamily: MONO, color: col(v) }}>{Math.abs(v).toFixed(2)}%</b>
+      {' '}→ <b style={{ color: good ? UP : DOWN }}>{verdict}</b>
     </span>
   );
 }
@@ -249,9 +255,10 @@ function RecentOps({ res }: { res: TradeFollowResult }) {
         <div><b style={{ color: UP }}>主要加碼：</b>{sectorList(adds)}</div>
         <div><b style={{ color: DOWN }}>主要減碼：</b>{sectorList(cuts)}</div>
         <div>
-          {perfText(buyAll, 'buy')}　　{perfText(sellAll, 'sell')}
-          <div style={{ fontSize: '.74rem', color: SUB, lineHeight: 1.5 }}>
-            算法：期間內每一筆加碼（減碼）的股票，從操作日收盤算到 {md(lastPriceDate(res))} 收盤的漲跌，再依每筆調整的權重大小加權平均。加碼的股票之後上漲＝加對；減碼的股票之後下跌＝減對、上漲＝減早了。
+          <div>{perfText(buyAll, 'buy', md(lastPriceDate(res)))}</div>
+          <div>{perfText(sellAll, 'sell', md(lastPriceDate(res)))}</div>
+          <div style={{ fontSize: '.72rem', color: SUB, lineHeight: 1.5 }}>
+            平均的算法：每一筆從操作日收盤算到 {md(lastPriceDate(res))} 收盤的漲跌，調整權重越多的那筆占比越重。
           </div>
         </div>
       </div>
