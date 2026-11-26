@@ -124,7 +124,11 @@ function Legend() {
 }
 
 /* ── ① 近期操作 ───────────────────────────────────────────────── */
-interface SectorRow { sector: string; net: number; trades: TradeResult[]; buyPerf: number | null; sellPerf: number | null }
+interface StockLine { id: string; rawId: string; name: string; before: number; after: number; trades: TradeResult[] }
+interface SectorRow {
+  sector: string; before: number; after: number; lines: StockLine[];
+  buyPerf: number | null; sellPerf: number | null;
+}
 
 function weightedPerf(list: TradeResult[]): number | null {
   let w = 0, s = 0;
@@ -142,35 +146,67 @@ function perfText(v: number | null, side: 'buy' | 'sell') {
     </span>
   );
 }
+/* 「1.20% → 0.85%」＋「淨減碼 −0.35」 */
+function WeightMove({ before, after, big }: { before: number; after: number; big?: boolean }) {
+  const d = after - before;
+  const dir = d > 0.005 ? '淨加碼' : d < -0.005 ? '淨減碼' : '持平';
+  return (
+    <span style={{ whiteSpace: 'nowrap', fontFamily: MONO, fontSize: big ? '.86rem' : '.78rem' }}>
+      <span style={{ color: SUB }}>{fmtW(before)}</span>
+      <span style={{ color: '#A8A29E' }}> → </span>
+      <b style={{ color: TEXT }}>{fmtW(after)}</b>
+      <span style={{ marginLeft: 6, fontFamily: SANS, fontSize: '.72rem', fontWeight: 700, color: col(d) }}>
+        {dir}{dir !== '持平' && <span style={{ fontFamily: MONO }}> {d > 0 ? '+' : ''}{d.toFixed(2)}</span>}
+      </span>
+    </span>
+  );
+}
 
 function RecentOps({ res }: { res: TradeFollowResult }) {
   const [n, setN] = useState<5 | 10 | 20>(5);
   const dates = res.recentDates ?? [];
-  const from = dates[Math.min(n, dates.length) - 1];
+  const from = dates[Math.min(n, dates.length) - 1];            // 期間內第一天
+  const baseDate = dates[Math.min(n, dates.length - 1)];         // 操作前基準（期間前一天）
   const latest = dates[0];
 
   const { rows, recent } = useMemo(() => {
     const recent = from ? res.trades.filter(t => toIso(t.date) >= from) : [];
+    const wB = res.recentWeights?.[baseDate] ?? {};
+    const wL = res.recentWeights?.[latest] ?? {};
+    const secOf = (id: string) => res.sectors?.[id] ?? '其他／未分類';
     const by = new Map<string, SectorRow>();
-    for (const t of recent) {
-      const sec = res.sectors?.[t.id] ?? '其他／未分類';
-      const r = by.get(sec) ?? { sector: sec, net: 0, trades: [], buyPerf: null, sellPerf: null };
-      r.net += dW(t); r.trades.push(t); by.set(sec, r);
+    const lineOf = new Map<string, StockLine>();
+    for (const t of [...recent].sort((a, b) => a.date.localeCompare(b.date))) {
+      const sec = secOf(t.id);
+      if (!by.has(sec)) by.set(sec, { sector: sec, before: 0, after: 0, lines: [], buyPerf: null, sellPerf: null });
+      let ln = lineOf.get(t.id);
+      if (!ln) {
+        ln = { id: t.id, rawId: t.rawId, name: t.name, before: wB[t.id] ?? 0, after: wL[t.id] ?? 0, trades: [] };
+        lineOf.set(t.id, ln); by.get(sec)!.lines.push(ln);
+      }
+      ln.trades.push(t);
     }
+    // 產業權重＝該產業所有持股（含這段期間沒換股的）權重加總
+    for (const [id, w] of Object.entries(wB)) { const r = by.get(secOf(id)); if (r) r.before += w; }
+    for (const [id, w] of Object.entries(wL)) { const r = by.get(secOf(id)); if (r) r.after += w; }
     for (const r of by.values()) {
-      r.buyPerf = weightedPerf(r.trades.filter(t => t.side === 'buy'));
-      r.sellPerf = weightedPerf(r.trades.filter(t => t.side === 'sell'));
-      r.trades.sort((a, b) => dW(b) - dW(a));     // 加碼最多的在前、減碼最多的在後
+      const ts = r.lines.flatMap(l => l.trades);
+      r.buyPerf = weightedPerf(ts.filter(t => t.side === 'buy'));
+      r.sellPerf = weightedPerf(ts.filter(t => t.side === 'sell'));
+      r.lines.sort((x, y) => (y.after - y.before) - (x.after - x.before));
     }
-    return { rows: [...by.values()].sort((a, b) => Math.abs(b.net) - Math.abs(a.net)), recent };
-  }, [res, from]);
+    const rows = [...by.values()].sort((x, y) => Math.abs(y.after - y.before) - Math.abs(x.after - x.before));
+    return { rows, recent };
+  }, [res, from, baseDate, latest]);
 
-  const adds = rows.filter(r => r.net > 0.005).sort((a, b) => b.net - a.net).slice(0, 3);
-  const cuts = rows.filter(r => r.net < -0.005).sort((a, b) => a.net - b.net).slice(0, 3);
+  const chg = (r: SectorRow) => r.after - r.before;
+  const adds = rows.filter(r => chg(r) > 0.005).sort((a, b) => chg(b) - chg(a)).slice(0, 3);
+  const cuts = rows.filter(r => chg(r) < -0.005).sort((a, b) => chg(a) - chg(b)).slice(0, 3);
   const buyAll = weightedPerf(recent.filter(t => t.side === 'buy'));
   const sellAll = weightedPerf(recent.filter(t => t.side === 'sell'));
-  const sectorList = (list: SectorRow[], color: string) => list.length
-    ? list.map((r, i) => <span key={r.sector}>{i > 0 && '、'}{r.sector}（<b style={{ fontFamily: MONO, color }}>{r.net >= 0 ? '+' : ''}{r.net.toFixed(2)}%</b>）</span>)
+  const md = (d?: string) => d ? d.slice(5).replace('-', '/') : '';
+  const sectorList = (list: SectorRow[]) => list.length
+    ? list.map((r, i) => <span key={r.sector}>{i > 0 && '、'}{r.sector}（{fmtW(r.before)} → {fmtW(r.after)}）</span>)
     : '無';
 
   return (
@@ -180,34 +216,51 @@ function RecentOps({ res }: { res: TradeFollowResult }) {
         {([5, 10, 20] as const).map(k => <button key={k} style={seg(n === k)} onClick={() => setN(k)}>近 {k} 日</button>)}
         <Legend />
       </div>
-      <p style={note}>{from ? `持股日 ${from.slice(5)} ~ ${latest?.slice(5)}，共 ${recent.length} 筆操作。` : ''}「權重增減」＝這個產業在基金裡的權重，這段期間被加碼（＋）或減碼（－）了幾個百分點；「之後」＝操作日到最新一天的漲跌。</p>
+      {from && (
+        <p style={{ ...note, fontSize: '.84rem', color: TEXT }}>
+          比較 <b>{md(baseDate)}（操作前）</b> → <b>{md(latest)}（最新）</b> 的持股權重，期間內共 {recent.length} 筆操作。
+        </p>
+      )}
       {res.end < (latest ?? '') && <p style={{ ...note, color: UP }}>⚠ 「換股日 迄」早於最新持股日，近期操作可能不完整，請把它留空再查詢。</p>}
 
       <div style={{ margin: '12px 0', padding: '12px 16px', background: '#FAF8F6', borderRadius: 8, fontSize: '.9rem', lineHeight: 2 }}>
-        <div><b>主要加碼：</b>{sectorList(adds, UP)}</div>
-        <div><b>主要減碼：</b>{sectorList(cuts, DOWN)}</div>
-        <div>{perfText(buyAll, 'buy')}　　{perfText(sellAll, 'sell')}</div>
+        <div><b style={{ color: UP }}>主要加碼：</b>{sectorList(adds)}</div>
+        <div><b style={{ color: DOWN }}>主要減碼：</b>{sectorList(cuts)}</div>
+        <div>{perfText(buyAll, 'buy')}　　{perfText(sellAll, 'sell')}<span style={{ fontSize: '.74rem', color: SUB }}>（「之後」＝操作日到最新一天的漲跌）</span></div>
       </div>
 
-      <div style={{ overflow: 'auto', maxHeight: 480 }}>
-        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 760 }}>
+      <div style={{ overflow: 'auto', maxHeight: 560 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 900 }}>
           <thead><tr>
             <th style={{ ...th, textAlign: 'left' }}>產業</th>
-            <th style={th} title="這段期間，這個產業在基金裡的權重增加或減少了幾個百分點">權重增減</th>
-            <th style={{ ...th, textAlign: 'left' }}>股票（之後漲跌）</th>
+            <th style={{ ...th, textAlign: 'left' }}>產業權重 {md(baseDate)} → {md(latest)}</th>
+            <th style={{ ...th, textAlign: 'left' }}>個股權重 {md(baseDate)} → {md(latest)}｜期間內每次操作（之後漲跌）</th>
             <th style={th}>之後表現</th>
           </tr></thead>
           <tbody>
             {rows.length === 0 && <tr><td colSpan={4} style={{ ...td, textAlign: 'center', color: '#AAA', fontFamily: SANS }}>這段期間沒有換股</td></tr>}
             {rows.map(r => (
-              <tr key={r.sector} style={{ borderBottom: '1px solid #F0ECE8' }}>
-                <td style={{ ...td, textAlign: 'left', fontFamily: SANS, whiteSpace: 'normal', minWidth: 130, fontWeight: 600 }}>{r.sector}</td>
-                <td style={{ ...td, fontWeight: 700, color: r.net > 0.005 ? UP : r.net < -0.005 ? DOWN : SUB }}>{r.net >= 0 ? '+' : ''}{r.net.toFixed(2)}%
-                  <div style={{ fontSize: '.68rem', fontFamily: SANS, fontWeight: 400 }}>{r.net > 0.005 ? '加碼' : r.net < -0.005 ? '減碼' : '持平'}</div></td>
-                <td style={{ ...td, textAlign: 'left', whiteSpace: 'normal' }}>
-                  <div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>
-                    {r.trades.map(t => <TradeChip key={`${t.id}-${t.date}`} t={t} value={t.ret.now} withName />)}
-                  </div>
+              <tr key={r.sector} style={{ borderBottom: '1px solid #E8E3DF' }}>
+                <td style={{ ...td, textAlign: 'left', fontFamily: SANS, whiteSpace: 'normal', minWidth: 120, maxWidth: 170, fontWeight: 600 }}>{r.sector}</td>
+                <td style={{ ...td, textAlign: 'left' }}><WeightMove before={r.before} after={r.after} big /></td>
+                <td style={{ ...td, textAlign: 'left', whiteSpace: 'normal', padding: '4px 10px' }}>
+                  {r.lines.map(l => (
+                    <div key={l.id} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', padding: '4px 0', borderBottom: '1px dashed #F0ECE8' }}>
+                      <span style={{ minWidth: 150, fontFamily: SANS }}>
+                        <b style={{ fontWeight: 600 }}>{shortName(l.name, l.rawId)}</b>{' '}
+                        <span style={{ fontFamily: MONO, color: '#A8A29E', fontSize: '.68rem' }}>{shortId(l.rawId)}</span>
+                      </span>
+                      <span style={{ minWidth: 220 }}><WeightMove before={l.before} after={l.after} /></span>
+                      <span style={{ display: 'inline-flex', flexWrap: 'wrap', gap: 4, alignItems: 'center' }}>
+                        {l.trades.map((t, i) => (
+                          <span key={t.date} style={{ display: 'inline-flex', alignItems: 'center', gap: 4 }}>
+                            {i > 0 && <span style={{ color: '#C8C2BC' }}>→</span>}
+                            <TradeChip t={t} value={t.ret.now} />
+                          </span>
+                        ))}
+                      </span>
+                    </div>
+                  ))}
                 </td>
                 <td style={{ ...td, fontFamily: SANS, lineHeight: 1.7 }}>
                   {r.buyPerf != null && <div>{perfText(r.buyPerf, 'buy')}</div>}
@@ -309,7 +362,7 @@ export default function TradeFollowTab() {
       [],
       ['換股日', '代號', '名稱', '產業', '動作', '調整前權重%', '調整後權重%',
         ...wins.flatMap(([, l]) => [`${l} 個股%`, `${l} 相對基金%`]),
-        '算到（下次動作）', '持有貢獻%', '賣出後錯過／避開%', '對淨值%', '判斷'],
+        '算到（下次動作）', '持有貢獻%', '賣出後錯過／避開%', '淨值貢獻%', '判斷'],
       ...[...res.trades].sort((a, b) => a.date.localeCompare(b.date)).map(t => {
         const p = impactParts(t);
         const g = isGood(t);
@@ -323,7 +376,7 @@ export default function TradeFollowTab() {
       }),
     ];
     const byStock: (string | number | null)[][] = [
-      ['代號', '名稱', '目前權重%', '持有總報酬%（同選股對帳單）', '對淨值%', '操作次數', '最近動作'],
+      ['代號', '名稱', '目前權重%', '持有報酬率%（同選股對帳單）', '淨值貢獻%', '操作次數', '最近動作'],
       ...stocks.map(s => [s.rawId, s.name, +s.weight.toFixed(2), s.cost == null ? null : +s.cost.toFixed(2),
         s.impact == null ? null : +s.impact.toFixed(3), s.trades.length, s.last]),
     ];
@@ -345,7 +398,7 @@ export default function TradeFollowTab() {
           <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
             <span style={{ fontFamily: MONO, color: SUB, marginRight: 6 }}>{shortId(s.rawId)}</span>{s.name}
           </span>
-          <span style={{ fontSize: '.76rem', color: SUB }}>對淨值 <b style={{ fontFamily: MONO, fontSize: '.92rem', color: col(s.impact) }}>{fmtPct(s.impact, 2)}</b></span>
+          <span style={{ fontSize: '.76rem', color: SUB }}>淨值貢獻 <b style={{ fontFamily: MONO, fontSize: '.92rem', color: col(s.impact) }}>{fmtPct(s.impact, 2)}</b></span>
         </div>
       ))}
     </div>
@@ -384,7 +437,7 @@ export default function TradeFollowTab() {
         {/* ── ② 做對／做錯最多的個股 ── */}
         <div style={card}>
           <h3 style={h3}>② 做對／做錯最多的個股</h3>
-          <p style={note}>換股日 {res.start} ~ {res.end}，共 {stocks.length} 檔有換股。依「對淨值」排名：經理人在這檔股票的加減碼，讓基金淨值多賺（正）或少賺（負）幾個百分點。點股票可看它的換股歷程。</p>
+          <p style={note}>換股日 {res.start} ~ {res.end}，共 {stocks.length} 檔有換股。依「淨值貢獻」排名：經理人在這檔股票的買賣，讓基金淨值多賺（正）或少賺（負）幾個百分點。點股票可看它的換股歷程。</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 28, marginTop: 10 }}>
             {rankList('做對最多', UP, good)}
             {rankList('做錯最多', DOWN, bad)}
@@ -406,8 +459,8 @@ export default function TradeFollowTab() {
               <thead><tr>
                 <th style={{ ...th, textAlign: 'left', cursor: 'pointer' }} onClick={() => click('name')}>股票{arrow('name')}</th>
                 <th style={{ ...th, cursor: 'pointer' }} onClick={() => click('weight')}>目前權重{arrow('weight')}</th>
-                <th style={{ ...th, cursor: 'pointer' }} onClick={() => click('cost')} title="與「選股對帳單」相同">持有總報酬{arrow('cost')}</th>
-                <th style={{ ...th, cursor: 'pointer' }} onClick={() => click('impact')}>對淨值{arrow('impact')}</th>
+                <th style={{ ...th, cursor: 'pointer' }} onClick={() => click('cost')} title="與「選股對帳單」相同">持有報酬率{arrow('cost')}<div style={{ fontSize: '.64rem', fontWeight: 400, opacity: .8 }}>這檔股票賺幾 %</div></th>
+                <th style={{ ...th, cursor: 'pointer' }} onClick={() => click('impact')}>淨值貢獻{arrow('impact')}<div style={{ fontSize: '.64rem', fontWeight: 400, opacity: .8 }}>幫基金賺幾個百分點</div></th>
                 <th style={{ ...th, textAlign: 'left' }}>換股歷程</th>
               </tr></thead>
               <tbody>
@@ -444,9 +497,10 @@ export default function TradeFollowTab() {
             <li><b>新增／出清</b>：前一天持股沒有、今天有＝新增；前一天有、今天沒有＝出清。</li>
             <li><b>加碼／減碼</b>：ETF 每天有申購買回，所有股票股數會一起增減，那不算換股。扣掉這部分後，股數再多（少）10% 以上才算加碼（減碼）。連續幾天同方向調整合併成一筆。</li>
             <li><b>歷程每一格的漲跌</b>：從這次操作當天收盤，算到同一檔股票下一次動作那天收盤；沒有下一次動作就算到最新一天。新台幣計價、含配息。</li>
+            <li><b>近期操作的權重</b>：用「操作前一天」和「最新一天」兩份持股的實際權重相比。產業權重＝該產業所有持股（包含這段期間沒動的）權重加總。權重變化也會受股價漲跌影響，所以和操作的方向可能有些微差異。</li>
             <li><b>近期操作的「之後」</b>：從操作日算到最新一天。最新一天才做的操作還沒有之後的股價，顯示「—」。產業分類先用網站內建的海外族群，沒有的用 Yahoo 產業分類。</li>
-            <li><b>對淨值</b>：每段期間實際持有的權重 × 那段漲跌，再加上「賣掉的權重 × 賣出後漲跌」（賣後漲＝少賺、記負；賣後跌＝避開虧損、記正）。同一檔的各段加總。權重用持股公布資料，屬近似值。</li>
-            <li><b>持有總報酬</b>：與「選股對帳單」相同——從第一次買進起，用平均成本計算（像證券帳戶的報酬率），當地幣別、不含配息。它看「整體持有賺多少」，對淨值看「每次操作做得好不好」，兩者數字不同是正常的。</li>
+            <li><b>淨值貢獻</b>：每段期間實際持有的權重 × 那段漲跌，再加上「賣掉的權重 × 賣出後漲跌」（賣後漲＝少賺、記負；賣後跌＝避開虧損、記正）。同一檔的各段加總。權重用持股公布資料，屬近似值。</li>
+            <li><b>持有報酬率</b>：與「選股對帳單」的報酬相同——從第一次買進起，用平均成本計算（像證券帳戶的報酬率），當地幣別、不含配息。兩者差別：報酬率看「這檔股票本身賺幾 %」，淨值貢獻看「它幫整個基金賺幾個百分點」，會再乘上它在基金裡的權重。例如報酬率 +20%、但只占基金 1%，淨值貢獻大約只有 +0.2%。</li>
             <li>Excel 另外附上各操作之後 5／20／60 日、至今，以及相對基金本身的漲跌。</li>
             {res.skippedDates.length > 0 && <li>略過的持股日（疑似資料不完整）：{res.skippedDates.join('、')}</li>}
             {res.unpriced.length > 0 && <li>抓不到報價、無法評估：{res.unpriced.join('、')}</li>}

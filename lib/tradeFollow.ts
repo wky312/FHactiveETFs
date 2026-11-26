@@ -78,8 +78,9 @@ export interface TradeFollowResult {
   allocation: AllocationRow[];
   exitedRecently: AllocationRow[];         // 20 日前有、現在沒有
   skippedDates: string[];                  // 疑似資料不完整而略過的持股日
-  recentDates: string[];                   // 最近 20 份持股日（新→舊，YYYY-MM-DD），給「近期操作」切區間
-  sectors: Record<string, string>;         // 個股 id → 產業（近 20 份持股內有換股的股票）
+  recentDates: string[];                   // 最近 21 份持股日（新→舊，YYYY-MM-DD），給「近期操作」切區間；多 1 份當「操作前」基準
+  recentWeights: Record<string, Record<string, number>>;  // 上述每一天：個股 id → 權重 %（算產業／個股操作前後權重）
+  sectors: Record<string, string>;         // 個股 id → 產業（近 21 份持股內出現過的股票）
   /* 個股 id → 「選股對帳單」同一套算法的持有總報酬（移動平均成本、當地幣別、未還原息）：
      目前持有＝未實現報酬（現價 vs 剩餘部位平均成本）；已出清＝已實現＋未實現總報酬。
      直接呼叫 lib/scorecard（同一份 10 分鐘快取），兩個分頁的數字一致。基金不支援時為空物件。 */
@@ -308,14 +309,16 @@ export async function computeTradeFollow(fund: string, start: string, end?: stri
     fund: cfg.ticker, fundName: cfg.name, start, end: endIso, asOf: slashToIso(asOf),
     allocPrevDate: slashToIso(prevDate), holdingsCount: latest.size, allocation, exitedRecently,
     skippedDates: skipped.map(slashToIso),
-    recentDates: goodDates.slice(-20).reverse().map(slashToIso),
+    recentDates: goodDates.slice(-21).reverse().map(slashToIso),
+    recentWeights: Object.fromEntries(goodDates.slice(-21).map(d => [
+      slashToIso(d), Object.fromEntries([...snapByDate.get(d)!].map(([id, p]) => [id, +p.w.toFixed(4)])),
+    ])),
     sectors: {},
     costReturn: {},
   };
-  // 近 20 份持股內有換股的股票 → 產業
-  const recentFrom = goodDates[Math.max(0, goodDates.length - 20)];
+  // 近 21 份持股內出現過的所有股票 → 產業（產業權重要把沒換股的持股也算進去）
   const recentIds = new Map<string, string>();
-  for (const t of allTrades) if (t.date >= recentFrom) recentIds.set(t.id, t.rawId);
+  for (const d of goodDates.slice(-21)) for (const [id, p] of snapByDate.get(d)!) recentIds.set(id, p.raw);
   const recentEntries = [...recentIds.entries()];
   for (let i = 0; i < recentEntries.length; i += BATCH) {
     await Promise.all(recentEntries.slice(i, i + BATCH).map(async ([id, raw]) => { base.sectors[id] = await sectorOf(raw); }));
