@@ -137,10 +137,11 @@ function segNote(t: TradeResult): string {
 }
 
 /* 依股票看：一檔股票一列，依時間列出每次操作與該段漲跌；欄位可排序 */
-type StockSortKey = 'name' | 'weight' | 'hold' | 'avoid' | 'total' | 'n' | 'last';
+type StockSortKey = 'name' | 'weight' | 'cost' | 'hold' | 'avoid' | 'total' | 'n' | 'last';
 
-function StockTimeline({ trades, win, basis, weightOf }: {
+function StockTimeline({ trades, win, basis, weightOf, costOf }: {
   trades: TradeResult[]; win: Win; basis: Basis; weightOf: (id: string) => number;
+  costOf: (id: string) => { ret: number | null; held: boolean } | undefined;
 }) {
   const [sortKey, setSortKey] = useState<StockSortKey>('total');
   const [asc, setAsc] = useState(false);
@@ -153,11 +154,12 @@ function StockTimeline({ trades, win, basis, weightOf }: {
       return {
         id: list[0].id, rawId: list[0].rawId, name: list[0].name, list,
         weight: weightOf(list[0].id),
+        cost: costOf(list[0].id)?.ret ?? null, costHeld: costOf(list[0].id)?.held ?? false,
         hold: imp?.hold ?? null, avoid: imp?.avoid ?? null, total: imp?.total ?? null,
         n: list.length, last: list[list.length - 1].date,
       };
     });
-  }, [trades, win, basis, weightOf]);
+  }, [trades, win, basis, weightOf, costOf]);
   const sorted = useMemo(() => [...groups].sort((a, b) => {
     const x = a[sortKey], y = b[sortKey];
     if (x == null && y == null) return 0;
@@ -174,10 +176,11 @@ function StockTimeline({ trades, win, basis, weightOf }: {
 
   if (groups.length === 0) return <p style={{ color: '#AAA', fontSize: '.85rem', textAlign: 'center' }}>這段期間沒有符合條件的換股</p>;
   return (
-    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 980 }}>
+    <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 1060 }}>
       <thead><tr>
         <th style={{ ...th, textAlign: 'left' }} onClick={() => click('name')}>股票{arrow('name')}</th>
         <th style={th} onClick={() => click('weight')}>目前權重{arrow('weight')}</th>
+        <th style={th} onClick={() => click('cost')} title="與「選股對帳單」同算法：移動平均成本、當地幣別、未還原息。持有中＝未實現報酬；已出清＝含已實現總報酬">持有總報酬{arrow('cost')}</th>
         <th style={th} onClick={() => click('hold')} title="期間內實際持有的權重 × 漲跌">持有貢獻{arrow('hold')}</th>
         <th style={th} onClick={() => click('avoid')} title="賣掉的權重 × 賣出後漲跌：負＝錯過（少賺），正＝避開虧損">賣出後錯過／避開{arrow('avoid')}</th>
         <th style={th} onClick={() => click('total')}>合計{arrow('total')}</th>
@@ -192,6 +195,10 @@ function StockTimeline({ trades, win, basis, weightOf }: {
               <span style={{ fontFamily: MONO, color: SUB, marginRight: 6 }}>{shortId(g.rawId)}</span>{g.name}
             </td>
             <td style={{ ...td, color: g.weight > 0 ? TEXT : '#A8A29E' }}>{g.weight > 0 ? fmtW(g.weight) : '未持有'}</td>
+            <td style={{ ...td, color: col(g.cost) }}>
+              {fmtPct(g.cost)}
+              {g.cost != null && <div style={{ fontSize: '.66rem', color: SUB, fontFamily: SANS }}>{g.costHeld ? '平均成本' : '已出清'}</div>}
+            </td>
             <td style={{ ...td, color: col(g.hold) }}>{fmtPP(g.hold)}</td>
             <td style={{ ...td, color: col(g.avoid) }}>{g.avoid ? fmtPP(g.avoid) : '—'}</td>
             <td style={{ ...td, fontWeight: 700, color: col(g.total) }}>{fmtPP(g.total)}</td>
@@ -285,8 +292,8 @@ function RecentOps({ res, basis }: { res: TradeFollowResult; basis: Basis }) {
         background: good == null ? '#F5F3F0' : good ? '#FEF2F2' : '#F0FDF4', border: `1px solid ${BORDER}` }}>
         <span style={{ fontFamily: MONO, color: SUB }}>{shortId(t.rawId)}</span>
         <span style={{ color: TYPE_COLOR[t.type], fontWeight: 700 }}>{TYPE_LABEL[t.type]}</span>
-        <span style={{ fontFamily: MONO, color: SUB }}>{dW(t) >= 0 ? '+' : ''}{dW(t).toFixed(2)}</span>
-        <span style={{ fontFamily: MONO, fontWeight: 700, color: col(v) }}>{t.priced ? fmtPct(v) : '無報價'}</span>
+        <span style={{ color: SUB }}>權重 <span style={{ fontFamily: MONO }}>{dW(t) >= 0 ? '+' : ''}{dW(t).toFixed(2)}%</span></span>
+        <span style={{ color: SUB }}>之後 <b style={{ fontFamily: MONO, color: col(v) }}>{t.priced ? fmtPct(v) : '無報價'}</b></span>
       </span>
     );
   };
@@ -329,9 +336,9 @@ function RecentOps({ res, basis }: { res: TradeFollowResult; basis: Basis }) {
           <thead><tr>
             <th style={{ ...th, textAlign: 'left', cursor: 'default' }}>產業</th>
             <th style={{ ...th, cursor: 'default' }} title="加碼增加的權重 − 減碼減少的權重（百分點）">淨加減碼</th>
-            <th style={{ ...th, textAlign: 'left', cursor: 'default' }}>加碼／新增（權重變化、至今漲跌）</th>
+            <th style={{ ...th, textAlign: 'left', cursor: 'default' }}>加碼／新增（權重變化、之後至今漲跌）</th>
             <th style={{ ...th, cursor: 'default' }}>加碼後表現</th>
-            <th style={{ ...th, textAlign: 'left', cursor: 'default' }}>減碼／出清（權重變化、至今漲跌）</th>
+            <th style={{ ...th, textAlign: 'left', cursor: 'default' }}>減碼／出清（權重變化、之後至今漲跌）</th>
             <th style={{ ...th, cursor: 'default' }}>減碼後表現</th>
           </tr></thead>
           <tbody>
@@ -483,6 +490,7 @@ export default function TradeFollowTab() {
 
   const winCols = ALL_WINS;
   const weightOf = useCallback((id: string) => res?.allocation.find(a => a.id === id)?.weight ?? 0, [res]);
+  const costOf = useCallback((id: string) => res?.costReturn?.[id], [res]);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 16, fontFamily: SANS, color: TEXT }}>
@@ -603,7 +611,7 @@ export default function TradeFollowTab() {
           {view === 'stock' && (
             <div style={{ overflow: 'auto', maxHeight: 620 }}>
               {/* 篩選只決定「哪些股票」出現；出現的股票一律顯示完整歷程，才看得出前後操作 */}
-              <StockTimeline trades={trades.filter(t => rowIds.has(t.id))} win={win} basis={basis} weightOf={weightOf} />
+              <StockTimeline trades={trades.filter(t => rowIds.has(t.id))} win={win} basis={basis} weightOf={weightOf} costOf={costOf} />
             </div>
           )}
           {view === 'trade' && <div style={{ overflow: 'auto', maxHeight: 560 }}>
@@ -670,6 +678,7 @@ export default function TradeFollowTab() {
             <li><b>持有貢獻</b>：每段期間（這次操作到下一次動作）實際持有的權重 × 那段漲跌，加總就是這檔股票在期間內實際替淨值賺／賠多少（百分點）。只算查詢區間內有換股的股票、從第一次換股起算。</li>
             <li><b>賣出後錯過／避開</b>：減碼賣掉的部分、或出清前的全部權重 × 賣出後到下一次動作的漲跌。負值＝賣後上漲、錯過（少賺）；正值＝賣後下跌、避開虧損。這是「如果沒賣」的假設數字，不是淨值實際的損益。</li>
             <li>權重用持股公布資料（操作當天的權重），未計入段內權重隨股價漂移，屬近似值。</li>
+            <li><b>持有總報酬</b>：與「選股對帳單」同一套算法——從第一次買進起，以移動平均成本計算（像證券帳戶的報酬率），當地幣別、未含配息、成本用當日最高最低價的中間價。持有中＝未實現報酬，已出清＝已實現＋未實現總報酬。它看「整體持有賺多少」，本頁其他欄位看「每次操作做得好不好」，兩者數字不同是正常的。</li>
             <li><b>相對 {res.fund}</b>：個股報酬減去同期間 {res.fund} 本身市價報酬。正值代表這檔股票比基金整體強。</li>
             <li>海外持股的公布日與實際交易時間可能差一天（時差），短期間（5 日）的數字僅供參考。</li>
             {res.skippedDates.length > 0 && <li>略過的持股日（疑似資料不完整）：{res.skippedDates.join('、')}</li>}

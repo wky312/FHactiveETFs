@@ -31,6 +31,7 @@ import { canonicalCode } from './sectorExposure';
 import { yf } from './marketCalendar/sources/yahoo';
 import { fetchTotalReturnSeries } from './yahooFinance';
 import { currencyForStockid, fetchFxSeries } from './fx';
+import { computeScorecard } from './scorecard';
 import type { Holding } from './types';
 
 /* ── 型別 ─────────────────────────────────────────────────────────── */
@@ -79,6 +80,10 @@ export interface TradeFollowResult {
   skippedDates: string[];                  // 疑似資料不完整而略過的持股日
   recentDates: string[];                   // 最近 20 份持股日（新→舊，YYYY-MM-DD），給「近期操作」切區間
   sectors: Record<string, string>;         // 個股 id → 產業（近 20 份持股內有換股的股票）
+  /* 個股 id → 「選股對帳單」同一套算法的持有總報酬（移動平均成本、當地幣別、未還原息）：
+     目前持有＝未實現報酬（現價 vs 剩餘部位平均成本）；已出清＝已實現＋未實現總報酬。
+     直接呼叫 lib/scorecard（同一份 10 分鐘快取），兩個分頁的數字一致。基金不支援時為空物件。 */
+  costReturn: Record<string, { ret: number | null; held: boolean }>;
   unpriced: string[];                      // 抓不到報價的股票
   warning?: string;
 }
@@ -275,6 +280,8 @@ export async function computeTradeFollow(fund: string, start: string, end?: stri
   const hit = _cache.get(key);
   if (hit && Date.now() - hit.ts < TTL_MS) return hit.data;
 
+  // 選股對帳單的平均成本報酬：與本頁的報價抓取並行（各自有快取）
+  const scorecardP = computeScorecard(cfg.fundId).catch(() => null);
   const dayMap = await buildOverseasDayMap(cfg);
   const snaps = toSnapshots(dayMap);
   if (snaps.length < 2) return { error: `${cfg.ticker} 目前查不到足夠的逐日持股資料。` };
@@ -303,6 +310,7 @@ export async function computeTradeFollow(fund: string, start: string, end?: stri
     skippedDates: skipped.map(slashToIso),
     recentDates: goodDates.slice(-20).reverse().map(slashToIso),
     sectors: {},
+    costReturn: {},
   };
   // 近 20 份持股內有換股的股票 → 產業
   const recentFrom = goodDates[Math.max(0, goodDates.length - 20)];
@@ -406,6 +414,11 @@ export async function computeTradeFollow(fund: string, start: string, end?: stri
       segEndBy: opp ? opp.type : null,
     };
   });
+
+  const sc = await scorecardP;
+  if (sc) for (const p of sc.positions) {
+    base.costReturn[canonOf(p.stockid)] = { ret: p.held ? p.returnUnreal : p.returnAll, held: p.held };
+  }
 
   const warn: string[] = [];
   if (skipped.length) warn.push(`有 ${skipped.length} 天的持股資料疑似不完整（大量股票同時消失），已略過，不列入換股判斷。`);
