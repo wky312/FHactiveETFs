@@ -109,7 +109,7 @@ function TradeChip({ t, value, until, withName }: { t: TradeResult; value: numbe
         ? <span><b style={{ color: TEXT, fontWeight: 600 }}>{shortName(t.name, t.rawId)}</b> <span style={{ fontFamily: MONO, color: '#A8A29E', fontSize: '.68rem' }}>{shortId(t.rawId)}</span></span>
         : <span style={{ fontFamily: MONO, color: SUB }}>{t.date.slice(5)}</span>}
       <span style={{ color: TYPE_COLOR[t.type], fontWeight: 700 }}>{TYPE_LABEL[t.type]}</span>
-      {until && value != null && <span style={{ color: SUB, fontSize: '.7rem' }}>至 {until.slice(5).replace('-', '/')}</span>}
+      {until && value != null && <span style={{ color: SUB, fontSize: '.7rem' }}>至 {until.slice(5).replace('-', '/')} 股價</span>}
       <b style={{ fontFamily: MONO, color: col(value) }}>{t.priced ? fmtPct(value) : '無報價'}</b>
     </span>
   );
@@ -148,7 +148,7 @@ function perfText(v: number | null, side: 'buy' | 'sell') {
   );
 }
 /* 「1.20% → 0.85%」＋「淨減碼 −0.35」 */
-function WeightMove({ before, after, big }: { before: number; after: number; big?: boolean }) {
+function WeightMove({ before, after, big, noDelta }: { before: number; after: number; big?: boolean; noDelta?: boolean }) {
   const d = after - before;
   const dir = d > 0.005 ? '淨加碼' : d < -0.005 ? '淨減碼' : '持平';
   return (
@@ -156,9 +156,9 @@ function WeightMove({ before, after, big }: { before: number; after: number; big
       <span style={{ color: SUB }}>{fmtW(before)}</span>
       <span style={{ color: '#A8A29E' }}> → </span>
       <b style={{ color: TEXT }}>{fmtW(after)}</b>
-      <span style={{ marginLeft: 6, fontFamily: SANS, fontSize: '.72rem', fontWeight: 700, color: col(d) }}>
+      {!noDelta && <span style={{ marginLeft: 6, fontFamily: SANS, fontSize: '.72rem', fontWeight: 700, color: col(d) }}>
         {dir}{dir !== '持平' && <span style={{ fontFamily: MONO }}> {d > 0 ? '+' : ''}{d.toFixed(2)}%</span>}
-      </span>
+      </span>}
     </span>
   );
 }
@@ -172,6 +172,7 @@ function RecentOps({ res }: { res: TradeFollowResult }) {
   const [n, setN] = useState<5 | 10 | 20>(5);
   const [dir, setDir] = useState<'all' | 'add' | 'cut'>('all');
   const [minChg, setMinChg] = useState(0);
+  const [secAsc, setSecAsc] = useState(false);   // 產業淨加減碼：false＝大到小（淨加碼最多在上）
   const dates = res.recentDates ?? [];
   const from = dates[Math.min(n, dates.length) - 1];            // 期間內第一天
   const baseDate = dates[Math.min(n, dates.length - 1)];         // 操作前基準（期間前一天）
@@ -216,7 +217,9 @@ function RecentOps({ res }: { res: TradeFollowResult }) {
       if (dir === 'cut' && d >= -0.005) return false;
       return Math.abs(d) >= minChg;
     }),
-  })).filter(r => r.lines.length > 0), [rows, dir, minChg]);
+  })).filter(r => r.lines.length > 0)
+    .sort((x, y) => secAsc ? (x.after - x.before) - (y.after - y.before) : (y.after - y.before) - (x.after - x.before)),
+  [rows, dir, minChg, secAsc]);
 
   const chg = (r: SectorRow) => r.after - r.before;
   const adds = rows.filter(r => chg(r) > 0.005).sort((a, b) => chg(b) - chg(a)).slice(0, 3);
@@ -268,14 +271,23 @@ function RecentOps({ res }: { res: TradeFollowResult }) {
           <thead><tr>
             <th style={{ ...th, textAlign: 'left' }}>產業</th>
             <th style={{ ...th, textAlign: 'left' }}>產業權重 {md(baseDate)} → {md(latest)}</th>
+            <th style={{ ...th, cursor: 'pointer' }} onClick={() => setSecAsc(!secAsc)} title="點一下切換大到小／小到大">
+              產業淨加減碼 {secAsc ? '▲' : '▼'}
+              <div style={{ fontSize: '.64rem', fontWeight: 400, opacity: .8 }}>{secAsc ? '小到大（減碼最多在上）' : '大到小（加碼最多在上）'}</div>
+            </th>
             <th style={{ ...th, textAlign: 'left' }}>個股權重 {md(baseDate)} → {md(latest)}｜期間內每次操作（操作日 → 最新一天的漲跌）</th>
           </tr></thead>
           <tbody>
-            {shown.length === 0 && <tr><td colSpan={3} style={{ ...td, textAlign: 'center', color: '#AAA', fontFamily: SANS }}>沒有符合條件的個股</td></tr>}
+            {shown.length === 0 && <tr><td colSpan={4} style={{ ...td, textAlign: 'center', color: '#AAA', fontFamily: SANS }}>沒有符合條件的個股</td></tr>}
             {shown.map(r => (
               <tr key={r.sector} style={{ borderBottom: '1px solid #E8E3DF' }}>
                 <td style={{ ...td, textAlign: 'left', fontFamily: SANS, whiteSpace: 'normal', minWidth: 120, maxWidth: 170, fontWeight: 600 }}>{r.sector}</td>
-                <td style={{ ...td, textAlign: 'left' }}><WeightMove before={r.before} after={r.after} big /></td>
+                <td style={{ ...td, textAlign: 'left' }}><WeightMove before={r.before} after={r.after} big noDelta /></td>
+                {(() => { const d = r.after - r.before; return (
+                  <td style={{ ...td, fontWeight: 700, fontSize: '.9rem', color: col(d) }}>
+                    {d > 0 ? '+' : ''}{d.toFixed(2)}%
+                    <div style={{ fontSize: '.7rem', fontFamily: SANS }}>{d > 0.005 ? '淨加碼' : d < -0.005 ? '淨減碼' : '持平'}</div>
+                  </td>); })()}
                 <td style={{ ...td, textAlign: 'left', whiteSpace: 'normal', padding: '4px 10px' }}>
                   {r.lines.map(l => (
                     <div key={l.id} style={{ display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center', padding: '4px 0', borderBottom: '1px dashed #F0ECE8' }}>
