@@ -226,6 +226,140 @@ function StockTimeline({ trades, win, basis, weightOf }: {
   );
 }
 
+/* ── 近期操作：近 N 份持股內的換股，依產業彙總加減碼方向與操作後表現 ── */
+interface SectorRow {
+  sector: string; net: number;
+  buys: TradeResult[]; sells: TradeResult[];
+  buyPerf: number | null; sellPerf: number | null;   // 依權重變化加權的操作後至今漲跌
+  buyN: number; buyGood: number; sellN: number; sellGood: number;
+}
+const toIso = (d: string) => d.replace(/\//g, '-');
+const dW = (t: TradeResult) => t.weightAfter - t.weightBefore;
+
+function RecentOps({ res, basis }: { res: TradeFollowResult; basis: Basis }) {
+  const [n, setN] = useState<5 | 10 | 20>(5);
+  const dates = res.recentDates ?? [];
+  const from = dates[Math.min(n, dates.length) - 1];
+  const latest = dates[0];
+  const valOf = (t: TradeResult) => (basis === 'abs' ? t.ret : t.rel).now;
+
+  const { rows, recent, tot } = useMemo(() => {
+    const recent = from ? res.trades.filter(t => toIso(t.date) >= from) : [];
+    const by = new Map<string, SectorRow>();
+    const tot = { buyN: 0, buyGood: 0, sellN: 0, sellGood: 0, buyW: 0, buyS: 0, sellW: 0, sellS: 0 };
+    for (const t of recent) {
+      const sec = res.sectors?.[t.id] ?? '其他／未分類';
+      const r = by.get(sec) ?? { sector: sec, net: 0, buys: [], sells: [], buyPerf: null, sellPerf: null, buyN: 0, buyGood: 0, sellN: 0, sellGood: 0 };
+      r.net += dW(t);
+      (t.side === 'buy' ? r.buys : r.sells).push(t);
+      by.set(sec, r);
+    }
+    for (const r of by.values()) {
+      let bw = 0, bs = 0, sw = 0, ss = 0;
+      for (const t of r.buys) { const v = valOf(t); if (v == null) continue; const w = Math.abs(dW(t)); bw += w; bs += w * v; r.buyN++; if (v > 0) r.buyGood++; }
+      for (const t of r.sells) { const v = valOf(t); if (v == null) continue; const w = Math.abs(dW(t)); sw += w; ss += w * v; r.sellN++; if (v < 0) r.sellGood++; }
+      r.buyPerf = bw > 0 ? bs / bw : null;
+      r.sellPerf = sw > 0 ? ss / sw : null;
+      tot.buyN += r.buyN; tot.buyGood += r.buyGood; tot.sellN += r.sellN; tot.sellGood += r.sellGood;
+      tot.buyW += bw; tot.buyS += bs; tot.sellW += sw; tot.sellS += ss;
+      r.buys.sort((a, b) => dW(b) - dW(a)); r.sells.sort((a, b) => dW(a) - dW(b));
+    }
+    const rows = [...by.values()].sort((a, b) => Math.abs(b.net) - Math.abs(a.net));
+    return { rows, recent, tot };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [res, from, basis]);
+
+  const adds = rows.filter(r => r.net > 0.005).sort((a, b) => b.net - a.net).slice(0, 3);
+  const cuts = rows.filter(r => r.net < -0.005).sort((a, b) => a.net - b.net).slice(0, 3);
+  const cnt = (k: TradeType) => recent.filter(t => t.type === k).length;
+  const buyAvg = tot.buyW > 0 ? tot.buyS / tot.buyW : null;
+  const sellAvg = tot.sellW > 0 ? tot.sellS / tot.sellW : null;
+  const outOfRange = res.end < (latest ?? '');
+
+  const chip = (t: TradeResult) => {
+    const v = valOf(t);
+    const good = v == null ? null : t.side === 'buy' ? v > 0 : v < 0;
+    return (
+      <span key={`${t.id}-${t.date}`} title={`${t.date} ${TYPE_LABEL[t.type]}，權重 ${fmtW(t.weightBefore)} → ${fmtW(t.weightAfter)}`} style={{
+        display: 'inline-flex', gap: 4, alignItems: 'baseline', padding: '2px 7px', borderRadius: 6, fontSize: '.74rem', whiteSpace: 'nowrap',
+        background: good == null ? '#F5F3F0' : good ? '#FEF2F2' : '#F0FDF4', border: `1px solid ${BORDER}` }}>
+        <span style={{ fontFamily: MONO, color: SUB }}>{shortId(t.rawId)}</span>
+        <span style={{ color: TYPE_COLOR[t.type], fontWeight: 700 }}>{TYPE_LABEL[t.type]}</span>
+        <span style={{ fontFamily: MONO, color: SUB }}>{dW(t) >= 0 ? '+' : ''}{dW(t).toFixed(2)}</span>
+        <span style={{ fontFamily: MONO, fontWeight: 700, color: col(v) }}>{t.priced ? fmtPct(v) : '無報價'}</span>
+      </span>
+    );
+  };
+  const perfCell = (v: number | null, side: 'buy' | 'sell', nGood: number, nAll: number) => {
+    if (v == null) return <span style={{ color: '#AAA' }}>—</span>;
+    const good = side === 'buy' ? v > 0 : v < 0;
+    const label = side === 'buy' ? (good ? '加對了' : '加錯了') : (good ? '減對了' : '減早了');
+    return (
+      <span>
+        <b style={{ fontFamily: MONO, color: col(v) }}>{fmtPct(v, 2)}</b>{' '}
+        <span style={{ fontSize: '.72rem', fontWeight: 700, color: good ? (side === 'buy' ? UP : '#1D4ED8') : (side === 'buy' ? DOWN : '#B45309') }}>{label}</span>
+        <div style={{ fontSize: '.68rem', color: SUB, fontFamily: SANS }}>{nGood}/{nAll} 筆{side === 'buy' ? '上漲' : '下跌'}</div>
+      </span>
+    );
+  };
+
+  return (
+    <div style={card}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'center' }}>
+        <h3 style={{ margin: 0, fontSize: '.95rem', fontWeight: 700 }}>近期操作</h3>
+        {([5, 10, 20] as const).map(k => <button key={k} style={seg(n === k)} onClick={() => setN(k)}>近 {k} 個交易日</button>)}
+        {from && <span style={{ fontSize: '.78rem', color: SUB }}>持股日 {from.slice(5)} ~ {latest?.slice(5)}｜共 {recent.length} 筆（新增 {cnt('new')}、加碼 {cnt('add')}、減碼 {cnt('trim')}、出清 {cnt('exit')}）</span>}
+      </div>
+      {outOfRange && <p style={{ fontSize: '.8rem', color: UP, margin: '8px 0 0' }}>⚠ 查詢的「迄」日早於最新持股日，近期操作可能不完整；請把「換股日 迄」留空再查詢。</p>}
+
+      {/* 文字總結 */}
+      <div style={{ margin: '12px 0', padding: '10px 14px', background: '#FAF8F6', borderRadius: 8, fontSize: '.86rem', lineHeight: 1.9 }}>
+        <div><b>主要加碼：</b>{adds.length ? adds.map((r, i) => <span key={r.sector}>{i > 0 && '、'}{r.sector}（<b style={{ fontFamily: MONO, color: UP }}>+{r.net.toFixed(2)}%</b>）</span>) : '無'}</div>
+        <div><b>主要減碼：</b>{cuts.length ? cuts.map((r, i) => <span key={r.sector}>{i > 0 && '、'}{r.sector}（<b style={{ fontFamily: MONO, color: DOWN }}>{r.net.toFixed(2)}%</b>）</span>) : '無'}</div>
+        <div>
+          <b>操作後至今表現{basis === 'rel' ? `（相對 ${res.fund}）` : ''}：</b>
+          加碼的股票平均 <b style={{ fontFamily: MONO, color: col(buyAvg) }}>{fmtPct(buyAvg, 2)}</b>（{tot.buyGood}/{tot.buyN} 筆上漲，{buyAvg == null ? '—' : buyAvg > 0 ? '目前看來加對了' : '目前看來加錯了'}）；
+          減碼的股票平均 <b style={{ fontFamily: MONO, color: col(sellAvg) }}>{fmtPct(sellAvg, 2)}</b>（{tot.sellGood}/{tot.sellN} 筆下跌，{sellAvg == null ? '—' : sellAvg < 0 ? '目前看來減對了' : '目前看來減早了'}）
+        </div>
+      </div>
+
+      {/* 產業明細 */}
+      <div style={{ overflow: 'auto', maxHeight: 520 }}>
+        <table style={{ width: '100%', borderCollapse: 'collapse', minWidth: 960 }}>
+          <thead><tr>
+            <th style={{ ...th, textAlign: 'left', cursor: 'default' }}>產業</th>
+            <th style={{ ...th, cursor: 'default' }} title="加碼增加的權重 − 減碼減少的權重（百分點）">淨加減碼</th>
+            <th style={{ ...th, textAlign: 'left', cursor: 'default' }}>加碼／新增（權重變化、至今漲跌）</th>
+            <th style={{ ...th, cursor: 'default' }}>加碼後表現</th>
+            <th style={{ ...th, textAlign: 'left', cursor: 'default' }}>減碼／出清（權重變化、至今漲跌）</th>
+            <th style={{ ...th, cursor: 'default' }}>減碼後表現</th>
+          </tr></thead>
+          <tbody>
+            {rows.length === 0 && <tr><td colSpan={6} style={{ ...td, textAlign: 'center', color: '#AAA', fontFamily: SANS }}>這段期間沒有換股</td></tr>}
+            {rows.map(r => (
+              <tr key={r.sector} style={{ borderBottom: '1px solid #F0ECE8', verticalAlign: 'top' }}>
+                <td style={{ ...td, textAlign: 'left', fontFamily: SANS, whiteSpace: 'normal', minWidth: 130, fontWeight: 600 }}>{r.sector}</td>
+                <td style={{ ...td, fontWeight: 700, color: r.net > 0.005 ? UP : r.net < -0.005 ? DOWN : SUB }}>
+                  {r.net >= 0 ? '+' : ''}{r.net.toFixed(2)}%
+                  <div style={{ fontSize: '.68rem', fontFamily: SANS }}>{r.net > 0.005 ? '加碼' : r.net < -0.005 ? '減碼' : '持平'}</div>
+                </td>
+                <td style={{ ...td, textAlign: 'left', whiteSpace: 'normal' }}><div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{r.buys.length ? r.buys.map(chip) : <span style={{ color: '#AAA' }}>—</span>}</div></td>
+                <td style={td}>{perfCell(r.buyPerf, 'buy', r.buyGood, r.buyN)}</td>
+                <td style={{ ...td, textAlign: 'left', whiteSpace: 'normal' }}><div style={{ display: 'flex', flexWrap: 'wrap', gap: 4 }}>{r.sells.length ? r.sells.map(chip) : <span style={{ color: '#AAA' }}>—</span>}</div></td>
+                <td style={td}>{perfCell(r.sellPerf, 'sell', r.sellGood, r.sellN)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <p style={{ margin: '8px 0 0', fontSize: '.72rem', color: SUB, lineHeight: 1.6 }}>
+        淨加減碼＝該產業所有操作的權重變化加總（百分點）。操作後表現＝從操作日到最新一天的漲跌，依權重變化大小加權平均；加碼後上漲＝加對、減碼後下跌＝減對、減碼後反而上漲＝減早了。
+        最新一天才做的操作還沒有之後的股價，顯示「—」。近期操作期間很短，表現僅供參考。產業分類優先用網站內建的海外族群，沒有的用 Yahoo 產業分類。
+      </p>
+    </div>
+  );
+}
+
 export default function TradeFollowTab() {
   const [fund, setFund]   = useState('00409A');
   const [start, setStart] = useState(isoDaysAgo(90));
@@ -395,6 +529,9 @@ export default function TradeFollowTab() {
             ? '依時間切段：每次操作只算到同一檔股票的下一次動作（不論買或賣）那天，沒有下一次動作就算到最新一天。例：09/14 新增、09/16 加碼 → 09/14 新增只算 09/14~09/16 這段，各段不重疊。'
             : `不管經理人之後有沒有再動作，一律看換股後${WIN_LABEL[win]}的漲跌（期間還沒走完的顯示「—」）。`}
         </p>
+
+        {/* ── 近期操作 ── */}
+        <RecentOps res={res} basis={basis} />
 
         {/* ── 換股總結 ── */}
         <div style={card}>

@@ -25,7 +25,10 @@
 import { OVERSEAS_FUNDS } from './overseasFunds';
 import { PEER_GROUPS } from './peerGroups';
 import { buildOverseasDayMap, isCashLike, canonOf } from './overseasAttribution';
-import { resolveYfTicker } from './exchangeMap';
+import { resolveYfTicker, stockidToYfTicker } from './exchangeMap';
+import { BUILTIN_GROUPS_OVERSEAS } from './sectorGroupsOverseas';
+import { canonicalCode } from './sectorExposure';
+import { yf } from './marketCalendar/sources/yahoo';
 import { fetchTotalReturnSeries } from './yahooFinance';
 import { currencyForStockid, fetchFxSeries } from './fx';
 import type { Holding } from './types';
@@ -74,6 +77,8 @@ export interface TradeFollowResult {
   allocation: AllocationRow[];
   exitedRecently: AllocationRow[];         // 20 日前有、現在沒有
   skippedDates: string[];                  // 疑似資料不完整而略過的持股日
+  recentDates: string[];                   // 最近 20 份持股日（新→舊，YYYY-MM-DD），給「近期操作」切區間
+  sectors: Record<string, string>;         // 個股 id → 產業（近 20 份持股內有換股的股票）
   unpriced: string[];                      // 抓不到報價的股票
   warning?: string;
 }
@@ -221,6 +226,38 @@ function ffill(raw: Map<string, number>, start: string, end: string): Map<string
   return out;
 }
 
+/* ── 產業分類：先用內建海外族群（科技股為主，名稱去掉括號英文），沒有的再問 Yahoo 的 sector ── */
+const groupOfCode = new Map<string, string>();
+for (const g of BUILTIN_GROUPS_OVERSEAS) for (const c of g.codes) {
+  const k = canonicalCode(c).toUpperCase();
+  if (!groupOfCode.has(k)) groupOfCode.set(k, g.name.replace(/\s*[(（].*$/, '').trim());
+}
+const YAHOO_SECTOR_ZH: Record<string, string> = {
+  'Technology': '其他科技', 'Communication Services': '通訊與媒體', 'Consumer Cyclical': '非必需消費',
+  'Consumer Defensive': '必需消費', 'Healthcare': '醫療保健', 'Financial Services': '金融',
+  'Industrials': '工業', 'Energy': '能源', 'Basic Materials': '原物料', 'Real Estate': '不動產',
+  'Utilities': '公用事業',
+};
+const _sectorCache = new Map<string, string>();
+export async function sectorOf(rawId: string): Promise<string> {
+  const code = canonicalCode(stockidToYfTicker(rawId).ticker || rawId.trim()).toUpperCase();
+  const builtin = groupOfCode.get(code) ?? groupOfCode.get(rawId.trim().split(/\s+/)[0].toUpperCase());
+  if (builtin) return builtin;
+  if (_sectorCache.has(rawId)) return _sectorCache.get(rawId)!;
+  let out = '其他／未分類';
+  const { yfTicker, fallback } = resolveYfTicker(rawId, false);
+  for (const sym of [yfTicker, fallback].filter(Boolean) as string[]) {
+    try {
+      const q = await yf.quoteSummary(sym, { modules: ['assetProfile', 'quoteType'] }, { validateResult: false });
+      const sec: string | undefined = q?.assetProfile?.sector;
+      if (sec) { out = YAHOO_SECTOR_ZH[sec] ?? sec; break; }
+      if (q?.quoteType?.quoteType === 'ETF') { out = 'ETF'; break; }
+    } catch { /* 查不到就換下一個代號 */ }
+  }
+  _sectorCache.set(rawId, out);
+  return out;
+}
+
 const BATCH = 8;
 const TTL_MS = 10 * 60 * 1000;
 const _cache = new Map<string, { ts: number; data: TradeFollowResult }>();
@@ -264,7 +301,17 @@ export async function computeTradeFollow(fund: string, start: string, end?: stri
     fund: cfg.ticker, fundName: cfg.name, start, end: endIso, asOf: slashToIso(asOf),
     allocPrevDate: slashToIso(prevDate), holdingsCount: latest.size, allocation, exitedRecently,
     skippedDates: skipped.map(slashToIso),
+    recentDates: goodDates.slice(-20).reverse().map(slashToIso),
+    sectors: {},
   };
+  // 近 20 份持股內有換股的股票 → 產業
+  const recentFrom = goodDates[Math.max(0, goodDates.length - 20)];
+  const recentIds = new Map<string, string>();
+  for (const t of allTrades) if (t.date >= recentFrom) recentIds.set(t.id, t.rawId);
+  const recentEntries = [...recentIds.entries()];
+  for (let i = 0; i < recentEntries.length; i += BATCH) {
+    await Promise.all(recentEntries.slice(i, i + BATCH).map(async ([id, raw]) => { base.sectors[id] = await sectorOf(raw); }));
+  }
   if (trades.length === 0) {
     const data = { ...base, trades: [], unpriced: [] };
     _cache.set(key, { ts: Date.now(), data });
