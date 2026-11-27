@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-26T11:53:12+08:00",
+  "updated_at": "2026-11-27T11:54:07+08:00",
   "pushed_dates": [
     "2026-10-06",
     "2026-10-07",
@@ -37,7 +37,8 @@
     "2026-11-20",
     "2026-11-23",
     "2026-11-24",
-    "2026-11-25"
+    "2026-11-25",
+    "2026-11-26"
   ],
   "r3_events": {
     "6976 JP|2026/10/01": {
@@ -221,6 +222,26 @@
       "tier_pushed": 8
     },
     "TWLO US|2026/10/30": {
+      "direction": "trim",
+      "tier_pushed": 8
+    },
+    "NTRA US|2026/11/20": {
+      "direction": "add",
+      "tier_pushed": 8
+    },
+    "NVDA US|2026/11/12": {
+      "direction": "trim",
+      "tier_pushed": 8
+    },
+    "MRVL US|2026/11/16": {
+      "direction": "trim",
+      "tier_pushed": 8
+    },
+    "AEM US|2026/11/12": {
+      "direction": "trim",
+      "tier_pushed": 8
+    },
+    "DDOG US|2026/11/05": {
       "direction": "trim",
       "tier_pushed": 8
     }
