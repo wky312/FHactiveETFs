@@ -250,7 +250,6 @@ function RecentOps({ res }: { res: TradeFollowResult }) {
           比較 <b>{md(baseDate)}（操作前）</b> → <b>{md(latest)}（最新）</b> 的持股權重，期間內共 {recent.length} 筆操作。
         </p>
       )}
-      {res.end < (latest ?? '') && <p style={{ ...note, color: UP }}>⚠ 「換股日 迄」早於最新持股日，近期操作可能不完整，請把它留空再查詢。</p>}
 
       <div style={{ margin: '12px 0', padding: '12px 16px', background: '#FAF8F6', borderRadius: 8, fontSize: '.9rem', lineHeight: 2 }}>
         <div><b style={{ color: UP }}>主要加碼：</b>{sectorList(adds)}</div>
@@ -477,10 +476,15 @@ export default function TradeFollowTab() {
 
   useEffect(() => { if (!autoRan.current) { autoRan.current = true; run(); } }, [run]);
 
+  /* ③④ 只看分析期間內的換股（後端另外附了最近 21 份持股的換股給 ①） */
+  const rangeTrades = useMemo(() => res
+    ? res.trades.filter(t => { const d = toIso(t.date); return d >= res.start && d <= res.end; })
+    : [], [res]);
+
   const stocks = useMemo<StockRow[]>(() => {
     if (!res) return [];
     const m = new Map<string, TradeResult[]>();
-    for (const t of res.trades) { const l = m.get(t.id) ?? []; l.push(t); m.set(t.id, l); }
+    for (const t of rangeTrades) { const l = m.get(t.id) ?? []; l.push(t); m.set(t.id, l); }
     return [...m.values()].map(l => {
       const list = [...l].sort((a, b) => a.date.localeCompare(b.date));
       const imps = list.map(impactOf).filter((x): x is number => x != null);
@@ -493,7 +497,7 @@ export default function TradeFollowTab() {
         last: list[list.length - 1].date,
       };
     });
-  }, [res]);
+  }, [res, rangeTrades]);
 
   const good = useMemo(() => stocks.filter(s => (s.impact ?? 0) > 0.005).sort((a, b) => b.impact! - a.impact!).slice(0, 10), [stocks]);
   const bad  = useMemo(() => stocks.filter(s => (s.impact ?? 0) < -0.005).sort((a, b) => a.impact! - b.impact!).slice(0, 10), [stocks]);
@@ -529,7 +533,7 @@ export default function TradeFollowTab() {
       ['換股日', '代號', '名稱', '產業', '動作', '調整前權重%', '調整後權重%',
         ...wins.flatMap(([, l]) => [`${l} 個股%`, `${l} 相對基金%`]),
         '算到（下次動作）', '持有貢獻%', '賣出後錯過／避開%', '淨值貢獻%', '判斷'],
-      ...[...res.trades].sort((a, b) => a.date.localeCompare(b.date)).map(t => {
+      ...[...rangeTrades].sort((a, b) => a.date.localeCompare(b.date)).map(t => {
         const p = impactParts(t);
         const g = isGood(t);
         const r2 = (v: number | null | undefined) => v == null ? null : +v.toFixed(2);
@@ -579,12 +583,6 @@ export default function TradeFollowTab() {
             {OVERSEAS_FUNDS.map(f => <option key={f.ticker} value={f.ticker}>{f.ticker} {f.name}</option>)}
           </select>
         </Field>
-        <Field label="換股日 起">
-          <input type="date" value={start} onChange={e => setStart(e.target.value)} style={inputStyle} />
-        </Field>
-        <Field label="換股日 迄（空白＝今天）">
-          <input type="date" value={end} onChange={e => setEnd(e.target.value)} style={inputStyle} />
-        </Field>
         <button onClick={run} disabled={loading} style={{
           padding: '9px 22px', background: loading ? '#999' : UP, color: '#fff', border: 'none', borderRadius: 6,
           cursor: loading ? 'default' : 'pointer', fontSize: '.87rem', fontWeight: 700, fontFamily: SANS }}>
@@ -592,6 +590,7 @@ export default function TradeFollowTab() {
         </button>
         {res && <button onClick={exportXlsx} style={{ ...seg(false), borderRadius: 6, padding: '8px 14px' }}>匯出 Excel（含完整明細）</button>}
       </div>
+      <p style={{ ...note, margin: 0 }}>選好基金按「查詢」。下面每一塊都有自己的時間設定，寫在各區塊的標題下方。</p>
       {loading && <p style={{ color: SUB, fontSize: '.85rem', margin: 0 }}>第一次查詢要逐檔抓海外股價與匯率，約需 30–90 秒…</p>}
       {err && <p style={{ color: UP, fontSize: '.88rem', margin: 0 }}>⚠ {err}</p>}
 
@@ -600,12 +599,20 @@ export default function TradeFollowTab() {
 
         <RecentOps res={res} />
 
-        <CountryShift key={res.fund + res.start + res.end} res={res} />
+        <CountryShift key={res.fund} res={res} />
 
         {/* ── ② 做對／做錯最多的個股 ── */}
         <div style={card}>
           <h3 style={h3}>③ 做對／做錯最多的個股</h3>
-          <p style={note}>換股日 {res.start} ~ {res.end}，共 {stocks.length} 檔有換股。依「淨值貢獻」排名：經理人在這檔股票的買賣，讓基金淨值多賺（正）或少賺（負）幾個百分點。點股票可看它的換股歷程。</p>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center', margin: '10px 0 4px', padding: '8px 12px', background: '#FAF8F6', borderRadius: 8 }}>
+            <span style={{ fontSize: '.82rem', fontWeight: 600 }}>③④ 的分析期間（換股日）：</span>
+            <input type="date" value={start} onChange={e => setStart(e.target.value)} style={{ ...inputStyle, padding: '5px 8px' }} />
+            <span style={{ color: SUB }}>~</span>
+            <input type="date" value={end} onChange={e => setEnd(e.target.value)} style={{ ...inputStyle, padding: '5px 8px' }} title="空白＝到今天" />
+            <button onClick={run} disabled={loading} style={{ ...seg(true), borderRadius: 6 }}>{loading ? '計算中…' : '重新計算'}</button>
+            <span style={{ fontSize: '.74rem', color: SUB }}>（迄日空白＝到今天；只影響 ③ 和 ④，不影響 ① ②）</span>
+          </div>
+          <p style={note}>目前期間 {res.start} ~ {res.end}，共 {stocks.length} 檔有換股。依「淨值貢獻」排名：經理人在這檔股票的買賣，讓基金淨值多賺（正）或少賺（負）幾個百分點。點股票可看它的換股歷程。</p>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 28, marginTop: 10 }}>
             {rankList('做對最多', UP, good)}
             {rankList('做錯最多', DOWN, bad)}

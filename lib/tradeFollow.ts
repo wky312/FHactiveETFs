@@ -74,7 +74,7 @@ export interface TradeFollowResult {
   asOf: string;                            // 最新持股日
   allocPrevDate: string;                   // 配置比較的基準日
   holdingsCount: number;
-  trades: TradeResult[];
+  trades: TradeResult[];                   // 查詢區間內＋最近 21 份持股內的換股（前端 ③④ 依 start/end 再篩）
   allocation: AllocationRow[];
   exitedRecently: AllocationRow[];         // 20 日前有、現在沒有
   skippedDates: string[];                  // 疑似資料不完整而略過的持股日
@@ -326,7 +326,9 @@ export async function computeTradeFollow(fund: string, start: string, end?: stri
 
   // ── 區間內的換股 ──
   const s = isoToSlash(start), e = isoToSlash(endIso);
-  const trades = allTrades.filter(t => t.date >= s && t.date <= e);
+  // 查詢區間內的換股 ＋ 最近 21 份持股內的換股（「近期操作」不受查詢區間影響；前端 ③④ 再依區間篩）
+  const recentStart = goodDates[Math.max(0, goodDates.length - 21)];
+  const trades = allTrades.filter(t => (t.date >= s && t.date <= e) || t.date >= recentStart);
   const base: Omit<TradeFollowResult, 'trades' | 'unpriced'> = {
     fund: cfg.ticker, fundName: cfg.name, start, end: endIso, asOf: slashToIso(asOf),
     allocPrevDate: slashToIso(prevDate), holdingsCount: latest.size, allocation, exitedRecently,
