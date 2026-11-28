@@ -1,0 +1,296 @@
+{
+  "date": "2026-11-27",
+  "scanned_at": "2026-11-28T11:40:42+08:00",
+  "config_snapshot": {
+    "r1": {
+      "min_daily_pct": 3.0,
+      "top_n_holdings": 10
+    },
+    "r2": {
+      "overweight_multiple": 2.0,
+      "overweight_min_weight_pct": 1.0,
+      "min_daily_pct": 5.0,
+      "new_high_lookback_days": 60,
+      "exclusive_score_multiplier": 1.5
+    },
+    "r3": {
+      "lookback_trading_days": 20,
+      "min_qty_change_pct": 10.0,
+      "min_weight_pct": 0.5,
+      "tiers_pct": [
+        8,
+        15,
+        30
+      ]
+    },
+    "r4": {
+      "streak_days": [
+        3,
+        5,
+        10
+      ],
+      "rank_top_n": 3,
+      "new_high_cooldown_trading_days": 5,
+      "benchmark_ticker": null
+    },
+    "r5": {
+      "streak_days": [
+        5,
+        10,
+        20
+      ],
+      "aum_milestone_billion_twd": 50,
+      "single_day_min_billion_twd": 1.0,
+      "peer_group": "overseas"
+    },
+    "scoring": {
+      "r3_multiplier": 2.0,
+      "r4_streak_multiplier": 3.0,
+      "r4_rank_multiplier": 10.0,
+      "r4_new_high_score": 15.0,
+      "r5_streak_multiplier": 2.0,
+      "r5_milestone_score": 12.0,
+      "r5_single_day_first_score": 10.0
+    }
+  },
+  "sources": {
+    "own_holdings": "stale",
+    "attr_supabase": "ok",
+    "twse_mis": "ok",
+    "yahoo": "ok",
+    "site_peer_performance": "ok",
+    "site_cumulative_return": "ok",
+    "peer_redemption": "ok"
+  },
+  "skipped_rules": [],
+  "candidates": [
+    {
+      "id": "R1-SPCX US-2026-11-27",
+      "rule": "R1",
+      "score": 39.94,
+      "selected": true,
+      "fact": "太空探索科技公司昨日 +4.83%，00409A 持股 8.27%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 太空探索科技公司（SPCX）上漲約 4.83%。\n00409A 自 8/27 首次買進，並於 11/9、11/12、11/13、11/16 加碼；截至 11/25 持有 184 張、占淨值 8.265%，報酬約 -7.2%。",
+      "data": {
+        "stockid": "SPCX US",
+        "pct_change": 4.83,
+        "weight_pct": 8.27,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-PLTR US-2026-11-27",
+      "rule": "R1",
+      "score": 34.9,
+      "selected": true,
+      "fact": "帕蘭提爾科技公司昨日 +5.24%，00409A 持股 6.66%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 帕蘭提爾科技公司（PLTR）上漲約 5.24%。\n00409A 自 8/20 首次買進，並於 8/28、8/31、9/1、9/4 加碼；截至 11/25 持有 115.5 張、占淨值 6.66%，報酬約 -4.4%。",
+      "data": {
+        "stockid": "PLTR US",
+        "pct_change": 5.24,
+        "weight_pct": 6.66,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R3-ZS US-20261119-t15",
+      "rule": "R3",
+      "score": 32.84,
+      "selected": true,
+      "fact": "11/19 加碼的 Zscaler公司 至今 +16.4%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/19 加碼Zscaler公司，至今上漲 16.4%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "ZS US",
+        "event_date": "2026-11-19",
+        "direction": "add",
+        "qty_change_pct": 87.5,
+        "weight_pct": 1.026,
+        "return_since_pct": 16.42,
+        "tier": 15
+      }
+    },
+    {
+      "id": "R3-OKTA US-20261102-t8",
+      "rule": "R3",
+      "score": 24.44,
+      "selected": true,
+      "fact": "11/2 加碼的 Okta公司 至今 +12.2%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/2 加碼Okta公司，至今上漲 12.2%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "OKTA US",
+        "event_date": "2026-11-02",
+        "direction": "add",
+        "qty_change_pct": 20.0,
+        "weight_pct": 1.552,
+        "return_since_pct": 12.22,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-FROG US-20261120-t8",
+      "rule": "R3",
+      "score": 20.91,
+      "selected": true,
+      "fact": "11/20 加碼的 JFrog有限公司 至今 +10.5%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/20 加碼JFrog有限公司，至今上漲 10.5%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "FROG US",
+        "event_date": "2026-11-20",
+        "direction": "add",
+        "qty_change_pct": 17.1,
+        "weight_pct": 1.74,
+        "return_since_pct": 10.45,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-NTSK US-20261123-t8",
+      "rule": "R3",
+      "score": 20.76,
+      "selected": false,
+      "fact": "11/23 加碼的 Netskope Inc 至今 +10.4%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/23 加碼Netskope Inc，至今上漲 10.4%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "NTSK US",
+        "event_date": "2026-11-23",
+        "direction": "add",
+        "qty_change_pct": 100.0,
+        "weight_pct": 0.72,
+        "return_since_pct": 10.38,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R3-TTWO US-20261119-t8",
+      "rule": "R3",
+      "score": 20.68,
+      "selected": false,
+      "fact": "11/19 加碼的 Take-Two互動軟體公司 至今 +10.3%",
+      "angle": "操作驗證：加碼點位精準",
+      "draft": "經理人 11/19 加碼Take-Two互動軟體公司，至今上漲 10.3%，展現主動管理的判斷力。",
+      "data": {
+        "stockid": "TTWO US",
+        "event_date": "2026-11-19",
+        "direction": "add",
+        "qty_change_pct": 100.0,
+        "weight_pct": 0.832,
+        "return_since_pct": 10.34,
+        "tier": 8
+      }
+    },
+    {
+      "id": "R1-NET US-2026-11-27",
+      "rule": "R1",
+      "score": 19.75,
+      "selected": false,
+      "fact": "Cloudflare公司昨日 +4.76%，00409A 持股 4.15%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 Cloudflare公司（NET）上漲約 4.76%。\n00409A 自 8/28 首次買進，並於 11/12、11/13、11/16、11/23 加碼；截至 11/25 持有 41.592 張、占淨值 4.153%，報酬約 -1.9%。",
+      "data": {
+        "stockid": "NET US",
+        "pct_change": 4.76,
+        "weight_pct": 4.15,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-ANET US-2026-11-27",
+      "rule": "R1",
+      "score": 18.14,
+      "selected": false,
+      "fact": "Arista網路公司昨日 +6.55%，00409A 持股 2.77%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 Arista網路公司（ANET）上漲約 6.55%。\n00409A 自 11/4 首次買進，並於 11/12、11/13、11/16、11/18 加碼；截至 11/25 持有 48 張、占淨值 2.775%，報酬約 -8.4%。",
+      "data": {
+        "stockid": "ANET US",
+        "pct_change": 6.55,
+        "weight_pct": 2.77,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-AMZN US-2026-11-27",
+      "rule": "R1",
+      "score": 17.9,
+      "selected": false,
+      "fact": "亞馬遜公司昨日 +3.96%，00409A 持股 4.52%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 亞馬遜公司（AMZN）上漲約 3.96%。\n00409A 自 8/31 首次買進，並於 11/4、11/5、11/16、11/17 加碼；截至 11/25 持有 52.5 張、占淨值 4.523%，報酬約 -2.9%。",
+      "data": {
+        "stockid": "AMZN US",
+        "pct_change": 3.96,
+        "weight_pct": 4.52,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-CRWD US-2026-11-27",
+      "rule": "R1",
+      "score": 15.31,
+      "selected": false,
+      "fact": "Crowdstrike控股公司昨日 +3.77%，00409A 持股 4.06%",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 Crowdstrike控股公司（CRWD）上漲約 3.77%。\n00409A 自 8/31 首次買進，並於 9/1、9/14 加碼；截至 11/25 持有 55 張、占淨值 4.058%，報酬約 -3.8%。",
+      "data": {
+        "stockid": "CRWD US",
+        "pct_change": 3.77,
+        "weight_pct": 4.06,
+        "is_heaviest_among_universe": false,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R1-TSM US-2026-11-27",
+      "rule": "R1",
+      "score": 10.46,
+      "selected": false,
+      "fact": "台灣積體電路製造股份有限公司昨日 +3.21%，00409A 持股 3.26%、為海外主動 ETF 觀測群 9 檔中持有最重",
+      "angle": "重倉命中：主動選股的含金量",
+      "draft": "昨日 台灣積體電路製造股份有限公司（TSM）上漲約 3.21%。\n00409A 自 8/28 首次買進，並於 11/6、11/18、11/24 加碼；截至 11/25 持有 27 張、占淨值 3.258%，報酬約 -11.4%。",
+      "data": {
+        "stockid": "TSM US",
+        "pct_change": 3.21,
+        "weight_pct": 3.26,
+        "is_heaviest_among_universe": true,
+        "universe_size": 9
+      }
+    },
+    {
+      "id": "R2-REGN US-2026-11-27",
+      "rule": "R2",
+      "score": 9.83,
+      "selected": false,
+      "fact": "獨門持股 Regeneron Pharmaceuticals In創 60 日新高（00409A 權重 1.31%，其他海外主動 ETF 皆未持有）",
+      "angle": "獨門股發威：別人沒有的上漲",
+      "draft": "昨日 Regeneron Pharmaceuticals In（REGN）創 60 日新高。\n00409A 自 11/25 首次買進；截至 11/25 持有 3.8 張、占淨值 1.315%，報酬約 +1.1%。",
+      "data": {
+        "stockid": "REGN US",
+        "pct_change": 1.05,
+        "weight_pct": 1.31,
+        "exclusive": true,
+        "new_high": true,
+        "others_max_weight": null
+      }
+    }
+  ],
+  "push": {
+    "attempted": true,
+    "sent": true,
+    "reason": null,
+    "message_chars": 689,
+    "line_status": 200,
+    "candidate_count": 13,
+    "selected_count": 5
+  }
+}

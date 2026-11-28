@@ -1,5 +1,5 @@
 {
-  "updated_at": "2026-11-27T11:54:07+08:00",
+  "updated_at": "2026-11-28T11:40:42+08:00",
   "pushed_dates": [
     "2026-10-06",
     "2026-10-07",
@@ -38,7 +38,8 @@
     "2026-11-23",
     "2026-11-24",
     "2026-11-25",
-    "2026-11-26"
+    "2026-11-26",
+    "2026-11-27"
   ],
   "r3_events": {
     "6976 JP|2026/10/01": {
@@ -211,7 +212,7 @@
     },
     "ZS US|2026/11/19": {
       "direction": "add",
-      "tier_pushed": 8
+      "tier_pushed": 15
     },
     "LITE US|2026/11/16": {
       "direction": "trim",
@@ -243,6 +244,14 @@
     },
     "DDOG US|2026/11/05": {
       "direction": "trim",
+      "tier_pushed": 8
+    },
+    "OKTA US|2026/11/02": {
+      "direction": "add",
+      "tier_pushed": 8
+    },
+    "FROG US|2026/11/20": {
+      "direction": "add",
       "tier_pushed": 8
     }
   },
